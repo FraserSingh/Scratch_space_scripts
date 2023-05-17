@@ -1,7 +1,7 @@
 #!/usr/bin/sh
 #$ -cwd             #run in current working dir
 #$ -N FastQC_Ximerakis
-#$ -l h_rt=12:00:00 #approximate time taken, (specify more than required for safety)
+#$ -l h_rt=02:00:00 #approximate time taken, (specify more than required for safety)
 #$ -l h_vmem=8G     #How much RAM is required
 #$ -pe sharedmem 6  #added from previous version
 #$ -e FastQC_Ximerakis_1.e     #where errors go
@@ -16,7 +16,7 @@ module load anaconda/5.3.1
 source activate project_test
 
 #perform in Ximerakis
-cd /exports/eddie/scratch/s2268606/Project_space/Ximerakis
+cd /exports/eddie/scratch/s2268606/External_datasets/Ximerakis
 mkdir fastqc_merged
 
 find ./Dumped -maxdepth 1 -name "*.fastq.gz"  -print|sort|uniq >filelist.txt

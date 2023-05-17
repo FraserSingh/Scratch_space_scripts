@@ -7,7 +7,7 @@
 
 # Grid Engine options start with a #$
 # Name job and set to use current working directory
-#$ -N stageinFRS_QC
+#$ -N stageinFRS
 #$ -cwd
 # Choose the staging environment
 #$ -q staging
@@ -26,13 +26,13 @@ trap 'exit 99' sigusr1 sigusr2 sigterm
 # Note: these paths are only available on the staging nodes
 # It should start with one of /exports/csce/datastore, /exports/chss/datastore, /exports/cmvm/datastore or /exports/igmm/datastore
 #
-SOURCE=/exports/cmvm/eddie/eb/groups/mabbott_grp/Fraser/Project_23/External_datasets #or Ensembl_refs
+SOURCE=/exports/cmvm/eddie/eb/groups/mabbott_grp/Fraser/Project_23/
 
 #
 # Destination path on Eddie. It should be on the fast Eddie HPC filesystem, starting with one of:
 # /exports/csce/eddie, /exports/chss/eddie, /exports/cmvm/eddie, /exports/igmm/eddie or /exports/eddie/scratch, 
 #
-DESTINATION=exports/eddie/scratch/s2268606/
+DESTINATION=/exports/eddie/scratch/s2268606/Project_space
 
 # Perform copy with rsync
 # Note: do not use -p or -a (implies -p) as this can break file ACLs at the destination
