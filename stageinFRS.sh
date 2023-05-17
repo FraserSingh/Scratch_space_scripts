@@ -7,7 +7,7 @@
 
 # Grid Engine options start with a #$
 # Name job and set to use current working directory
-#$ -N stageinFRS
+#$ -N stageinFRS_QC
 #$ -cwd
 # Choose the staging environment
 #$ -q staging
