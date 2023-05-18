@@ -7,12 +7,10 @@
 
 # Grid Engine options start with a #$
 # Name job and set to use current working directory
-#$ -N stageinFRS
+#$ -N stageinFRS_QC
 #$ -cwd
 # Choose the staging environment
 #$ -q staging
-#$ -M S2268606@ed.ac.uk    #contact info
-#$ -m beas 
 
 # Hard runtime limit
 #$ -l h_rt=12:00:00 
@@ -28,7 +26,7 @@ trap 'exit 99' sigusr1 sigusr2 sigterm
 # Note: these paths are only available on the staging nodes
 # It should start with one of /exports/csce/datastore, /exports/chss/datastore, /exports/cmvm/datastore or /exports/igmm/datastore
 #
-SOURCE=/exports/cmvm/eddie/eb/groups/mabbott_grp/Fraser/Project_23/
+SOURCE=/exports/cmvm/eddie/eb/groups/mabbott_grp/Fraser/Project_23/External_datasets/Ximerakis
 
 #
 # Destination path on Eddie. It should be on the fast Eddie HPC filesystem, starting with one of:
