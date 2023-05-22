@@ -1,7 +1,7 @@
 #!/usr/bin/bash
 #$ -cwd             #run in current working dir
 #$ -N bamRetrieve    #name of job
-#$ -l h_rt=00:30:00 #approximate time taken, (specify more than required for safety)
+#$ -l h_rt=02:00:00 #approximate time taken, (specify more than required for safety)
 #$ -l h_vmem=16G     #How much RAM is required
 #$ -pe sharedmem 2  #how many cores?
 #$ -e bamRetrieve.e     #where errors go
