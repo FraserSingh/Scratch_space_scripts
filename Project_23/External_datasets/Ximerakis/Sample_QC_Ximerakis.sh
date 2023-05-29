@@ -1,7 +1,7 @@
 #!/usr/bin/sh
 #$ -cwd             #run in current working dir
 #$ -N Sample_FastQC_Ximerakis
-#$ -l h_rt=12:00:00 #approximate time taken, (specify more than required for safety)
+#$ -l h_rt=02:00:00 #approximate time taken, (specify more than required for safety)
 #$ -l h_vmem=8G     #How much RAM is required
 #$ -pe sharedmem 6  #added from previous version
 #$ -e Sample_FastQC_Ximerakis.e     #where errors go
@@ -22,8 +22,8 @@ mkdir ./Samples_fastqc
 for sample in $(cat Ximerakis_BAM_names.txt) ; do
 	samplename=$sample
 
-	fastqc ./${samplename} -t 6 -o ./Samples_fastqc --noextract
-	fastqc ./${samplename} -t 6 -o ./Samples_fastqc --noextract
+	fastqc ./${samplename}/*/*fastq.gz -t 6 -o ./Samples_fastqc --noextract
+
 done
 
 #run multiqc
