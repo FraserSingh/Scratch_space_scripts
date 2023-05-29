@@ -18,7 +18,6 @@ cp cr*/outs/*.html ./cellrangermultiQC
 
 multiqc ./cellrangermultiQC -m cellranger -n cellrangerMultiQC
 
-rm -rf cellrangermultiQC
 
 echo "script ran"
 
