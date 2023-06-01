@@ -1,0 +1,123 @@
+---
+title: "Ximerakis workflow"
+output: html_document
+date: "2023-06-01"
+---
+
+## SCE starting
+
+Adapted from [here](https://bioconductor.org/packages/release/bioc/vignettes/DropletUtils/inst/doc/DropletUtils.html#reading-in-10x-genomics-data) and [here](https://www.singlecellcourse.org/scrna-seq-analysis-with-bioconductor.html).
+
+```{r}
+if (!require("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+
+BiocManager::install("DropletUtils")
+library(DropletUtils)
+
+BiocManager::install("Seurat")
+library(Seurat)
+
+#mouse annotation https://bioconductor.org/packages/release/data/annotation/html/org.Mm.eg.db.html
+BiocManager::install("org.Mm.eg.db")
+library(org.Mm.eg.db)
+
+#and https://bioconductor.org/packages/release/data/annotation/html/EnsDb.Mmusculus.v79.html
+BiocManager::install("EnsDb.Mmusculus.v79")
+library(EnsDb.Mmusculus.v79)
+```
+
+```{r}
+#load Ximerakis paper FIXME this will need to be from group folder eventually, so amend paths at the start
+
+# List of folder names
+sample_names<- readLines("/home/s2268606/University_Directories/Project_23/External_datasets/Ximerakis/Ximerakis_BAM_names.txt")
+#rename them for cell ranger counts folders
+folder_names <- paste0("cr", sample_names)
+
+# Loop through each folder
+for (folder_name in folder_names) {
+  folder_path=paste0("/home/s2268606/University_Directories/Project_23/External_datasets/Ximerakis/",folder_name, "/outs/raw_feature_bc_matrix/")
+  current_data<-Read10X(data.dir =folder_path)
+  
+  #error trap for one of the variables... not sure which
+  if (is.null(colnames(current_data))) {
+    cat("Error: No cell names present in the input matrix for folder", folder_name, "\n")
+    next  # Skip to the next iteration of the loop
+  }
+  
+  # Assign the object to a variable with the folder name as the variable name
+  assign(folder_name, current_data)
+  
+  # Make names for and create the Seurat objects
+  objName <- paste0(folder_name, "obj")
+  current_obj <- CreateSeuratObject(counts = current_data, project = "Ximerakis")
+  assign(objName, current_obj)
+}
+
+#make the list of merging objects, omit the others with a shared name parts
+matching_vars <- ls(pattern = 'obj')
+matching_vars <- matching_vars[!matching_vars %in% c("current_obj", "objName")]
+
+#merge the samples into one object
+Ximerakis_total <- merge(crOX1Xobj, y= c(crOX2Xobj,crOX3Xobj,crOX4Xobj,crOX5Xobj,crOX6Xobj,crOX7Xobj,crOX8Xobj,crYX1Lobj,crYX2Lobj,crYX3Robj,crYX4Robj,crYX5Robj,crYX6Lobj,crYX7Robj,crYX8Lobj), add.cell.ids=c("crOX1X", "crOX2X", "crOX3X", "crOX4X", "crOX5X", "crOX6X", "crOX7X", "crOX8X", "crYX1L", "crYX2L","crYX3R", "crYX4R", "crYX5R" ,"crYX6L", "crYX7R", "crYX8L"), project="Ximerakis")
+
+#cleaning up memory
+rm("crOX1X", "crOX2X", "crOX3X", "crOX4X", "crOX5X", "crOX6X", "crOX7X", "crOX8X", "crYX1L", "crYX2L","crYX3R", "crYX4R", "crYX5R" ,"crYX6L", "crYX7R", "crYX8L","matching_vars",)
+```
+
+\###### Doublet finder here
+
+```{r}
+#identify mitochondrial gene portions
+Ximerakis_total[["percent.mt"]]<- PercentageFeatureSet(Ximerakis_total, pattern = "^mt")
+```
+
+```{r}
+VlnPlot(Ximerakis_total, features=c("nFeature_RNA","nCount_RNA","percent.mt"), ncol=3)
+```
+
+```{r}
+#Show overall reads and gene counts for unfiltered data.
+FeatureScatter(Ximerakis_total, feature1 = "nCount_RNA", feature2="nFeature_RNA",raster=FALSE)+ geom_smooth(method="lm")+ ggtitle("Transcripts vs. genes of unfiltered Ximerakis dataset")
+```
+
+```{r}
+#filter out the cells with mitochondrial genes more than 5% and genes with more than 1k genes as instructed by Nick
+Ximerakis_total<- subset(Ximerakis_total, subset= percent.mt <5 & nFeature_RNA > 1000)
+```
+
+### Add metadata, splitting samples with sample identity
+
+adapted from <https://youtu.be/p49seH2_i8Y?t=312>
+
+```{r}
+sampleLabs<-names(Ximerakis_total@active.ident)
+library(dplyr)
+library(stringr)
+
+#From Chat GPT
+sample_detect <- case_when(
+  str_detect(sampleLabs, "crOX1X") ~ "crOX1X",
+  str_detect(sampleLabs, "crOX2X") ~ "crOX2X",
+  str_detect(sampleLabs, "crOX3X") ~ "crOX3X",
+  str_detect(sampleLabs, "crOX4X") ~ "crOX4X",
+  str_detect(sampleLabs, "crOX5X") ~ "crOX5X",
+  str_detect(sampleLabs, "crOX6X") ~ "crOX6X",
+  str_detect(sampleLabs, "crOX7X") ~ "crOX7X",
+  str_detect(sampleLabs, "crOX8X") ~ "crOX8X",
+  str_detect(sampleLabs, "crYX1L") ~ "crYX1L",
+  str_detect(sampleLabs, "crYX2L") ~ "crYX2L",
+  str_detect(sampleLabs, "crYX3R") ~ "crYX3R",
+  str_detect(sampleLabs, "crYX4R") ~ "crYX4R",
+  str_detect(sampleLabs, "crYX5R") ~ "crYX5R",
+  str_detect(sampleLabs, "crYX6L") ~ "crYX6L",
+  str_detect(sampleLabs, "crYX7R") ~ "crYX7R",
+  str_detect(sampleLabs, "crYX8L") ~ "crYX8L",
+  TRUE ~ NA_character_
+)
+
+
+Ximerakis_total@meta.data$sample<-sample_detect
+Idents(object=Ximerakis_total)<-"sample"
+```
