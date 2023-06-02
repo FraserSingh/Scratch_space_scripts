@@ -36,4 +36,4 @@ DESTINATION=/exports/cmvm/eddie/eb/groups/mabbott_grp/Fraser/
 
 # Perform copy with rsync
 # Note: do not use -p or -a (implies -p) as this can break file ACLs at the destination
-rsync -rl ${SOURCE} ${DESTINATION}
+rsync -rl --delete-during  ${SOURCE} ${DESTINATION}

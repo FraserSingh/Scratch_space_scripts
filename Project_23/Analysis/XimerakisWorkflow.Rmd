@@ -4,7 +4,7 @@ output: html_document
 date: "2023-06-01"
 ---
 
-## SCE starting
+## Seurat for Ximerakis
 
 Adapted from [here](https://bioconductor.org/packages/release/bioc/vignettes/DropletUtils/inst/doc/DropletUtils.html#reading-in-10x-genomics-data) and [here](https://www.singlecellcourse.org/scrna-seq-analysis-with-bioconductor.html).
 
@@ -25,6 +25,12 @@ library(org.Mm.eg.db)
 #and https://bioconductor.org/packages/release/data/annotation/html/EnsDb.Mmusculus.v79.html
 BiocManager::install("EnsDb.Mmusculus.v79")
 library(EnsDb.Mmusculus.v79)
+
+library(dplyr)
+library(stringr)
+
+remotes::install_github('chris-mcginnis-ucsf/DoubletFinder')
+library(DoubletFinder)
 ```
 
 ```{r}
@@ -66,8 +72,6 @@ Ximerakis_total <- merge(crOX1Xobj, y= c(crOX2Xobj,crOX3Xobj,crOX4Xobj,crOX5Xobj
 rm("crOX1X", "crOX2X", "crOX3X", "crOX4X", "crOX5X", "crOX6X", "crOX7X", "crOX8X", "crYX1L", "crYX2L","crYX3R", "crYX4R", "crYX5R" ,"crYX6L", "crYX7R", "crYX8L","matching_vars",)
 ```
 
-\###### Doublet finder here
-
 ```{r}
 #identify mitochondrial gene portions
 Ximerakis_total[["percent.mt"]]<- PercentageFeatureSet(Ximerakis_total, pattern = "^mt")
@@ -93,31 +97,181 @@ adapted from <https://youtu.be/p49seH2_i8Y?t=312>
 
 ```{r}
 sampleLabs<-names(Ximerakis_total@active.ident)
-library(dplyr)
-library(stringr)
 
+#Assigning names to the samples to keep identity
 #From Chat GPT
 sample_detect <- case_when(
-  str_detect(sampleLabs, "crOX1X") ~ "crOX1X",
-  str_detect(sampleLabs, "crOX2X") ~ "crOX2X",
-  str_detect(sampleLabs, "crOX3X") ~ "crOX3X",
-  str_detect(sampleLabs, "crOX4X") ~ "crOX4X",
-  str_detect(sampleLabs, "crOX5X") ~ "crOX5X",
-  str_detect(sampleLabs, "crOX6X") ~ "crOX6X",
-  str_detect(sampleLabs, "crOX7X") ~ "crOX7X",
-  str_detect(sampleLabs, "crOX8X") ~ "crOX8X",
-  str_detect(sampleLabs, "crYX1L") ~ "crYX1L",
-  str_detect(sampleLabs, "crYX2L") ~ "crYX2L",
-  str_detect(sampleLabs, "crYX3R") ~ "crYX3R",
-  str_detect(sampleLabs, "crYX4R") ~ "crYX4R",
-  str_detect(sampleLabs, "crYX5R") ~ "crYX5R",
-  str_detect(sampleLabs, "crYX6L") ~ "crYX6L",
-  str_detect(sampleLabs, "crYX7R") ~ "crYX7R",
-  str_detect(sampleLabs, "crYX8L") ~ "crYX8L",
+  str_detect(sampleLabs, "crOX1X") ~ "OX1X",
+  str_detect(sampleLabs, "crOX2X") ~ "OX2X",
+  str_detect(sampleLabs, "crOX3X") ~ "OX3X",
+  str_detect(sampleLabs, "crOX4X") ~ "OX4X",
+  str_detect(sampleLabs, "crOX5X") ~ "OX5X",
+  str_detect(sampleLabs, "crOX6X") ~ "OX6X",
+  str_detect(sampleLabs, "crOX7X") ~ "OX7X",
+  str_detect(sampleLabs, "crOX8X") ~ "OX8X",
+  str_detect(sampleLabs, "crYX1L") ~ "YX1L",
+  str_detect(sampleLabs, "crYX2L") ~ "YX2L",
+  str_detect(sampleLabs, "crYX3R") ~ "YX3R",
+  str_detect(sampleLabs, "crYX4R") ~ "YX4R",
+  str_detect(sampleLabs, "crYX5R") ~ "YX5R",
+  str_detect(sampleLabs, "crYX6L") ~ "YX6L",
+  str_detect(sampleLabs, "crYX7R") ~ "YX7R",
+  str_detect(sampleLabs, "crYX8L") ~ "YX8L",
   TRUE ~ NA_character_
 )
-
-
+#
 Ximerakis_total@meta.data$sample<-sample_detect
 Idents(object=Ximerakis_total)<-"sample"
+```
+
+```{r}
+#adapted from https://youtu.be/p49seH2_i8Y , https://github.com/kpatel427/YouTubeTutorials/blob/5b3c795cecafb22f0e992da069eae2efd6b5cb95/singleCell_doublets.R , https://rpubs.com/kenneditodd/doublet_finder_example  
+# 
+# remotes::install_github('chris-mcginnis-ucsf/DoubletFinder')
+# library(DoubletFinder)
+# 
+# #Re-split the smaples into a manageable list so that QC can be run on them separately
+# Ximerakis.list <- SplitObject(Ximerakis_total, split.by = "sample")
+# 
+# # Perform standard preprocessing on each object
+# Ximerakis.list <- lapply(Ximerakis.list, function(x) {
+#   x <- NormalizeData(x, verbose = FALSE)
+#   x <- subset(x, downsample = 3000)
+#   x <- FindVariableFeatures(x, selection.method = "vst",nfeatures = 2000, verbose = FALSE)
+#   return(x)
+# })
+# 
+# # Select integration features and run PCA, FindNeighbors, FindClusters, and RunUMAP
+# features <- SelectIntegrationFeatures(object.list = Ximerakis.list) #FIXME needed?
+# 
+# Ximerakis.list <- lapply(Ximerakis.list, function(x) {
+#   x <- ScaleData(x, features = features, verbose = FALSE)
+#   x <- RunPCA(x, features = features, verbose = FALSE)
+#   x <- FindNeighbors(object = x, dims = 1:20, verbose = FALSE)
+#   x <- FindClusters(object = x, verbose = FALSE)
+#   x <- RunUMAP(object = x, dims = 1:20, verbose = FALSE)
+# 
+#   # pK identification (no ground-truth)
+#   sweep.list <- paramSweep_v3(x, PCs = 1:20)
+#   sweep.stats <- summarizeSweep(sweep.list)
+#   bcmvn <- find.pK(sweep.stats)
+#   
+#   # Optimal pK is the max of the bomodality coefficent (BCmvn) distribution
+#   bcmvn.max <- bcmvn[which.max(bcmvn$BCmetric),]
+#   optimal.pk <- bcmvn.max$pK
+#   optimal.pk <- as.numeric(levels(optimal.pk))[optimal.pk]
+#   
+#   # Homotypic doublet proportion estimate
+#   annotations <- x@meta.data$seurat_clusters
+#   homotypic.prop <- modelHomotypic(annotations) 
+#   nExp.poi <- round(optimal.pk * nrow(x@meta.data))
+#   nExp.poi.adj <- round(nExp.poi * (1 - homotypic.prop))
+#   
+#   # Run DoubletFinder
+#   x <- doubletFinder_v3(seu = x, 
+#                         PCs = 1:20, 
+#                         pN= 0.25,
+#                         pK = optimal.pk,
+#                         nExp = nExp.poi.adj,
+#                         reuse.pANN = FALSE, sct= FALSE)
+#   #Renaming the metadatacolumn names
+#   # metadata <- x@meta.data
+#   # colnames(metadata)[15] <- "doublet_finder"
+#   # x@meta.data <- metadata
+#   
+#   return(x)
+# })
+
+
+```
+
+```{r}
+#adapted from https://youtu.be/p49seH2_i8Y , https://github.com/kpatel427/YouTubeTutorials/blob/5b3c795cecafb22f0e992da069eae2efd6b5cb95/singleCell_doublets.R , https://rpubs.com/kenneditodd/doublet_finder_example  
+
+
+Ximerakis.list <- SplitObject(Ximerakis_total, split.by = "sample")
+
+# Perform doublet detection on each sample using lapply
+Ximerakis.list <- lapply(Ximerakis.list, function(sample) {
+  # Pre-process seurat object with standard seurat workflow
+  sample <- NormalizeData(sample)
+  sample <- FindVariableFeatures(sample)
+  sample <- ScaleData(sample)
+  sample <- RunPCA(sample, nfeatures.print = 10)
+  
+  # # Find significant PCs
+  # stdv <- sample[["pca"]]@stdev
+  # sum.stdv <- sum(sample[["pca"]]@stdev)
+  # percent.stdv <- (stdv / sum.stdv) * 100
+  # cumulative <- cumsum(percent.stdv)
+  # co1 <- which(cumulative > 90 & percent.stdv < 5)[1]
+  # co2 <- sort(which((percent.stdv[1:length(percent.stdv) - 1] - 
+  #                      percent.stdv[2:length(percent.stdv)]) > 0.1), 
+  #             decreasing = TRUE)[1] + 1
+  # min.pc <- min(co1, co2)
+  
+  #alternative to PC selection
+  min.pc<- 25
+  
+  # Finish pre-processing
+  sample <- RunUMAP(sample, dims = 1:min.pc)
+  sample <- FindNeighbors(object = sample, dims = 1:min.pc)              
+  sample <- FindClusters(object = sample, resolution = 0.1)
+  
+  # pK identification (no ground-truth)
+  sweep.list <- paramSweep_v3(sample, PCs = 1:min.pc)
+  sweep.stats <- summarizeSweep(sweep.list)
+  bcmvn <- find.pK(sweep.stats)
+  
+  # Optimal pK is the max of the bomodality coefficient (BCmvn) distribution
+  bcmvn.max <- bcmvn[which.max(bcmvn$BCmetric),]
+  optimal.pk <- bcmvn.max$pK
+  optimal.pk <- as.numeric(levels(optimal.pk))[optimal.pk]
+  
+  # Homotypic doublet proportion estimate
+  annotations <- sample@meta.data$seurat_clusters
+  homotypic.prop <- modelHomotypic(annotations) 
+  nExp.poi <- round(optimal.pk * nrow(sample@meta.data))
+  nExp.poi.adj <- round(nExp.poi * (1 - homotypic.prop))
+  
+  # Run DoubletFinder
+  sample <- doubletFinder_v3(seu = sample, 
+                             PCs = 1:min.pc, 
+                             pK = optimal.pk,
+                             nExp = nExp.poi.adj)
+  
+  #To check the output of doublet finder has been added properly
+  print(sample)
+  print(colnames(sample@meta.data))
+
+  
+  # Update metadata column name for doublet information
+  doublet_col_index <- which(grepl("DF.classifications_", colnames(sample@meta.data)))
+  if (length(doublet_col_index) > 0) {
+    colnames(sample@meta.data)[doublet_col_index] <- "doublet_finder"
+    }
+  
+  # Subset and return singlets
+  singlets <- subset(sample, doublet_finder == "Singlet")
+  return(singlets)
+})
+
+# Merge singlets from all samples
+Processed_Ximerakis <- merge(Ximerakis.list, project = "Ximerakis scRNAseq")
+Processed_Ximerakis
+```
+
+```{r}
+
+# code from https://github.com/kpatel427/YouTubeTutorials/blob/5b3c795cecafb22f0e992da069eae2efd6b5cb95/singleCell_doublets.R
+
+#show the capture of variability in the PCs
+ElbowPlot(Ximerakis.list[[1]])+ggtitle("Variability captured at each level of PC in PCA (sample OX1X)" )
+
+# # visualize doublets
+# DimPlot(x, reduction = 'umap', group.by = "DF.classifications_0.25_0.21_691")
+
+
+# # number of singlets and doublets
+# table(x@meta.data$DF.classifications_0.25_0.21_691)
 ```
