@@ -125,69 +125,13 @@ Idents(object=Ximerakis_total)<-"sample"
 ```
 
 ```{r}
-#adapted from https://youtu.be/p49seH2_i8Y , https://github.com/kpatel427/YouTubeTutorials/blob/5b3c795cecafb22f0e992da069eae2efd6b5cb95/singleCell_doublets.R , https://rpubs.com/kenneditodd/doublet_finder_example  
-# 
-# remotes::install_github('chris-mcginnis-ucsf/DoubletFinder')
-# library(DoubletFinder)
-# 
-# #Re-split the smaples into a manageable list so that QC can be run on them separately
-# Ximerakis.list <- SplitObject(Ximerakis_total, split.by = "sample")
-# 
-# # Perform standard preprocessing on each object
-# Ximerakis.list <- lapply(Ximerakis.list, function(x) {
-#   x <- NormalizeData(x, verbose = FALSE)
-#   x <- subset(x, downsample = 3000)
-#   x <- FindVariableFeatures(x, selection.method = "vst",nfeatures = 2000, verbose = FALSE)
-#   return(x)
-# })
-# 
-# # Select integration features and run PCA, FindNeighbors, FindClusters, and RunUMAP
-# features <- SelectIntegrationFeatures(object.list = Ximerakis.list) #FIXME needed?
-# 
-# Ximerakis.list <- lapply(Ximerakis.list, function(x) {
-#   x <- ScaleData(x, features = features, verbose = FALSE)
-#   x <- RunPCA(x, features = features, verbose = FALSE)
-#   x <- FindNeighbors(object = x, dims = 1:20, verbose = FALSE)
-#   x <- FindClusters(object = x, verbose = FALSE)
-#   x <- RunUMAP(object = x, dims = 1:20, verbose = FALSE)
-# 
-#   # pK identification (no ground-truth)
-#   sweep.list <- paramSweep_v3(x, PCs = 1:20)
-#   sweep.stats <- summarizeSweep(sweep.list)
-#   bcmvn <- find.pK(sweep.stats)
-#   
-#   # Optimal pK is the max of the bomodality coefficent (BCmvn) distribution
-#   bcmvn.max <- bcmvn[which.max(bcmvn$BCmetric),]
-#   optimal.pk <- bcmvn.max$pK
-#   optimal.pk <- as.numeric(levels(optimal.pk))[optimal.pk]
-#   
-#   # Homotypic doublet proportion estimate
-#   annotations <- x@meta.data$seurat_clusters
-#   homotypic.prop <- modelHomotypic(annotations) 
-#   nExp.poi <- round(optimal.pk * nrow(x@meta.data))
-#   nExp.poi.adj <- round(nExp.poi * (1 - homotypic.prop))
-#   
-#   # Run DoubletFinder
-#   x <- doubletFinder_v3(seu = x, 
-#                         PCs = 1:20, 
-#                         pN= 0.25,
-#                         pK = optimal.pk,
-#                         nExp = nExp.poi.adj,
-#                         reuse.pANN = FALSE, sct= FALSE)
-#   #Renaming the metadatacolumn names
-#   # metadata <- x@meta.data
-#   # colnames(metadata)[15] <- "doublet_finder"
-#   # x@meta.data <- metadata
-#   
-#   return(x)
-# })
-
 
 ```
 
-```{r}
-#adapted from https://youtu.be/p49seH2_i8Y , https://github.com/kpatel427/YouTubeTutorials/blob/5b3c795cecafb22f0e992da069eae2efd6b5cb95/singleCell_doublets.R , https://rpubs.com/kenneditodd/doublet_finder_example  
+## Doublet finder for all samples
 
+```{r}
+#adapted from https://youtu.be/p49seH2_i8Y , https://github.com/kpatel427/YouTubeTutorials/blob/5b3c795cecafb22f0e992da069eae2efd6b5cb95/singleCell_doublets.R , https://rpubs.com/kenneditodd/doublet_finder_example 
 
 Ximerakis.list <- SplitObject(Ximerakis_total, split.by = "sample")
 
@@ -195,23 +139,19 @@ Ximerakis.list <- SplitObject(Ximerakis_total, split.by = "sample")
 Ximerakis.list <- lapply(Ximerakis.list, function(sample) {
   # Pre-process seurat object with standard seurat workflow
   sample <- NormalizeData(sample)
-  sample <- FindVariableFeatures(sample)
-  sample <- ScaleData(sample)
-  sample <- RunPCA(sample, nfeatures.print = 10)
+  sample <- SCTransform(sample)
+  sample <- RunPCA(sample)
   
-  # # Find significant PCs
-  # stdv <- sample[["pca"]]@stdev
-  # sum.stdv <- sum(sample[["pca"]]@stdev)
-  # percent.stdv <- (stdv / sum.stdv) * 100
-  # cumulative <- cumsum(percent.stdv)
-  # co1 <- which(cumulative > 90 & percent.stdv < 5)[1]
-  # co2 <- sort(which((percent.stdv[1:length(percent.stdv) - 1] - 
-  #                      percent.stdv[2:length(percent.stdv)]) > 0.1), 
-  #             decreasing = TRUE)[1] + 1
-  # min.pc <- min(co1, co2)
-  
-  #alternative to PC selection
-  min.pc<- 25
+  # Find significant PCs
+  stdv <- sample[["pca"]]@stdev
+  sum.stdv <- sum(sample[["pca"]]@stdev)
+  percent.stdv <- (stdv / sum.stdv) * 100
+  cumulative <- cumsum(percent.stdv)
+  co1 <- which(cumulative > 90 & percent.stdv < 5)[1]
+  co2 <- sort(which((percent.stdv[1:length(percent.stdv) - 1] -
+                       percent.stdv[2:length(percent.stdv)]) > 0.1),
+              decreasing = TRUE)[1] + 1
+  min.pc <- min(co1, co2)
   
   # Finish pre-processing
   sample <- RunUMAP(sample, dims = 1:min.pc)
@@ -219,31 +159,27 @@ Ximerakis.list <- lapply(Ximerakis.list, function(sample) {
   sample <- FindClusters(object = sample, resolution = 0.1)
   
   # pK identification (no ground-truth)
-  sweep.list <- paramSweep_v3(sample, PCs = 1:min.pc)
+  sweep.list <- paramSweep_v3(sample, PCs = 1:min.pc, sct = TRUE)
   sweep.stats <- summarizeSweep(sweep.list)
   bcmvn <- find.pK(sweep.stats)
   
   # Optimal pK is the max of the bomodality coefficient (BCmvn) distribution
   bcmvn.max <- bcmvn[which.max(bcmvn$BCmetric),]
-  optimal.pk <- bcmvn.max$pK
-  optimal.pk <- as.numeric(levels(optimal.pk))[optimal.pk]
-  
+  optimal.pk <- as.numeric(bcmvn.max$pK)
+
   # Homotypic doublet proportion estimate
   annotations <- sample@meta.data$seurat_clusters
   homotypic.prop <- modelHomotypic(annotations) 
-  nExp.poi <- round(optimal.pk * nrow(sample@meta.data))
+  nExp.poi <- round(0.087 * nrow(sample@meta.data))
   nExp.poi.adj <- round(nExp.poi * (1 - homotypic.prop))
   
   # Run DoubletFinder
   sample <- doubletFinder_v3(seu = sample, 
                              PCs = 1:min.pc, 
                              pK = optimal.pk,
-                             nExp = nExp.poi.adj)
-  
-  #To check the output of doublet finder has been added properly
-  print(sample)
-  print(colnames(sample@meta.data))
-
+                             nExp = nExp.poi.adj, 
+                             sct = TRUE, 
+                             pN=0.25)
   
   # Update metadata column name for doublet information
   doublet_col_index <- which(grepl("DF.classifications_", colnames(sample@meta.data)))
@@ -256,9 +192,9 @@ Ximerakis.list <- lapply(Ximerakis.list, function(sample) {
   return(singlets)
 })
 
-# Merge singlets from all samples
-Processed_Ximerakis <- merge(Ximerakis.list, project = "Ximerakis scRNAseq")
-Processed_Ximerakis
+# # Merge singlets from all samples
+# Processed_Ximerakis <- merge(Ximerakis.list, project = "Ximerakis scRNAseq")
+# View(Processed_Ximerakis)
 ```
 
 ```{r}
@@ -274,4 +210,40 @@ ElbowPlot(Ximerakis.list[[1]])+ggtitle("Variability captured at each level of PC
 
 # # number of singlets and doublets
 # table(x@meta.data$DF.classifications_0.25_0.21_691)
+```
+
+## Running doubletfinder on one sample
+
+```{r}
+#trying to run doublet finder on one sample
+# Ximerakis.list <- SplitObject(Ximerakis_total, split.by = "sample")
+Testing_dubF <- Ximerakis.list[[1]]
+Testing_dubF <- NormalizeData(Testing_dubF)
+Testing_dubF <- SCTransform(object = Testing_dubF)
+Testing_dubF<-RunPCA(Testing_dubF)
+
+stdv <- Testing_dubF[["pca"]]@stdev
+sum.stdv <- sum(Testing_dubF[["pca"]]@stdev)
+percent.stdv <- (stdv / sum.stdv) * 100
+cumulative <- cumsum(percent.stdv)
+co1 <- which(cumulative > 90 & percent.stdv < 5)[1]
+co2 <- sort(which((percent.stdv[1:length(percent.stdv) - 1] -
+                     percent.stdv[2:length(percent.stdv)]) > 0.1),
+            decreasing = TRUE)[1] + 1
+min.pc <- min(co1, co2)
+
+Testing_dubF<-RunUMAP(Testing_dubF, dims=1:min.pc)
+Testing_dubF<-FindNeighbors(Testing_dubF, dims=1:min.pc)
+Testing_dubF<-FindClusters(Testing_dubF)
+sweep.list <- paramSweep_v3(Testing_dubF, PCs = 1:min.pc, sct = TRUE)
+sweep.stats <- summarizeSweep(sweep.list)
+bcmvn <- find.pK(sweep.stats)
+bcmvn.max <- bcmvn[which.max(bcmvn$BCmetric),]
+optimal.pk <- as.numeric(bcmvn.max$pK)    #####Had to convert this value
+annotations <- Testing_dubF@meta.data$seurat_clusters
+homotypic.prop <- modelHomotypic(annotations)
+nExp.poi <- round(0.087 * nrow(Testing_dubF@meta.data)) #determined from number of cells loaded according to authors, see Log17.
+nExp.poi.adj <- round(nExp.poi * (1 - homotypic.prop))
+Testing_dubF<- doubletFinder_v3(seu=Testing_dubF, PCs= 1:min.pc, pK=optimal.pk, nExp = nExp.poi.adj, sct = TRUE, pN=0.25)
+# DimPlot(Testing_dubF, reduction = 'umap', group.by = ".........")
 ```
