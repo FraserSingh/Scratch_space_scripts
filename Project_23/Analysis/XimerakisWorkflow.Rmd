@@ -1,3 +1,5 @@
+------------------------------------------------------------------------
+
 ---
 title: "Ximerakis workflow"
 output: html_document
@@ -137,6 +139,7 @@ Ximerakis.list <- SplitObject(Ximerakis_total, split.by = "sample")
 
 # Perform doublet detection on each sample using lapply
 Ximerakis.list <- lapply(Ximerakis.list, function(sample) {
+  print(paste0("Sample ",sample@meta.data$sample[1]))
   # Pre-process seurat object with standard seurat workflow
   sample <- NormalizeData(sample)
   sample <- SCTransform(sample)
@@ -181,28 +184,30 @@ Ximerakis.list <- lapply(Ximerakis.list, function(sample) {
                              sct = TRUE, 
                              pN=0.25)
   
-  # Update metadata column name for doublet information
-  doublet_col_index <- which(grepl("DF.classifications_", colnames(sample@meta.data)))
-  if (length(doublet_col_index) > 0) {
-    colnames(sample@meta.data)[doublet_col_index] <- "doublet_finder"
-    }
+  return(sample)
   
-  # Subset and return singlets
-  singlets <- subset(sample, doublet_finder == "Singlet")
-  return(singlets)
 })
 
-# # Merge singlets from all samples
-# Processed_Ximerakis <- merge(Ximerakis.list, project = "Ximerakis scRNAseq")
-# View(Processed_Ximerakis)
+#Rename the columns
+Ximerakis.list <- lapply(Ximerakis.list, function(sample) {
+  doublet_col_index <- which(grepl("DF.classifications_", colnames(sample@meta.data)))
+  sample$doublet_finder <- sample@meta.data[doublet_col_index]
+  sample@meta.data[doublet_col_index]<-NULL
+  return(sample)
+})
+
+#subset data by singlet status
+Ximerakis.list <- lapply(Ximerakis.list, function(sample) {
+  sample<- subset(sample, subset = sample@meta.data$doubletfinder == 'Singlet')
+})
 ```
 
 ```{r}
-
+#Misc code
 # code from https://github.com/kpatel427/YouTubeTutorials/blob/5b3c795cecafb22f0e992da069eae2efd6b5cb95/singleCell_doublets.R
 
 #show the capture of variability in the PCs
-ElbowPlot(Ximerakis.list[[1]])+ggtitle("Variability captured at each level of PC in PCA (sample OX1X)" )
+ElbowPlot(Ximerakis.list[[1]])+ggtitle("Variability captured at each level of PC in PCA (sample OX1X)"))
 
 # # visualize doublets
 # DimPlot(x, reduction = 'umap', group.by = "DF.classifications_0.25_0.21_691")
@@ -210,6 +215,13 @@ ElbowPlot(Ximerakis.list[[1]])+ggtitle("Variability captured at each level of PC
 
 # # number of singlets and doublets
 # table(x@meta.data$DF.classifications_0.25_0.21_691)
+
+  #FIXME is this overwriting to only have singlets?
+  # # Subset and return singlets
+  # singlets <- subset(sample, doublet_finder == "Singlet")
+  # return(singlets)  
+# # Merge singlets from all samples
+# Ximerakis.singlets <- merge(list items)
 ```
 
 ## Running doubletfinder on one sample

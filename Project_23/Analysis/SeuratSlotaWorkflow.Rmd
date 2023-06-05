@@ -4,7 +4,7 @@ output: html_document
 date: "2023-05-23"
 ---
 
-## SCE starting
+## Slota Workflow
 
 Adapted from [here](https://bioconductor.org/packages/release/bioc/vignettes/DropletUtils/inst/doc/DropletUtils.html#reading-in-10x-genomics-data) and [here](https://www.singlecellcourse.org/scrna-seq-analysis-with-bioconductor.html).
 
@@ -32,9 +32,119 @@ Slota_total<- CreateSeuratObject(counts = Slota_total, project="Slota")
 Slota_total
 ```
 
-Do i need to split the sample now? see Ximerakis script
+Do i need to split the sample now? see Slota script
 
 ```{r}
-
+#ID mitochondrial dominant cells
+Slota_total[["percent.mt"]]<- PercentageFeatureSet(Slota_total, pattern = "^mt")
+View(Slota_total@meta.data)
 ```
 
+```{r}
+#Show qualtiy of dataset
+FeatureScatter(Slota_total, feature1 = "nCount_RNA", feature2="nFeature_RNA",raster=FALSE)+ geom_smooth(method="lm")+ ggtitle("Transcripts vs. genes of unfiltered Slota dataset")
+```
+
+```{r}
+#Filter dataset by mitochondrial proportion and gene counts
+Slota_total<- subset(Slota_total, subset= percent.mt <5 & nFeature_RNA > 1000)
+```
+
+```{r}
+#Name data by sample tag
+
+#FIXME change sample tags
+
+sample_detect <- case_when(
+  str_detect(sampleLabs, "crOX1X") ~ "OX1X",
+  str_detect(sampleLabs, "crOX2X") ~ "OX2X",
+  str_detect(sampleLabs, "crOX3X") ~ "OX3X",
+  str_detect(sampleLabs, "crOX4X") ~ "OX4X",
+  str_detect(sampleLabs, "crOX5X") ~ "OX5X",
+  str_detect(sampleLabs, "crOX6X") ~ "OX6X",
+  str_detect(sampleLabs, "crOX7X") ~ "OX7X",
+  str_detect(sampleLabs, "crOX8X") ~ "OX8X",
+  str_detect(sampleLabs, "crYX1L") ~ "YX1L",
+  str_detect(sampleLabs, "crYX2L") ~ "YX2L",
+  str_detect(sampleLabs, "crYX3R") ~ "YX3R",
+  str_detect(sampleLabs, "crYX4R") ~ "YX4R",
+  str_detect(sampleLabs, "crYX5R") ~ "YX5R",
+  str_detect(sampleLabs, "crYX6L") ~ "YX6L",
+  str_detect(sampleLabs, "crYX7R") ~ "YX7R",
+  str_detect(sampleLabs, "crYX8L") ~ "YX8L",
+  TRUE ~ NA_character_
+)
+
+
+Slota_total@meta.data$sample<-sample_detect
+Idents(object=Slota_total)<-"sample"
+```
+
+## Run doubletfinder
+
+```{r}
+#adapted from https://youtu.be/p49seH2_i8Y , https://github.com/kpatel427/YouTubeTutorials/blob/5b3c795cecafb22f0e992da069eae2efd6b5cb95/singleCell_doublets.R , https://rpubs.com/kenneditodd/doublet_finder_example 
+
+Slota.list <- SplitObject(Slota_total, split.by = "sample")
+
+# Perform doublet detection on each sample using lapply
+Slota.list <- lapply(Slota.list, function(sample) {
+  # Pre-process seurat object with standard seurat workflow
+  sample <- NormalizeData(sample)
+  sample <- SCTransform(sample)
+  sample <- RunPCA(sample)
+  
+  # Find significant PCs
+  stdv <- sample[["pca"]]@stdev
+  sum.stdv <- sum(sample[["pca"]]@stdev)
+  percent.stdv <- (stdv / sum.stdv) * 100
+  cumulative <- cumsum(percent.stdv)
+  co1 <- which(cumulative > 90 & percent.stdv < 5)[1]
+  co2 <- sort(which((percent.stdv[1:length(percent.stdv) - 1] -
+                       percent.stdv[2:length(percent.stdv)]) > 0.1),
+              decreasing = TRUE)[1] + 1
+  min.pc <- min(co1, co2)
+  
+  # Finish pre-processing
+  sample <- RunUMAP(sample, dims = 1:min.pc)
+  sample <- FindNeighbors(object = sample, dims = 1:min.pc)              
+  sample <- FindClusters(object = sample, resolution = 0.1)
+  
+  # pK identification (no ground-truth)
+  sweep.list <- paramSweep_v3(sample, PCs = 1:min.pc, sct = TRUE)
+  sweep.stats <- summarizeSweep(sweep.list)
+  bcmvn <- find.pK(sweep.stats)
+  
+  # Optimal pK is the max of the bomodality coefficient (BCmvn) distribution
+  bcmvn.max <- bcmvn[which.max(bcmvn$BCmetric),]
+  optimal.pk <- as.numeric(bcmvn.max$pK)
+
+  # Homotypic doublet proportion estimate
+  annotations <- sample@meta.data$seurat_clusters
+  homotypic.prop <- modelHomotypic(annotations) 
+  nExp.poi <- round(0.05 * nrow(sample@meta.data)) ##adjusted for 10k cells loaded according to author.
+  nExp.poi.adj <- round(nExp.poi * (1 - homotypic.prop))
+  
+  # Run DoubletFinder
+  sample <- doubletFinder_v3(seu = sample, 
+                             PCs = 1:min.pc, 
+                             pK = optimal.pk,
+                             nExp = nExp.poi.adj, 
+                             sct = TRUE, 
+                             pN=0.25)
+  
+  # Update metadata column name for doublet information
+  doublet_col_index <- which(grepl("DF.classifications_", colnames(sample@meta.data)))
+  if (length(doublet_col_index) > 0) {
+    colnames(sample@meta.data)[doublet_col_index] <- "doublet_finder"
+    }
+  
+  # Subset and return singlets
+  singlets <- subset(sample, doublet_finder == "Singlet")
+  return(singlets)
+})
+
+# # Merge singlets from all samples
+# Processed_Slota <- merge(Slota.list, project = "Slota scRNAseq")
+# View(Processed_Slota)
+```
