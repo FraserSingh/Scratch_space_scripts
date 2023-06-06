@@ -39,14 +39,11 @@ remotes::install_github('chris-mcginnis-ucsf/DoubletFinder')
 library(DoubletFinder)
 ```
 
-
 ```{r}
 #load Verity paper FIXME this will need to be from group folder eventually, so amend paths at the start
 
 # List of folder names
-sample_names<- readLines("/home/s2268606/University_Directories/Project_23/External_datasets/Ximerakis/Ximerakis_BAM_names.txt")
-#rename them for cell ranger counts folders
-folder_names <- paste0("cr", sample_names)
+folder_names <- c("sample1", "sample2", "sample5", "sample6", "sample9","sample11", )
 
 # Loop through each folder
 for (folder_name in folder_names) {
@@ -55,42 +52,47 @@ for (folder_name in folder_names) {
   
   #### FIXME syntax changes for our files
   ##Load files as matrices
-  current_matrix<-Matrix::readMM(folder_path)
+  current_matrix<-Matrix::readMM(folder_path,"/DGE.mtx")
   
   ##Transpose
-  t()
+  current_matrix<-t(current_matrix)
   
-  ##replace commas or underscores (view other mtx files to get an idea of correct syntax and the head of our data for our current syntax)
+  #Set cellnames FIXME
+  
+  ##replace commas or underscores (view other mtx files to get an idea of correct syntax and the head of our data for our current syntax) FIXME
   
   
   
-  current_data<-Read10X(data.dir =folder_path) ###this will be the matrix
+  current_metadata<-read.csv(folder_path,"/cell_metadata.csv")
   
-  #error trap for one of the variables... not sure which
-  if (is.null(colnames(current_data))) {
-    cat("Error: No cell names present in the input matrix for folder", folder_name, "\n")
-    next  # Skip to the next iteration of the loop
-  }
+  current_genes<-read.csv(folder_path, "/all_genes.csv")
+  
+  current_Seurat<-CreateSeuratObject(
+    counts= current_matrix,
+    project = "Verity",
+    assay = "RNA",
+    names.field = 3, #FIXME CHANGE
+    names.delim = "_", #FIXME CHANGE
+    meta.data = current_metadata,
+    row.names = current_genes$gene_name
+      )
+  
   
   # Assign the object to a variable with the folder name as the variable name
-  assign(folder_name, current_data)
-  
-  # Make names for and create the Seurat objects
-  objName <- paste0(folder_name, "obj")
-  current_obj <- CreateSeuratObject(counts = current_data, project = "Verity")
-  assign(objName, current_obj)
+  assign((paste0(folder_name, "_obj")),current_Seurat)
+
 }
 
 #merge the samples into one object 
-Verity_total <- merge(sample1, y=c(sample1, sample11, sample2, sample5, sample6, sample9), add.cell.ids=c("sample1", "sample11", "sample2", "sample5", "sample6", "sample9"), project="Verity")
+Verity_total <- merge(sample1, y=c(sample1_obj, sample11_obj, sample2_obj, sample5_obj, sample6_obj, sample9_obj), add.cell.ids=c("sample1", "sample11", "sample2", "sample5", "sample6", "sample9"), project="Verity")
 
 #cleaning up memory
-rm("sample1", "sample11", "sample2", "sample5", "sample6", "sample9")
+rm("sample1_obj", "sample11_obj", "sample2_obj", "sample5_obj", "sample6_obj", "sample9_obj")
 ```
 
 ```{r}
 #ID mitochondrial dominant cells 
-Verity_total[["percent.mt"]]<- PercentageFeatureSet(Ximerakis_total, pattern = "^mt")
+Verity_total[["percent.mt"]]<- PercentageFeatureSet(Verity_total, pattern = "^mt")
 View(Verity_total@meta.data)
 ```
 
