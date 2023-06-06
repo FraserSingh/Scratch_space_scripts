@@ -32,13 +32,15 @@ Slota_total<- CreateSeuratObject(counts = Slota_total, project="Slota")
 Slota_total
 ```
 
-Do i need to split the sample now? see Slota script
+The following should identify mitochondrial genes but none appear
 
 ```{r}
 #ID mitochondrial dominant cells
-Slota_total[["percent.mt"]]<- PercentageFeatureSet(Slota_total, pattern = "^mt")
+Slota_total[["percent.mt"]]<- PercentageFeatureSet(Slota_total, pattern = "^MT")
 View(Slota_total@meta.data)
 ```
+
+Identity already set
 
 ```{r}
 #Show qualtiy of dataset
@@ -47,37 +49,13 @@ FeatureScatter(Slota_total, feature1 = "nCount_RNA", feature2="nFeature_RNA",ras
 
 ```{r}
 #Filter dataset by mitochondrial proportion and gene counts
-Slota_total<- subset(Slota_total, subset= percent.mt <5 & nFeature_RNA > 1000)
+Slota_total<- subset(Slota_total, subset= 
+                       #percent.mt <5 
+                     #& nFeature_RNA > 1000)
 ```
 
 ```{r}
-#Name data by sample tag
 
-#FIXME change sample tags
-
-sample_detect <- case_when(
-  str_detect(sampleLabs, "crOX1X") ~ "OX1X",
-  str_detect(sampleLabs, "crOX2X") ~ "OX2X",
-  str_detect(sampleLabs, "crOX3X") ~ "OX3X",
-  str_detect(sampleLabs, "crOX4X") ~ "OX4X",
-  str_detect(sampleLabs, "crOX5X") ~ "OX5X",
-  str_detect(sampleLabs, "crOX6X") ~ "OX6X",
-  str_detect(sampleLabs, "crOX7X") ~ "OX7X",
-  str_detect(sampleLabs, "crOX8X") ~ "OX8X",
-  str_detect(sampleLabs, "crYX1L") ~ "YX1L",
-  str_detect(sampleLabs, "crYX2L") ~ "YX2L",
-  str_detect(sampleLabs, "crYX3R") ~ "YX3R",
-  str_detect(sampleLabs, "crYX4R") ~ "YX4R",
-  str_detect(sampleLabs, "crYX5R") ~ "YX5R",
-  str_detect(sampleLabs, "crYX6L") ~ "YX6L",
-  str_detect(sampleLabs, "crYX7R") ~ "YX7R",
-  str_detect(sampleLabs, "crYX8L") ~ "YX8L",
-  TRUE ~ NA_character_
-)
-
-
-Slota_total@meta.data$sample<-sample_detect
-Idents(object=Slota_total)<-"sample"
 ```
 
 ## Run doubletfinder

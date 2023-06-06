@@ -16,70 +16,93 @@ and
 
 ```{r}
 if (!require("BiocManager", quietly = TRUE))
-install.packages("BiocManager")
+    install.packages("BiocManager")
 
+BiocManager::install("DropletUtils")
+library(DropletUtils)
 
-BiocManager::install("DropletUtils") library(DropletUtils)
+BiocManager::install("Seurat")
+library(Seurat)
 
-#mouse annotation
-<https://bioconductor.org/packages/release/data/annotation/html/org.Mm.eg.db.html>
-BiocManager::install("org.Mm.eg.db") library(org.Mm.eg.db)
+#mouse annotation https://bioconductor.org/packages/release/data/annotation/html/org.Mm.eg.db.html
+BiocManager::install("org.Mm.eg.db")
+library(org.Mm.eg.db)
 
-#and
-<https://bioconductor.org/packages/release/data/annotation/html/EnsDb.Mmusculus.v79.html>
-BiocManager::install("EnsDb.Mmusculus.v79") library(EnsDb.Mmusculus.v79)
+#and https://bioconductor.org/packages/release/data/annotation/html/EnsDb.Mmusculus.v79.html
+BiocManager::install("EnsDb.Mmusculus.v79")
+library(EnsDb.Mmusculus.v79)
+
+library(dplyr)
+library(stringr)
+
+remotes::install_github('chris-mcginnis-ucsf/DoubletFinder')
+library(DoubletFinder)
 ```
 
-```{r}
-# Load our internal data
 
-#List of folder names
-folder_names \<- c("sample1", "sample11","sample2", "sample5", "sample6", "sample9")
+```{r}
+#load Verity paper FIXME this will need to be from group folder eventually, so amend paths at the start
+
+# List of folder names
+sample_names<- readLines("/home/s2268606/University_Directories/Project_23/External_datasets/Ximerakis/Ximerakis_BAM_names.txt")
+#rename them for cell ranger counts folders
+folder_names <- paste0("cr", sample_names)
 
 # Loop through each folder
-
 for (folder_name in folder_names) {
-folder_path=paste0("/home/s2268606/University_Directories/Project_23/Group_data/",folder_name,
-"/DGE_unfiltered") current_data\<-Read10X(data.dir =folder_path)
+  folder_path=paste0("/home/s2268606/University_Directories/Project_23/Group_data/",folder_name, "/DGE_unfiltered")
+  
+  
+  #### FIXME syntax changes for our files
+  ##Load files as matrices
+  current_matrix<-Matrix::readMM(folder_path)
+  
+  ##Transpose
+  t()
+  
+  ##replace commas or underscores (view other mtx files to get an idea of correct syntax and the head of our data for our current syntax)
+  
+  
+  
+  current_data<-Read10X(data.dir =folder_path) ###this will be the matrix
+  
+  #error trap for one of the variables... not sure which
+  if (is.null(colnames(current_data))) {
+    cat("Error: No cell names present in the input matrix for folder", folder_name, "\n")
+    next  # Skip to the next iteration of the loop
+  }
+  
+  # Assign the object to a variable with the folder name as the variable name
+  assign(folder_name, current_data)
+  
+  # Make names for and create the Seurat objects
+  objName <- paste0(folder_name, "obj")
+  current_obj <- CreateSeuratObject(counts = current_data, project = "Verity")
+  assign(objName, current_obj)
+}
 
-#error trap for one of the variables... not sure which if
-(is.null(colnames(current_data))) { cat("Error: No cell names present in
-the input matrix for folder", folder_name, "\n") next \# Skip to the
-next iteration of the loop }
+#merge the samples into one object 
+Verity_total <- merge(sample1, y=c(sample1, sample11, sample2, sample5, sample6, sample9), add.cell.ids=c("sample1", "sample11", "sample2", "sample5", "sample6", "sample9"), project="Verity")
 
-# Assign the object to a variable with the folder name as the variable
-name assign(folder_name, current_data)
-
-# Make names for and create the Seurat objects objName \<-
-paste0(folder_name, "obj") current_obj \<- CreateSeuratObject(counts =
-current_data, project = "Verity") assign(objName, current_obj) }
-
-#merge the samples into one object Verity_total \<- merge(sample1, y=
-c(sample1, sample11, sample2, sample5, sample6, sample9),
-add.cell.ids=c("sample1", "sample11", "sample2", "sample5", "sample6",
-"sample9"), project="Verity")
-
-#cleaning up memory rm("sample1", "sample11", "sample2", "sample5",
-"sample6", "sample9")
+#cleaning up memory
+rm("sample1", "sample11", "sample2", "sample5", "sample6", "sample9")
 ```
 
 ```{r}
 #ID mitochondrial dominant cells 
-Verity_total[["percent.mt"]]\<-PercentageFeatureSet(Verity_total, pattern = "\^mt")
-View([Verity_total\@meta.data](mailto:Verity_total@meta.data)
+Verity_total[["percent.mt"]]<- PercentageFeatureSet(Ximerakis_total, pattern = "^mt")
+View(Verity_total@meta.data)
 ```
 
 ```{r}
-#Show qualtiy of dataset FeatureScatter(Verity_total, feature1 =
-"nCount_RNA", feature2="nFeature_RNA",raster=FALSE)+
-geom_smooth(method="lm")+ ggtitle("Transcripts vs. genes of unfiltered
+#Show quailty of dataset 
+FeatureScatter(Verity_total, feature1="nCount_RNA",feature2="nFeature_RNA",raster=FALSE)+geom_smooth(method="lm")+ggtitle("Transcripts vs. genes of unfiltered
 Verity dataset")
 ```
 
 ```{r}
 #Filter dataset by mitochondrial proportion and gene counts
-Verity_total\<- subset(Verity_total, subset= percent.mt \<5 &
-nFeature_RNA \> 1000)
+Verity_total<- subset(Verity_total, subset= percent.mt <5 &nFeature_RNA > .........) #FIXME filter appropriately
 ```
 
 ```{r}
@@ -87,21 +110,21 @@ nFeature_RNA \> 1000)
 
 #FIXME change sample tags
 
-sample_detect \<- case_when( str_detect(sampleLabs, "crOX1X") \~ "OX1X",
-str_detect(sampleLabs, "crOX2X") \~ "OX2X", str_detect(sampleLabs,
-"crOX3X") \~ "OX3X", str_detect(sampleLabs, "crOX4X") \~ "OX4X",
-str_detect(sampleLabs, "crOX5X") \~ "OX5X", str_detect(sampleLabs,
-"crOX6X") \~ "OX6X", str_detect(sampleLabs, "crOX7X") \~ "OX7X",
-str_detect(sampleLabs, "crOX8X") \~ "OX8X", str_detect(sampleLabs,
-"crYX1L") \~ "YX1L", str_detect(sampleLabs, "crYX2L") \~ "YX2L",
-str_detect(sampleLabs, "crYX3R") \~ "YX3R", str_detect(sampleLabs,
-"crYX4R") \~ "YX4R", str_detect(sampleLabs, "crYX5R") \~ "YX5R",
-str_detect(sampleLabs, "crYX6L") \~ "YX6L", str_detect(sampleLabs,
-"crYX7R") \~ "YX7R", str_detect(sampleLabs, "crYX8L") \~ "YX8L", TRUE \~
+sample_detect <- case_when( str_detect(sampleLabs, "crOX1X") ~ "OX1X",
+str_detect(sampleLabs, "crOX2X") ~ "OX2X", str_detect(sampleLabs,
+"crOX3X") ~ "OX3X", str_detect(sampleLabs, "crOX4X") ~ "OX4X",
+str_detect(sampleLabs, "crOX5X") ~ "OX5X", str_detect(sampleLabs,
+"crOX6X") ~ "OX6X", str_detect(sampleLabs, "crOX7X") ~ "OX7X",
+str_detect(sampleLabs, "crOX8X") ~ "OX8X", str_detect(sampleLabs,
+"crYX1L") ~ "YX1L", str_detect(sampleLabs, "crYX2L") ~ "YX2L",
+str_detect(sampleLabs, "crYX3R") ~ "YX3R", str_detect(sampleLabs,
+"crYX4R") ~ "YX4R", str_detect(sampleLabs, "crYX5R") ~ "YX5R",
+str_detect(sampleLabs, "crYX6L") ~ "YX6L", str_detect(sampleLabs,
+"crYX7R") ~ "YX7R", str_detect(sampleLabs, "crYX8L") ~ "YX8L", TRUE ~
 NA_character\_ )
 
-[Verity_total\@meta.data](mailto:Verity_total@meta.data){.email}\$sample\<-sample_detect
-Idents(object=Verity_total)\<-"sample"
+[Verity_total\@meta.data](mailto:Verity_total@meta.data){.email}\$sample<-sample_detect
+Idents(object=Verity_total)<-"sample"
 ```
 
 # Run doubletfinder
@@ -111,58 +134,58 @@ Idents(object=Verity_total)\<-"sample"
 <https://github.com/kpatel427/YouTubeTutorials/blob/5b3c795cecafb22f0e992da069eae2efd6b5cb95/singleCell_doublets.R>
 , <https://rpubs.com/kenneditodd/doublet_finder_example>
 
-Verity.list \<- SplitObject(Verity_total, split.by = "sample")
+Verity.list <- SplitObject(Verity_total, split.by = "sample")
 
 # Perform doublet detection on each sample using lapply
 
-Verity.list \<- lapply(Verity.list, function(sample) { \# Pre-process
-seurat object with standard seurat workflow sample \<-
-NormalizeData(sample) sample \<- SCTransform(sample) sample \<-
+Verity.list <- lapply(Verity.list, function(sample) { # Pre-process
+seurat object with standard seurat workflow sample <-
+NormalizeData(sample) sample <- SCTransform(sample) sample <-
 RunPCA(sample)
 
-\# Find significant PCs stdv \<- sample[["pca"]]@stdev sum.stdv \<-
-sum(sample[["pca"]]@stdev) percent.stdv \<- (stdv / sum.stdv) \* 100
-cumulative \<- cumsum(percent.stdv) co1 \<- which(cumulative \> 90 &
-percent.stdv \< 5)[1] co2 \<-
+# Find significant PCs stdv <- sample[["pca"]]@stdev sum.stdv <-
+sum(sample[["pca"]]@stdev) percent.stdv <- (stdv / sum.stdv) \* 100
+cumulative <- cumsum(percent.stdv) co1 <- which(cumulative \> 90 &
+percent.stdv \< 5)[1] co2 <-
 sort(which((percent.stdv[1:length(percent.stdv) - 1] -
 percent.stdv[2:length(percent.stdv)]) \> 0.1), decreasing = TRUE)[1] + 1
-min.pc \<- min(co1, co2)
+min.pc <- min(co1, co2)
 
-\# Finish pre-processing sample \<- RunUMAP(sample, dims = 1:min.pc)
-sample \<- FindNeighbors(object = sample, dims = 1:min.pc)\
-sample \<- FindClusters(object = sample, resolution = 0.1)
+# Finish pre-processing sample <- RunUMAP(sample, dims = 1:min.pc)
+sample <- FindNeighbors(object = sample, dims = 1:min.pc)\
+sample <- FindClusters(object = sample, resolution = 0.1)
 
-\# pK identification (no ground-truth) sweep.list \<-
-paramSweep_v3(sample, PCs = 1:min.pc, sct = TRUE) sweep.stats \<-
-summarizeSweep(sweep.list) bcmvn \<- find.pK(sweep.stats)
+# pK identification (no ground-truth) sweep.list <-
+paramSweep_v3(sample, PCs = 1:min.pc, sct = TRUE) sweep.stats <-
+summarizeSweep(sweep.list) bcmvn <- find.pK(sweep.stats)
 
-\# Optimal pK is the max of the bomodality coefficient (BCmvn)
-distribution bcmvn.max \<-
+# Optimal pK is the max of the bomodality coefficient (BCmvn)
+distribution bcmvn.max <-
 bcmvn[which.max(bcmvn$BCmetric),]  optimal.pk <- as.numeric(bcmvn.max$pK)
 
-\# Homotypic doublet proportion estimate annotations \<-
+# Homotypic doublet proportion estimate annotations <-
 [sample\@meta.data](mailto:sample@meta.data){.email}\$seurat_clusters
-homotypic.prop \<- modelHomotypic(annotations) nExp.poi \<- round(0.05
+homotypic.prop <- modelHomotypic(annotations) nExp.poi <- round(0.05
 \* nrow([sample\@meta.data](mailto:sample@meta.data){.email})) ####FIXME
-adjust according to protocol nExp.poi.adj \<- round(nExp.poi \* (1 -
+adjust according to protocol nExp.poi.adj <- round(nExp.poi \* (1 -
 homotypic.prop))
 
-\# Run DoubletFinder sample \<- doubletFinder_v3(seu = sample, PCs =
+# Run DoubletFinder sample <- doubletFinder_v3(seu = sample, PCs =
 1:min.pc, pK = optimal.pk, nExp = nExp.poi.adj, sct = TRUE, pN=0.25)
 
-\# Update metadata column name for doublet information doublet_col_index
-\<- which(grepl("DF.classifications\_",
+# Update metadata column name for doublet information doublet_col_index
+<- which(grepl("DF.classifications\_",
 colnames([sample\@meta.data](mailto:sample@meta.data){.email}))) if
 (length(doublet_col_index) \> 0) {
 colnames([sample\@meta.data](mailto:sample@meta.data){.email})[doublet_col_index]
-\<- "doublet_finder" }
+<- "doublet_finder" }
 
-\# Subset and return singlets singlets \<- subset(sample, doublet_finder
+# Subset and return singlets singlets <- subset(sample, doublet_finder
 == "Singlet") return(singlets) })
 
-# \# Merge singlets from all samples
+# # Merge singlets from all samples
 
-# Processed_Verity \<- merge(Verity.list, project = "Verity scRNAseq")
+# Processed_Verity <- merge(Verity.list, project = "Verity scRNAseq")
 
 # View(Processed_Verity)
 ```

@@ -20,13 +20,6 @@ library(DropletUtils)
 BiocManager::install("Seurat")
 library(Seurat)
 
-#mouse annotation https://bioconductor.org/packages/release/data/annotation/html/org.Mm.eg.db.html
-BiocManager::install("org.Mm.eg.db")
-library(org.Mm.eg.db)
-
-#and https://bioconductor.org/packages/release/data/annotation/html/EnsDb.Mmusculus.v79.html
-BiocManager::install("EnsDb.Mmusculus.v79")
-library(EnsDb.Mmusculus.v79)
 
 library(dplyr)
 library(stringr)
@@ -74,25 +67,6 @@ Ximerakis_total <- merge(crOX1Xobj, y= c(crOX2Xobj,crOX3Xobj,crOX4Xobj,crOX5Xobj
 rm("crOX1X", "crOX2X", "crOX3X", "crOX4X", "crOX5X", "crOX6X", "crOX7X", "crOX8X", "crYX1L", "crYX2L","crYX3R", "crYX4R", "crYX5R" ,"crYX6L", "crYX7R", "crYX8L","matching_vars",)
 ```
 
-```{r}
-#identify mitochondrial gene portions
-Ximerakis_total[["percent.mt"]]<- PercentageFeatureSet(Ximerakis_total, pattern = "^mt")
-```
-
-```{r}
-VlnPlot(Ximerakis_total, features=c("nFeature_RNA","nCount_RNA","percent.mt"), ncol=3)
-```
-
-```{r}
-#Show overall reads and gene counts for unfiltered data.
-FeatureScatter(Ximerakis_total, feature1 = "nCount_RNA", feature2="nFeature_RNA",raster=FALSE)+ geom_smooth(method="lm")+ ggtitle("Transcripts vs. genes of unfiltered Ximerakis dataset")
-```
-
-```{r}
-#filter out the cells with mitochondrial genes more than 5% and genes with more than 1k genes as instructed by Nick
-Ximerakis_total<- subset(Ximerakis_total, subset= percent.mt <5 & nFeature_RNA > 1000)
-```
-
 ### Add metadata, splitting samples with sample identity
 
 adapted from <https://youtu.be/p49seH2_i8Y?t=312>
@@ -124,10 +98,99 @@ sample_detect <- case_when(
 #
 Ximerakis_total@meta.data$sample<-sample_detect
 Idents(object=Ximerakis_total)<-"sample"
+rm(sampleLabs, sample_detect)
+```
+
+## Identify mitochondrial and ribosomal populations
+
+```{r}
+#identify mitochondrial gene portions
+Ximerakis_total[["percent.mt"]]<- PercentageFeatureSet(Ximerakis_total, pattern = "^mt")
+Ximerakis_total[["percent.rp"]]<- PercentageFeatureSet(Ximerakis_total, pattern = "^Rp")
+```
+
+## Plot violins of overall characteristics in raw data
+
+```{r}
+#plot(density(Ximerakis_total@meta.data$nFeature_RNA))
+VlnPlot(Ximerakis_total, features=c("nFeature_RNA","nCount_RNA","percent.mt", "percent.rp"), ncol=4, pt.size = 0.05)
+```
+
+We can see a high proportion of mitochondrial reads which will need to be omitted, though this may be taken care of by other filters applied
+
+## Plot each of these respectively, showing trends in cell health
+
+```{r}
+#show mitochondrial proportion in reads
+FeatureScatter(Ximerakis_total, feature1 = "nCount_RNA", feature2 = "percent.mt")
+
+#show ribosomal proportion in reads
+FeatureScatter(Ximerakis_total, feature1 = "nCount_RNA", feature2 = "percent.rp")
+
+#show 
+FeatureScatter(Ximerakis_total, feature1 = "percent.rp", feature2 = "percent.mt")
+
+```
+
+There appears to be a shelf around 35% mt, indicating cell death. It seems that a couple of the Old mice have low mt, whilst a couple of the Young mice in pink have around 45%.
+
+```{r}
+#Show overall reads and gene counts for unfiltered data.
+FeatureScatter(Ximerakis_total, feature1 = "nCount_RNA", feature2="nFeature_RNA",raster=FALSE, pt.size = 0.05)+ geom_smooth(method="lm")+ ggtitle("Transcripts vs. genes of unfiltered Ximerakis dataset")
+```
+
+Seems normal
+
+## Filter anything with more than 20% mito content
+
+Creating new data variable for this
+
+```{r}
+#Create data with less than 20 % mt
+Ximerakis_mitofilter20<-subset(Ximerakis_total,subset= percent.mt <20)
+FeatureScatter(Ximerakis_mitofilter20, feature1 = "nCount_RNA", feature2 = "percent.mt")
+#compared to the first assessment
+VlnPlot(Ximerakis_mitofilter20, features=c("nFeature_RNA","nCount_RNA","percent.mt", "percent.rp"), ncol=4, pt.size = 0.05)
+```
+
+## Filter anything with less than 20 reads
+
+This removes around 3/4 of data. Creating new data variable for this
+
+```{r}
+Ximerakis_readfilter<-subset(Ximerakis_total,subset= nCount_RNA > 20)
+#Verify the effects
+FeatureScatter(Ximerakis_readfilter, feature1 = "nCount_RNA", feature2 = "percent.mt")
+#compared to the first assessment
+VlnPlot(Ximerakis_readfilter, features=c("nFeature_RNA","nCount_RNA","percent.mt", "percent.rp"), ncol=4, pt.size = 0.05)
+```
+
+## Assign a 'pass' status for these QC filters
+
+```{r}
+#Doesn't work yet
+
+#At least 250 genes
+Ximerakis_total[['QC']] <- ifelse(Ximerakis_total@meta.data$nFeature_RNA < 250,'Low_nFeature',Ximerakis_total@meta.data$QC)
+
+
+Ximerakis_total[['QC']] <- ifelse(Ximerakis_total@meta.data$nFeature_RNA < 250 & Ximerakis_total@meta.data$QC != 'Pass' &Ximerakis_total@meta.data$QC != 'Low_nFeature',paste('Low_nFeature',Ximerakis_total@meta.data$QC,sep = ','),Ximerakis_total@meta.data$QC)
+
+#Less than 20% mitochondrial
+Ximerakis_total[['QC']] <- ifelse(Ximerakis_total@meta.data$percent.mt > 20 & Ximerakis_total@meta.data$QC =='Pass','High_MT',Ximerakis_total@meta.data$QC)
+
+Ximerakis_total[['QC']] <- ifelse(Ximerakis_total@meta.data$nFeature_RNA < 250 & Ximerakis_total@meta.data$QC != 'Pass' &Ximerakis_total@meta.data$QC != 'High_MT',paste('High_MT',Ximerakis_total@meta.data$QC,sep = ','),Ximerakis_total@meta.data$QC)
+
+table(Ximerakis_total[['QC']])
 ```
 
 ```{r}
-
+#filter out the cells with mitochondrial genes more than 5% and genes with more than 1k genes as instructed by Nick
+Ximerakis_total<- subset(Ximerakis_total, 
+                         subset= percent.mt <20 &
+                           #FIXME add more filters here
+                         )
+#                         & nFeature_RNA > 1000)      ##FIXME filter needs adjusting
 ```
 
 ## Doublet finder for all samples
@@ -198,8 +261,15 @@ Ximerakis.list <- lapply(Ximerakis.list, function(sample) {
 
 #subset data by singlet status
 Ximerakis.list <- lapply(Ximerakis.list, function(sample) {
-  sample<- subset(sample, subset = sample@meta.data$doubletfinder == 'Singlet')
-})
+  sample<- subset(sample, subset= doublet_finder == 'Singlet')
+  return(sample)
+  })
+```
+
+```{r}
+Show doublet info #
+FeatureScatter(Ximerakis_total, feature1 = "nFeature_RNA", feature2 = "Doublet_score")
+
 ```
 
 ```{r}
@@ -207,7 +277,7 @@ Ximerakis.list <- lapply(Ximerakis.list, function(sample) {
 # code from https://github.com/kpatel427/YouTubeTutorials/blob/5b3c795cecafb22f0e992da069eae2efd6b5cb95/singleCell_doublets.R
 
 #show the capture of variability in the PCs
-ElbowPlot(Ximerakis.list[[1]])+ggtitle("Variability captured at each level of PC in PCA (sample OX1X)"))
+ElbowPlot(Ximerakis.list[[1]])+ggtitle("Variability captured at each level of PC in PCA (sample OX1X)")
 
 # # visualize doublets
 # DimPlot(x, reduction = 'umap', group.by = "DF.classifications_0.25_0.21_691")
@@ -222,40 +292,4 @@ ElbowPlot(Ximerakis.list[[1]])+ggtitle("Variability captured at each level of PC
   # return(singlets)  
 # # Merge singlets from all samples
 # Ximerakis.singlets <- merge(list items)
-```
-
-## Running doubletfinder on one sample
-
-```{r}
-#trying to run doublet finder on one sample
-# Ximerakis.list <- SplitObject(Ximerakis_total, split.by = "sample")
-Testing_dubF <- Ximerakis.list[[1]]
-Testing_dubF <- NormalizeData(Testing_dubF)
-Testing_dubF <- SCTransform(object = Testing_dubF)
-Testing_dubF<-RunPCA(Testing_dubF)
-
-stdv <- Testing_dubF[["pca"]]@stdev
-sum.stdv <- sum(Testing_dubF[["pca"]]@stdev)
-percent.stdv <- (stdv / sum.stdv) * 100
-cumulative <- cumsum(percent.stdv)
-co1 <- which(cumulative > 90 & percent.stdv < 5)[1]
-co2 <- sort(which((percent.stdv[1:length(percent.stdv) - 1] -
-                     percent.stdv[2:length(percent.stdv)]) > 0.1),
-            decreasing = TRUE)[1] + 1
-min.pc <- min(co1, co2)
-
-Testing_dubF<-RunUMAP(Testing_dubF, dims=1:min.pc)
-Testing_dubF<-FindNeighbors(Testing_dubF, dims=1:min.pc)
-Testing_dubF<-FindClusters(Testing_dubF)
-sweep.list <- paramSweep_v3(Testing_dubF, PCs = 1:min.pc, sct = TRUE)
-sweep.stats <- summarizeSweep(sweep.list)
-bcmvn <- find.pK(sweep.stats)
-bcmvn.max <- bcmvn[which.max(bcmvn$BCmetric),]
-optimal.pk <- as.numeric(bcmvn.max$pK)    #####Had to convert this value
-annotations <- Testing_dubF@meta.data$seurat_clusters
-homotypic.prop <- modelHomotypic(annotations)
-nExp.poi <- round(0.087 * nrow(Testing_dubF@meta.data)) #determined from number of cells loaded according to authors, see Log17.
-nExp.poi.adj <- round(nExp.poi * (1 - homotypic.prop))
-Testing_dubF<- doubletFinder_v3(seu=Testing_dubF, PCs= 1:min.pc, pK=optimal.pk, nExp = nExp.poi.adj, sct = TRUE, pN=0.25)
-# DimPlot(Testing_dubF, reduction = 'umap', group.by = ".........")
 ```
