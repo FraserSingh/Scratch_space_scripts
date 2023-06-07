@@ -49,45 +49,48 @@ folder_names <- c("sample1", "sample2", "sample5", "sample6", "sample9","sample1
 for (folder_name in folder_names) {
   folder_path=paste0("/home/s2268606/University_Directories/Project_23/Group_data/",folder_name, "/DGE_unfiltered")
   
+  current_parse <- ReadParseBio(folder_path)
+  #table(rownames(current_parse) == "") #see if there are any empty gene names
   
-  #### FIXME syntax changes for our files
-  ##Load files as matrices
-  current_matrix<-Matrix::readMM(folder_path,"/DGE.mtx")
+  current_parse_interpreted <- CreateSeuratObject(current_parse, meta.data = current_metadata, names.delim = "")
   
-  ##Transpose
-  current_matrix<-t(current_matrix)
+  current_parse_interpreted@meta.data$orig.ident <- factor(rep(paste0("verity",sample), nrow(current_parse_interpreted@meta.data)))
   
-  #Set cellnames FIXME
+  Idents(current_parse_interpreted) <- current_parse_interpreted@meta.data$orig.ident
+
   
-  ##replace commas or underscores (view other mtx files to get an idea of correct syntax and the head of our data for our current syntax) FIXME
-  
-  
-  
-  current_metadata<-read.csv(folder_path,"/cell_metadata.csv")
-  
-  current_genes<-read.csv(folder_path, "/all_genes.csv")
-  
-  current_Seurat<-CreateSeuratObject(
-    counts= current_matrix,
-    project = "Verity",
-    assay = "RNA",
-    names.field = 3, #FIXME CHANGE
-    names.delim = "_", #FIXME CHANGE
-    meta.data = current_metadata,
-    row.names = current_genes$gene_name
-      )
-  
+  # 
+  # #Alternatively
+  # current_metadata<-read.csv(paste0(folder_path,"/cell_metadata.csv"))
+  # ##replace commas or underscores (view other mtx files to get an idea of correct syntax and the head of our data for our current syntax) FIXME
+  # current_metadata[] <- lapply(current_metadata, function(x) gsub("_", ",", x))
+  # 
+  # current_genes<-read.csv(paste0(folder_path, "/all_genes.csv"))
+  # 
+  # #Add cell identifiers
+  # rownames(current_current_parserix)<-current_metadata[,1]
+  # 
+  # current_Seurat<-CreateSeuratObject(
+  #   counts= current_current_parserix,
+  #   project = "Verity",
+  #   assay = "RNA",
+  #   # names.field = 3, #FIXME CHANGE
+  #   # names.delim = "_", #FIXME CHANGE
+  #   meta.data = current_metadata,
+  #   row.names = current_genes$gene_name
+  #     )
+  # 
   
   # Assign the object to a variable with the folder name as the variable name
-  assign((paste0(folder_name, "_obj")),current_Seurat)
+  assign((paste0(folder_name, "_obj")),current_parse_interpreted)
 
 }
 
 #merge the samples into one object 
-Verity_total <- merge(sample1, y=c(sample1_obj, sample11_obj, sample2_obj, sample5_obj, sample6_obj, sample9_obj), add.cell.ids=c("sample1", "sample11", "sample2", "sample5", "sample6", "sample9"), project="Verity")
+Verity_total <- merge(sample1_obj, y=c(sample1_obj, sample2_obj, sample5_obj, sample6_obj, sample9_obj,sample11_obj), add.cell.ids=c("sample1", "sample2", "sample5", "sample6", "sample9", "sample11"), project="Verity")
 
 #cleaning up memory
-rm("sample1_obj", "sample11_obj", "sample2_obj", "sample5_obj", "sample6_obj", "sample9_obj")
+rm("sample1_obj","sample2_obj", "sample5_obj", "sample6_obj", "sample9_obj", "sample11_obj")
 ```
 
 ```{r}
@@ -165,7 +168,7 @@ summarizeSweep(sweep.list) bcmvn <- find.pK(sweep.stats)
 distribution bcmvn.max <-
 bcmvn[which.max(bcmvn$BCmetric),]  optimal.pk <- as.numeric(bcmvn.max$pK)
 
-# Homotypic doublet proportion estimate annotations <-
+# Homotypic doublet proportion esticurrent_parsee annotations <-
 [sample\@meta.data](mailto:sample@meta.data){.email}\$seurat_clusters
 homotypic.prop <- modelHomotypic(annotations) nExp.poi <- round(0.05
 \* nrow([sample\@meta.data](mailto:sample@meta.data){.email})) ####FIXME
@@ -175,7 +178,7 @@ homotypic.prop))
 # Run DoubletFinder sample <- doubletFinder_v3(seu = sample, PCs =
 1:min.pc, pK = optimal.pk, nExp = nExp.poi.adj, sct = TRUE, pN=0.25)
 
-# Update metadata column name for doublet information doublet_col_index
+# Update metadata column name for doublet inforcurrent_parseion doublet_col_index
 <- which(grepl("DF.classifications\_",
 colnames([sample\@meta.data](mailto:sample@meta.data){.email}))) if
 (length(doublet_col_index) \> 0) {
