@@ -61,38 +61,40 @@ matching_vars <- ls(pattern = 'obj')
 matching_vars <- matching_vars[!matching_vars %in% c("current_obj", "objName")]
 
 #merge the samples into one object
-Ximerakis_total <- merge(crOX1Xobj, y= c(crOX2Xobj,crOX3Xobj,crOX4Xobj,crOX5Xobj,crOX6Xobj,crOX7Xobj,crOX8Xobj,crYX1Lobj,crYX2Lobj,crYX3Robj,crYX4Robj,crYX5Robj,crYX6Lobj,crYX7Robj,crYX8Lobj), add.cell.ids=c("crOX1X", "crOX2X", "crOX3X", "crOX4X", "crOX5X", "crOX6X", "crOX7X", "crOX8X", "crYX1L", "crYX2L","crYX3R", "crYX4R", "crYX5R" ,"crYX6L", "crYX7R", "crYX8L"), project="Ximerakis")
+Ximerakis_total <- merge(crOX1Xobj, y= c(crOX2Xobj,crOX3Xobj,crOX4Xobj,crOX5Xobj,crOX6Xobj,crOX7Xobj,crOX8Xobj,crYX1Lobj,crYX2Lobj,crYX3Robj,crYX4Robj,crYX5Robj,crYX6Lobj,crYX7Robj,crYX8Lobj), add.cell.ids=c("OX1X", "OX2X", "OX3X", "OX4X", "OX5X", "OX6X", "OX7X", "OX8X", "YX1L", "YX2L","YX3R", "YX4R", "YX5R" ,"YX6L", "YX7R", "YX8L"), project="Ximerakis")
 
 #cleaning up memory
-rm("crOX1X", "crOX2X", "crOX3X", "crOX4X", "crOX5X", "crOX6X", "crOX7X", "crOX8X", "crYX1L", "crYX2L","crYX3R", "crYX4R", "crYX5R" ,"crYX6L", "crYX7R", "crYX8L","matching_vars",)
+# rm("crOX1X", "crOX2X", "crOX3X", "crOX4X", "crOX5X", "crOX6X", "crOX7X", "crOX8X", "crYX1L", "crYX2L","crYX3R", "crYX4R", "crYX5R" ,"crYX6L", "crYX7R", "crYX8L","matching_vars",)
 ```
 
-### Add metadata, splitting samples with sample identity
+### Add metadata, adding sample identity
 
 adapted from <https://youtu.be/p49seH2_i8Y?t=312>
 
 ```{r}
+
+#Check whether the whole block is needed here
 sampleLabs<-names(Ximerakis_total@active.ident)
 
 #Assigning names to the samples to keep identity
 #From Chat GPT
 sample_detect <- case_when(
-  str_detect(sampleLabs, "crOX1X") ~ "OX1X",
-  str_detect(sampleLabs, "crOX2X") ~ "OX2X",
-  str_detect(sampleLabs, "crOX3X") ~ "OX3X",
-  str_detect(sampleLabs, "crOX4X") ~ "OX4X",
-  str_detect(sampleLabs, "crOX5X") ~ "OX5X",
-  str_detect(sampleLabs, "crOX6X") ~ "OX6X",
-  str_detect(sampleLabs, "crOX7X") ~ "OX7X",
-  str_detect(sampleLabs, "crOX8X") ~ "OX8X",
-  str_detect(sampleLabs, "crYX1L") ~ "YX1L",
-  str_detect(sampleLabs, "crYX2L") ~ "YX2L",
-  str_detect(sampleLabs, "crYX3R") ~ "YX3R",
-  str_detect(sampleLabs, "crYX4R") ~ "YX4R",
-  str_detect(sampleLabs, "crYX5R") ~ "YX5R",
-  str_detect(sampleLabs, "crYX6L") ~ "YX6L",
-  str_detect(sampleLabs, "crYX7R") ~ "YX7R",
-  str_detect(sampleLabs, "crYX8L") ~ "YX8L",
+  str_detect(sampleLabs, "OX1X") ~ "OX1X",
+  str_detect(sampleLabs, "OX2X") ~ "OX2X",
+  str_detect(sampleLabs, "OX3X") ~ "OX3X",
+  str_detect(sampleLabs, "OX4X") ~ "OX4X",
+  str_detect(sampleLabs, "OX5X") ~ "OX5X",
+  str_detect(sampleLabs, "OX6X") ~ "OX6X",
+  str_detect(sampleLabs, "OX7X") ~ "OX7X",
+  str_detect(sampleLabs, "OX8X") ~ "OX8X",
+  str_detect(sampleLabs, "YX1L") ~ "YX1L",
+  str_detect(sampleLabs, "YX2L") ~ "YX2L",
+  str_detect(sampleLabs, "YX3R") ~ "YX3R",
+  str_detect(sampleLabs, "YX4R") ~ "YX4R",
+  str_detect(sampleLabs, "YX5R") ~ "YX5R",
+  str_detect(sampleLabs, "YX6L") ~ "YX6L",
+  str_detect(sampleLabs, "YX7R") ~ "YX7R",
+  str_detect(sampleLabs, "YX8L") ~ "YX8L",
   TRUE ~ NA_character_
 )
 #
@@ -101,12 +103,73 @@ Idents(object=Ximerakis_total)<-"sample"
 rm(sampleLabs, sample_detect)
 ```
 
+```{r}
+# Rename columns from https://github.com/hbctraining/scRNA-seq/blob/master/lessons/04_SC_quality_control.md
+
+#Create metadata variable to edit it without affecting core data
+metadata_test<-Ximerakis_total@meta.data
+
+#Saving cell barcodes as metainfo
+metadata_test$cells<-rownames(metadata_test)
+
+metadata_test <- metadata_test %>%
+    dplyr::rename(nUMI = nCount_RNA,
+                  nGene = nFeature_RNA)
+```
+
+## Assess nUMIs
+
+```{r}
+metadata_test<- metadata_test %>%
+    filter(nUMI > 0, nGene >20, percent.tm <20)  # Filter out zero or negative values of nUMI, less than 20 genes (could raise to 50 but need biological justification), less than 20 % mito.
+
+# Visualize the number UMIs/transcripts per cell
+metadata_test %>% 
+    ggplot(aes(color=sample, x=nUMI, fill= sample)) + 
+    geom_density(alpha = 0.2) + 
+    scale_x_log10() + 
+    theme_classic() +
+    ylab("Cell density") +
+    geom_vline(xintercept = 500)+
+    ggtitle("UMIs/transcripts per cell (nUMI>0, nGene>20")
+```
+
+Shows very poor nUMIs
+
+```{r}
+# Visualize the distribution of genes detected per cell via histogram
+metadata_test %>% 
+  	ggplot(aes(color=sample, x=nGene, fill= sample)) + 
+  	geom_density(alpha = 0.2) + 
+  	theme_classic() +
+  	scale_x_log10() + 
+  	geom_vline(xintercept = 300)+
+    ggtitle("Distribution of genes detected per cell via histogram")
+
+# Visualize the distribution of genes detected per cell via boxplot
+metadata_test %>% 
+  	ggplot(aes(x=sample, y=log10(nGene), fill=sample)) + 
+  	geom_boxplot() + 
+  	theme_classic() +
+  	theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
+  	theme(plot.title = element_text(hjust=0.5, face="bold")) +
+  	ggtitle("NCells vs NGenes")
+```
+
 ## Identify mitochondrial and ribosomal populations
 
 ```{r}
-#identify mitochondrial gene portions
+#identify mitochondrial and ribosomal protein gene portions
 Ximerakis_total[["percent.mt"]]<- PercentageFeatureSet(Ximerakis_total, pattern = "^mt")
 Ximerakis_total[["percent.rp"]]<- PercentageFeatureSet(Ximerakis_total, pattern = "^Rp")
+
+#Generate genes per umi counts, from https://github.com/hbctraining/scRNA-seq/blob/master/lessons/04_SC_quality_control.md
+Ximerakis_total$log10GenesPerUMI <- log10(Ximerakis_total$nFeature_RNA) / log10(Ximerakis_total$nCount_RNA)
+```
+
+```{r}
+#Save the data object
+save(Ximerakis_total, file="./Rdata/Ximerakis_total_seurat.RData")
 ```
 
 ## Plot violins of overall characteristics in raw data
@@ -122,47 +185,56 @@ We can see a high proportion of mitochondrial reads which will need to be omitte
 
 ```{r}
 #show mitochondrial proportion in reads
-FeatureScatter(Ximerakis_total, feature1 = "nCount_RNA", feature2 = "percent.mt")
+FeatureScatter(Ximerakis_total, feature1 = "nCount_RNA", feature2 = "percent.mt")+ggtitle("UMIs per cell vs. % mitochondrial genes detected")
 
 #show ribosomal proportion in reads
-FeatureScatter(Ximerakis_total, feature1 = "nCount_RNA", feature2 = "percent.rp")
+FeatureScatter(Ximerakis_total, feature1 = "nCount_RNA", feature2 = "percent.rp")+ggtitle("UMIs per cell vs. % ribosomal protein  genes detected")
 
-#show 
-FeatureScatter(Ximerakis_total, feature1 = "percent.rp", feature2 = "percent.mt")
-
+#Ribosomal vs mitochondrial 
+FeatureScatter(Ximerakis_total, feature1 = "percent.rp", feature2 = "percent.mt")+ggtitle("% ribosomal protein  genes detected vs. % mitochondiral genes detected")
 ```
 
 There appears to be a shelf around 35% mt, indicating cell death. It seems that a couple of the Old mice have low mt, whilst a couple of the Young mice in pink have around 45%.
 
 ```{r}
 #Show overall reads and gene counts for unfiltered data.
-FeatureScatter(Ximerakis_total, feature1 = "nCount_RNA", feature2="nFeature_RNA",raster=FALSE, pt.size = 0.05)+ geom_smooth(method="lm")+ ggtitle("Transcripts vs. genes of unfiltered Ximerakis dataset")
+FeatureScatter(Ximerakis_total, feature1 = "nCount_RNA", feature2="nFeature_RNA",raster=FALSE, pt.size = 0.05)+ geom_smooth(method="lm")+ ggtitle("UMIs per cell vs. number of genes ")
 ```
 
-Seems normal
+Seems normal, though values are lower than our data
 
 ## Filter anything with more than 20% mito content
 
-Creating new data variable for this
+Creating new data variable for this. Results in the filtering of 29% of cells to leave 1,553,556 cells. Biologically, filtering
 
 ```{r}
 #Create data with less than 20 % mt
 Ximerakis_mitofilter20<-subset(Ximerakis_total,subset= percent.mt <20)
-FeatureScatter(Ximerakis_mitofilter20, feature1 = "nCount_RNA", feature2 = "percent.mt")
+
+FeatureScatter(Ximerakis_mitofilter20, feature1 = "nCount_RNA", feature2 = "percent.mt")+ggtitle("UMIs per cell vs. % mitochondrial genes detected (filtered by mt%)")
+
 #compared to the first assessment
-VlnPlot(Ximerakis_mitofilter20, features=c("nFeature_RNA","nCount_RNA","percent.mt", "percent.rp"), ncol=4, pt.size = 0.05)
+VlnPlot(Ximerakis_mitofilter20, features=c("nFeature_RNA","nCount_RNA","percent.mt", "percent.rp"), ncol=4, pt.size = 0.05)+ggtitle("Mitochondria-fitlered summary")
 ```
 
-## Filter anything with less than 20 reads
+## Filter out anything with less than 20 reads
 
-This removes around 3/4 of data. Creating new data variable for this
+This removes around 3/4 of data. Not filtered by mitochondria, just reads. Results in the filtering of 29% of cells to leave 1,035,865 cells ??
 
 ```{r}
 Ximerakis_readfilter<-subset(Ximerakis_total,subset= nCount_RNA > 20)
 #Verify the effects
-FeatureScatter(Ximerakis_readfilter, feature1 = "nCount_RNA", feature2 = "percent.mt")
-#compared to the first assessment
-VlnPlot(Ximerakis_readfilter, features=c("nFeature_RNA","nCount_RNA","percent.mt", "percent.rp"), ncol=4, pt.size = 0.05)
+FeatureScatter(Ximerakis_readfilter, feature1 = "nCount_RNA", feature2 = "percent.mt")+ggtitle("UMIs per cell vs. % mitochondrial genes detected with read filtering")
+#compared violin plot to the first assessment
+VlnPlot(Ximerakis_readfilter, features=c("nFeature_RNA","nCount_RNA","percent.mt", "percent.rp"), ncol=4, pt.size = 0.05)+ggtitle("Read-fitlered summary")
+```
+
+## Applying all filters
+
+Filtering by at elast 10 genes, less than 20% mitochondrial gene content and more than 20 UMIs. Would give 390,282 cells.
+
+```{r}
+barplot(table(Idents((subset(Ximerakis_total, subset= nFeature_RNA >10 & percent.mt <20 & nCount_RNA > 20)))))
 ```
 
 ## Assign a 'pass' status for these QC filters
@@ -185,7 +257,7 @@ table(Ximerakis_total[['QC']])
 ```
 
 ```{r}
-#filter out the cells with mitochondrial genes more than 5% and genes with more than 1k genes as instructed by Nick
+#filter out the cells with mitochondrial genes more than 5% and genes with more than .... genes as instructed by Nick
 Ximerakis_total<- subset(Ximerakis_total, 
                          subset= percent.mt <20 &
                            #FIXME add more filters here
@@ -267,7 +339,7 @@ Ximerakis.list <- lapply(Ximerakis.list, function(sample) {
 ```
 
 ```{r}
-Show doublet info #
+#Show doublet info 
 FeatureScatter(Ximerakis_total, feature1 = "nFeature_RNA", feature2 = "Doublet_score")
 
 ```
