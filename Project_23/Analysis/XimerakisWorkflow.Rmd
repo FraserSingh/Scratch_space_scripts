@@ -64,8 +64,29 @@ matching_vars <- matching_vars[!matching_vars %in% c("current_obj", "objName")]
 Ximerakis_total <- merge(crOX1Xobj, y= c(crOX2Xobj,crOX3Xobj,crOX4Xobj,crOX5Xobj,crOX6Xobj,crOX7Xobj,crOX8Xobj,crYX1Lobj,crYX2Lobj,crYX3Robj,crYX4Robj,crYX5Robj,crYX6Lobj,crYX7Robj,crYX8Lobj), add.cell.ids=c("OX1X", "OX2X", "OX3X", "OX4X", "OX5X", "OX6X", "OX7X", "OX8X", "YX1L", "YX2L","YX3R", "YX4R", "YX5R" ,"YX6L", "YX7R", "YX8L"), project="Ximerakis")
 
 #cleaning up memory
-# rm("crOX1X", "crOX2X", "crOX3X", "crOX4X", "crOX5X", "crOX6X", "crOX7X", "crOX8X", "crYX1L", "crYX2L","crYX3R", "crYX4R", "crYX5R" ,"crYX6L", "crYX7R", "crYX8L","matching_vars",)
+# rm("crOX1X", "crOX2X", "crOX3X", "crOX4X", "crOX5X", "crOX6X", "crOX7X", "crOX8X", "crYX1L", "crYX2L","crYX3R", "crYX4R", "crYX5R" ,"crYX6L", "crYX7R", "crYX8L","matching_vars")
 ```
+
+## Identify mitochondrial and ribosomal populations
+
+```{r}
+#identify mitochondrial and ribosomal protein gene portions, annotations syntax tailored to mouse
+Ximerakis_total[["percent.mt"]]<- PercentageFeatureSet(Ximerakis_total, pattern = "^mt")
+Ximerakis_total[["percent.rp"]]<- PercentageFeatureSet(Ximerakis_total, pattern = "^Rp")
+
+#Generate genes per umi counts, from https://github.com/hbctraining/scRNA-seq/blob/master/lessons/04_SC_quality_control.md
+Ximerakis_total$log10GenesPerUMI <- log10(Ximerakis_total$nFeature_RNA) / log10(Ximerakis_total$nCount_RNA)
+
+Ximerakis_total$mitoRatio <- Ximerakis_total@meta.data$percent.mt / 100
+
+```
+
+## Initial data assessment
+
+```{r}
+VlnPlot(Ximerakis_total, features=c("nFeature_RNA","nCount_RNA","percent.mt", "percent.rp"), ncol=4, pt.size = 0.01)+ ggtitle("Preliminary Data assessment", subtitle= "Xiemrakis, unfiltered")
+```
+We can see a high proportion of mitochondrial reads which will need to be omitted, though this may be taken care of by other filters applied
 
 ### Add metadata, adding sample identity
 
@@ -103,6 +124,15 @@ Idents(object=Ximerakis_total)<-"sample"
 rm(sampleLabs, sample_detect)
 ```
 
+
+```{r}
+#Save the data object
+save(Ximerakis_total, file="./Rdata/Ximerakis_total_seurat.RData")
+```
+
+
+# To test
+
 ```{r}
 # Rename columns from https://github.com/hbctraining/scRNA-seq/blob/master/lessons/04_SC_quality_control.md
 
@@ -117,24 +147,59 @@ metadata_test <- metadata_test %>%
                   nGene = nFeature_RNA)
 ```
 
-## Assess nUMIs
+### Counts per sample
+
+This shows over 300k cells for some samples, indicating that minimum metrics must be set to remove junk.
 
 ```{r}
-metadata_test<- metadata_test %>%
-    filter(nUMI > 0, nGene >20, percent.tm <20)  # Filter out zero or negative values of nUMI, less than 20 genes (could raise to 50 but need biological justification), less than 20 % mito.
-
-# Visualize the number UMIs/transcripts per cell
+# Visualize the number of cell counts per sample with no filtering at all
 metadata_test %>% 
-    ggplot(aes(color=sample, x=nUMI, fill= sample)) + 
-    geom_density(alpha = 0.2) + 
-    scale_x_log10() + 
-    theme_classic() +
-    ylab("Cell density") +
-    geom_vline(xintercept = 500)+
-    ggtitle("UMIs/transcripts per cell (nUMI>0, nGene>20")
+  	ggplot(aes(x=sample, fill=sample)) + 
+  	geom_bar() +
+  	theme_classic() +
+  	theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
+  	theme(plot.title = element_text(hjust=0.5, face="bold")) +
+  	ggtitle("Cell counts per sample", subtitle="Ximerakis, unfiltered")
 ```
 
-Shows very poor nUMIs
+## Setting a minimum gene count for quality control
+
+20 genes minimum, still gives 80k cells in some samples!
+
+```{r}
+#Setting minimum feature count to filter cells with no genes UMIs vs. genes detected
+
+metadata_test <- subset(Ximerakis_total, subset= nFeature_RNA > 20)@meta.data
+```
+
+```{r}
+# Visualize the number of cell counts per sample with a minimum gene count set
+metadata_test %>% 
+  	ggplot(aes(x=sample, fill=sample)) + 
+  	geom_bar() +
+  	theme_classic() +
+  	theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
+  	theme(plot.title = element_text(hjust=0.5, face="bold")) +
+  	ggtitle("Cell counts per sample", subtitle="Ximerakis, filtered to minimum 20 genes")
+```
+
+### UMI/ transcripts per cell
+
+With line at 500 for ideal minimum
+
+```{r}
+# Visualize the number UMIs/transcripts per cell
+metadata_test %>% 
+  	ggplot(aes(color=sample, x=nUMI, fill= sample)) + 
+  	geom_density(alpha = 0.2) + 
+  	scale_x_log10() + 
+  	theme_classic() +
+  	ylab("Cell density") +
+  	geom_vline(xintercept = 500)+
+    ggtitle("UMI/transcripts per cell", subtitle="Ximerakis, filtered to minimum 20 genes")
+```
+
+### Genes per cell
 
 ```{r}
 # Visualize the distribution of genes detected per cell via histogram
@@ -144,7 +209,7 @@ metadata_test %>%
   	theme_classic() +
   	scale_x_log10() + 
   	geom_vline(xintercept = 300)+
-    ggtitle("Distribution of genes detected per cell via histogram")
+    ggtitle("Distribution of genes per cell", subtitle="Ximerakis, filtered to minimum 20 genes")
 
 # Visualize the distribution of genes detected per cell via boxplot
 metadata_test %>% 
@@ -153,33 +218,198 @@ metadata_test %>%
   	theme_classic() +
   	theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
   	theme(plot.title = element_text(hjust=0.5, face="bold")) +
-  	ggtitle("NCells vs NGenes")
+  	ggtitle("Distribution of genes per cell", subtitle="Ximerakis, filtered to minimum 20 genes")
 ```
 
-## Identify mitochondrial and ribosomal populations
+### UMI vs. genes detected
+
+We want cells in top right
+
+```{r,fig.dim = c(8, 6)}
+#Some code commented out because it introduced infitine values with a log transform
+# Visualize the correlation between genes detected and number of UMIs and determine whether strong presence of cells with low numbers of genes/UMIs
+metadata_test %>% 
+  	ggplot(aes(x=nUMI, y=nGene, color=mitoRatio)) + 
+  	geom_point() + 
+	scale_colour_gradient(low = "gray90", high = "black") +
+  	#stat_smooth(method=lm) +
+  	scale_x_log10() +
+  	scale_y_log10() +
+  	theme_classic() +
+  	geom_vline(xintercept = 500) +
+  	geom_hline(yintercept = 250) +
+  	facet_wrap(~sample) +
+    ggtitle("UMIs vs. genes detected", subtitle = "Ximerakis, minimum 20 genes")
+```
+
+### MitoRatio
+
+We want data lower than 0.2
 
 ```{r}
-#identify mitochondrial and ribosomal protein gene portions
-Ximerakis_total[["percent.mt"]]<- PercentageFeatureSet(Ximerakis_total, pattern = "^mt")
-Ximerakis_total[["percent.rp"]]<- PercentageFeatureSet(Ximerakis_total, pattern = "^Rp")
-
-#Generate genes per umi counts, from https://github.com/hbctraining/scRNA-seq/blob/master/lessons/04_SC_quality_control.md
-Ximerakis_total$log10GenesPerUMI <- log10(Ximerakis_total$nFeature_RNA) / log10(Ximerakis_total$nCount_RNA)
+# Visualize the distribution of mitochondrial gene expression detected per cell
+metadata_test %>% 
+  	ggplot(aes(color=sample, x=mitoRatio, fill=sample)) + 
+  	geom_density(alpha = 0.2) + 
+  	scale_x_log10() + 
+  	theme_classic() +
+  	geom_vline(xintercept = 0.2)+
+    ggtitle("Distribution of mitochondrial gene expression per cell", subtitle="Ximerakis, filtered to minimum 20 genes")
 ```
 
 ```{r}
-#Save the data object
-save(Ximerakis_total, file="./Rdata/Ximerakis_total_seurat.RData")
+FeatureScatter((subset(Ximerakis_total, subset= nFeature_RNA > 20)), feature1 = "nFeature_RNA", feature2 = "percent.mt")
 ```
 
-## Plot violins of overall characteristics in raw data
+### Complexity
 
+Should be above 0.8.
+
+```{r}
+# Visualize the overall complexity of the gene expression by visualizing the genes detected per UMI
+metadata_test %>%
+  	ggplot(aes(x=log10GenesPerUMI, color = sample, fill=sample)) +
+  	geom_density(alpha = 0.2) +
+  	theme_classic() +
+  	geom_vline(xintercept = 0.8)+
+    ggtitle("Complexity of gene expression (genes per UMI)", subtitle="Ximerakis, filtered to minimum 20 genes")
+```
+
+### Filtering metadata
+
+```{r}
+metadata_test<- metadata_test %>%
+    filter(nUMI > 0, nGene >300, percent.mt <20)
+```
+
+
+## Repeat the QC analysis
+
+
+```{r}
+# Visualize the number of cell counts per sample with a minimum gene count set
+metadata_test %>% 
+  	ggplot(aes(x=sample, fill=sample)) + 
+  	geom_bar() +
+  	theme_classic() +
+  	theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
+  	theme(plot.title = element_text(hjust=0.5, face="bold")) +
+  	ggtitle("Cell counts per sample", subtitle="Ximerakis, filtered to minimum 0 transcripts, 300 genes and maximum 20% mitochondrial gene content")
+
+table(metadata_test$sample)
+```
+
+### UMI/ transcripts per cell
+
+With line at 500 for ideal minimum
+
+```{r}
+# Visualize the number UMIs/transcripts per cell
+metadata_test %>% 
+  	ggplot(aes(color=sample, x=nUMI, fill= sample)) + 
+  	geom_density(alpha = 0.2) + 
+  	scale_x_log10() + 
+  	theme_classic() +
+  	ylab("Cell density") +
+  	geom_vline(xintercept = 500)+
+    ggtitle("UMI/transcripts per cell", subtitle="Ximerakis, filtered to minimum 0 transcripts, 300 genes and maximum 20% mitochondrial gene content")
+```
+
+### Genes per cell
+
+```{r}
+# Visualize the distribution of genes detected per cell via histogram
+metadata_test %>% 
+  	ggplot(aes(color=sample, x=nGene, fill= sample)) + 
+  	geom_density(alpha = 0.2) + 
+  	theme_classic() +
+  	scale_x_log10() + 
+  	geom_vline(xintercept = 300)+
+    ggtitle("Distribution of genes per cell", subtitle="Ximerakis, filtered to minimum 0 transcripts, 300 genes and maximum 20% mitochondrial gene content")
+
+# Visualize the distribution of genes detected per cell via boxplot
+metadata_test %>% 
+  	ggplot(aes(x=sample, y=log10(nGene), fill=sample)) + 
+  	geom_boxplot() + 
+  	theme_classic() +
+  	theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
+  	theme(plot.title = element_text(hjust=0.5, face="bold")) +
+  	ggtitle("Distribution of genes per cell", subtitle="Ximerakis, filtered to minimum 0 transcripts, 300 genes and maximum 20% mitochondrial gene content")
+```
+
+### UMI vs. genes detected
+
+We want cells in top right
+
+```{r,fig.dim = c(8, 6)}
+#Some code commented out because it introduced infitine values with a log transform
+# Visualize the correlation between genes detected and number of UMIs and determine whether strong presence of cells with low numbers of genes/UMIs
+metadata_test %>% 
+  	ggplot(aes(x=nUMI, y=nGene, color=mitoRatio)) + 
+  	geom_point() + 
+	scale_colour_gradient(low = "gray90", high = "black") +
+  	#stat_smooth(method=lm) +
+  	scale_x_log10() +
+  	scale_y_log10() +
+  	theme_classic() +
+  	geom_vline(xintercept = 500) +
+  	geom_hline(yintercept = 250) +
+  	facet_wrap(~sample) +
+    ggtitle("UMIs vs. genes detected", subtitle = "Ximerakis, filtered to minimum 0 transcripts, 300 genes and maximum 20% mitochondrial gene content")
+```
+
+### MitoRatio
+
+We want data lower than 0.2
+
+```{r}
+# Visualize the distribution of mitochondrial gene expression detected per cell
+metadata_test %>% 
+  	ggplot(aes(color=sample, x=mitoRatio, fill=sample)) + 
+  	geom_density(alpha = 0.2) + 
+  	scale_x_log10() + 
+  	theme_classic() +
+  	geom_vline(xintercept = 0.2)+
+    ggtitle("Distribution of mitochondrial gene expression per cell", subtitle="Ximerakis, filtered to minimum 0 transcripts, 300 genes and maximum 20% mitochondrial gene content")
+```
+
+
+### Complexity
+
+Should be above 0.8.
+
+```{r}
+# Visualize the overall complexity of the gene expression by visualizing the genes detected per UMI
+metadata_test %>%
+  	ggplot(aes(x=log10GenesPerUMI, color = sample, fill=sample)) +
+  	geom_density(alpha = 0.2) +
+  	theme_classic() +
+  	geom_vline(xintercept = 0.8)+
+    ggtitle("Complexity of gene expression (genes per UMI)", subtitle="Ximerakis, filtered to minimum 0 transcripts, 300 genes and maximum 20% mitochondrial gene content")
+```
+
+
+
+### Assign filters to data
+
+```{r}
+subset
+```
+
+### Saving object 
+
+```{r}
+# Create .RData object to load at any time
+save(metadata_test, file="Rdata/Ximerakis_filtered.RData")
+
+```
+
+
+# To keep
 ```{r}
 #plot(density(Ximerakis_total@meta.data$nFeature_RNA))
 VlnPlot(Ximerakis_total, features=c("nFeature_RNA","nCount_RNA","percent.mt", "percent.rp"), ncol=4, pt.size = 0.05)
 ```
-
-We can see a high proportion of mitochondrial reads which will need to be omitted, though this may be taken care of by other filters applied
 
 ## Plot each of these respectively, showing trends in cell health
 
