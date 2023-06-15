@@ -86,6 +86,29 @@ Ximerakis_total$mitoRatio <- Ximerakis_total@meta.data$percent.mt / 100
 ```{r}
 VlnPlot(Ximerakis_total, features=c("nFeature_RNA","nCount_RNA","percent.mt", "percent.rp"), ncol=4, pt.size = 0.01)+ ggtitle("Preliminary Data assessment", subtitle= "Xiemrakis, unfiltered")
 ```
+We can see a high proportion of mitochondrial reads which will need to be omitted, though this may be taken care of by other filters applied
+
+## Plot each of these respectively, showing trends in cell health
+
+```{r}
+#show mitochondrial proportion in reads
+FeatureScatter(Ximerakis_total, feature1 = "nCount_RNA", feature2 = "percent.mt")+ggtitle("UMIs per cell vs. % mitochondrial genes detected")
+
+#show ribosomal proportion in reads
+FeatureScatter(Ximerakis_total, feature1 = "nCount_RNA", feature2 = "percent.rp")+ggtitle("UMIs per cell vs. % ribosomal protein  genes detected")
+
+#Ribosomal vs mitochondrial 
+FeatureScatter(Ximerakis_total, feature1 = "percent.rp", feature2 = "percent.mt")+ggtitle("% ribosomal protein  genes detected vs. % mitochondiral genes detected")
+```
+
+There appears to be a shelf around 35% mt, indicating cell death. It seems that a couple of the Old mice have low mt, whilst a couple of the Young mice in pink have around 45%.
+
+```{r}
+#Show overall reads and gene counts for unfiltered data.
+FeatureScatter(Ximerakis_total, feature1 = "nCount_RNA", feature2="nFeature_RNA",raster=FALSE, pt.size = 0.05)+ geom_smooth(method="lm")+ ggtitle("UMIs per cell vs. number of genes ")
+```
+
+Seems normal, though values are lower than our data
 
 
 ### Add metadata, adding sample identity
@@ -124,15 +147,14 @@ Idents(object=Ximerakis_total)<-"sample"
 rm(sampleLabs, sample_detect)
 ```
 
+### Save the whole data
 
 ```{r}
 #Save the data object
 save(Ximerakis_total, file="./Rdata/Ximerakis_total_seurat.RData")
 ```
 
-
-# To test
-
+### Create metadata variable to edit it without affecting core data
 ```{r}
 # Rename columns from https://github.com/hbctraining/scRNA-seq/blob/master/lessons/04_SC_quality_control.md
 
@@ -278,17 +300,16 @@ metadata_test %>%
 ### Filtering metadata
 
 ```{r}
-metadata_test<- metadata_test %>%
+metadata_filtered<- metadata_test %>%
     filter(nUMI > 0, nGene >300, percent.mt <20)
 ```
 
 
 ## Repeat the QC analysis
 
-
 ```{r}
 # Visualize the number of cell counts per sample with a minimum gene count set
-metadata_test %>% 
+metadata_filtered %>% 
   	ggplot(aes(x=sample, fill=sample)) + 
   	geom_bar() +
   	theme_classic() +
@@ -296,7 +317,7 @@ metadata_test %>%
   	theme(plot.title = element_text(hjust=0.5, face="bold")) +
   	ggtitle("Cell counts per sample", subtitle="Ximerakis, filtered to minimum 0 transcripts, 300 genes and maximum 20% mitochondrial gene content")
 
-table(metadata_test$sample)
+table(metadata_filtered$sample)
 ```
 
 ### UMI/ transcripts per cell
@@ -305,7 +326,7 @@ With line at 500 for ideal minimum
 
 ```{r}
 # Visualize the number UMIs/transcripts per cell
-metadata_test %>% 
+metadata_filtered %>% 
   	ggplot(aes(color=sample, x=nUMI, fill= sample)) + 
   	geom_density(alpha = 0.2) + 
   	scale_x_log10() + 
@@ -319,7 +340,7 @@ metadata_test %>%
 
 ```{r}
 # Visualize the distribution of genes detected per cell via histogram
-metadata_test %>% 
+metadata_filtered %>% 
   	ggplot(aes(color=sample, x=nGene, fill= sample)) + 
   	geom_density(alpha = 0.2) + 
   	theme_classic() +
@@ -328,7 +349,7 @@ metadata_test %>%
     ggtitle("Distribution of genes per cell", subtitle="Ximerakis, filtered to minimum 0 transcripts, 300 genes and maximum 20% mitochondrial gene content")
 
 # Visualize the distribution of genes detected per cell via boxplot
-metadata_test %>% 
+metadata_filtered %>% 
   	ggplot(aes(x=sample, y=log10(nGene), fill=sample)) + 
   	geom_boxplot() + 
   	theme_classic() +
@@ -344,7 +365,7 @@ We want cells in top right
 ```{r,fig.dim = c(8, 6)}
 #Some code commented out because it introduced infitine values with a log transform
 # Visualize the correlation between genes detected and number of UMIs and determine whether strong presence of cells with low numbers of genes/UMIs
-metadata_test %>% 
+metadata_filtered %>% 
   	ggplot(aes(x=nUMI, y=nGene, color=mitoRatio)) + 
   	geom_point() + 
 	scale_colour_gradient(low = "gray90", high = "black") +
@@ -364,7 +385,7 @@ We want data lower than 0.2
 
 ```{r}
 # Visualize the distribution of mitochondrial gene expression detected per cell
-metadata_test %>% 
+metadata_filtered %>% 
   	ggplot(aes(color=sample, x=mitoRatio, fill=sample)) + 
   	geom_density(alpha = 0.2) + 
   	scale_x_log10() + 
@@ -380,7 +401,7 @@ Should be above 0.8.
 
 ```{r}
 # Visualize the overall complexity of the gene expression by visualizing the genes detected per UMI
-metadata_test %>%
+metadata_filtered %>%
   	ggplot(aes(x=log10GenesPerUMI, color = sample, fill=sample)) +
   	geom_density(alpha = 0.2) +
   	theme_classic() +
@@ -389,167 +410,69 @@ metadata_test %>%
 ```
 
 
-
 ### Assign filters to data
 
 ```{r}
-subset
+#filter out the cells with mitochondrial genes more than 5% and genes with more than .... genes as instructed by Nick
+temp_meta<-Ximerakis_total@meta.data
+temp_meta <- temp_meta %>%
+    dplyr::rename(nUMI = nCount_RNA,
+                  nGene = nFeature_RNA)
+
+Ximerakis_total@meta.data<-temp_meta
+
+
+Ximerakis_filtered<- subset(Ximerakis_total,subset= 
+                              percent.mt <20 &
+                              nUMI > 0 &
+                              nGene >300
+                            )
+rm(temp_meta, metadata_test, metadata_filtered)
 ```
+
+
+### Gene-level filtering
+
+Keeping genes which appear in more than 3 cells for statistical power.
+
+```{r}
+
+# Output a logical vector for every gene on whether the more than zero counts per cell
+# Extract counts
+counts <- GetAssayData(object = Ximerakis_filtered, slot = "counts")
+
+# Output a logical vector for every gene on whether the more than zero counts per cell
+nonzero <- counts > 0
+
+# Sums all TRUE values and returns TRUE if more than 3 TRUE values per gene
+keep_genes <- Matrix::rowSums(nonzero) >= 3
+
+# Only keeping those genes expressed in more than 10 cells
+filtered_counts <- counts[keep_genes, ]
+
+# Reassign to filtered Seurat object
+Ximerakis_filtered <- CreateSeuratObject(filtered_counts, meta.data = Ximerakis_filtered@meta.data)
+
+```
+
+
 
 ### Saving object 
 
 ```{r}
 # Create .RData object to load at any time
-save(metadata_test, file="Rdata/Ximerakis_filtered.RData")
+save(Ximerakis_filtered, file="Rdata/Ximerakis_filtered.RData")
 
 ```
 
 
-# To keep
-
-## Assess nUMIs
-
-```{r}
-metadata_test<- metadata_test %>%
-    filter(nUMI > 0, nGene >20, percent.mt <20)  # Filter out zero or negative values of nUMI, less than 20 genes (could raise to 50 but need biological justification), less than 20 % mito.
-
-# Visualize the number UMIs/transcripts per cell
-metadata_test %>% 
-    ggplot(aes(color=sample, x=nUMI, fill= sample)) + 
-    geom_density(alpha = 0.2) + 
-    scale_x_log10() + 
-    theme_classic() +
-    ylab("Cell density") +
-    geom_vline(xintercept = 500)+
-    ggtitle("UMIs/transcripts per cell (nUMI>0, nGene>20")
-```
-
-Shows very poor nUMIs
-
-```{r}
-# Visualize the distribution of genes detected per cell via histogram
-metadata_test %>% 
-  	ggplot(aes(color=sample, x=nGene, fill= sample)) + 
-  	geom_density(alpha = 0.2) + 
-  	theme_classic() +
-  	scale_x_log10() + 
-  	geom_vline(xintercept = 300)+
-    ggtitle("Distribution of genes detected per cell via histogram")
-
-# Visualize the distribution of genes detected per cell via boxplot
-metadata_test %>% 
-  	ggplot(aes(x=sample, y=log10(nGene), fill=sample)) + 
-  	geom_boxplot() + 
-  	theme_classic() +
-  	theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
-  	theme(plot.title = element_text(hjust=0.5, face="bold")) +
-  	ggtitle("NCells vs NGenes")
-```
-
-
-## Plot violins of overall characteristics in raw data
-
-```{r}
-#FIMXE Plot violins of the whole dataset without grouping for clarity
-Idents.....
-VlnPlot(Ximerakis_total, features=c("nFeature_RNA","nCount_RNA","percent.mt", "percent.rp"), ncol=4, pt.size = 0.05)
-
-#plot(density(Ximerakis_total@meta.data$nFeature_RNA))
-VlnPlot(Ximerakis_total, features=c("nFeature_RNA","nCount_RNA","percent.mt", "percent.rp"), ncol=4, pt.size = 0.05)
-```
-
-We can see a high proportion of mitochondrial reads which will need to be omitted, though this may be taken care of by other filters applied
-
-## Plot each of these respectively, showing trends in cell health
-
-```{r}
-#show mitochondrial proportion in reads
-FeatureScatter(Ximerakis_total, feature1 = "nCount_RNA", feature2 = "percent.mt")+ggtitle("UMIs per cell vs. % mitochondrial genes detected")
-
-#show ribosomal proportion in reads
-FeatureScatter(Ximerakis_total, feature1 = "nCount_RNA", feature2 = "percent.rp")+ggtitle("UMIs per cell vs. % ribosomal protein  genes detected")
-
-#Ribosomal vs mitochondrial 
-FeatureScatter(Ximerakis_total, feature1 = "percent.rp", feature2 = "percent.mt")+ggtitle("% ribosomal protein  genes detected vs. % mitochondiral genes detected")
-```
-
-There appears to be a shelf around 35% mt, indicating cell death. It seems that a couple of the Old mice have low mt, whilst a couple of the Young mice in pink have around 45%.
-
-```{r}
-#Show overall reads and gene counts for unfiltered data.
-FeatureScatter(Ximerakis_total, feature1 = "nCount_RNA", feature2="nFeature_RNA",raster=FALSE, pt.size = 0.05)+ geom_smooth(method="lm")+ ggtitle("UMIs per cell vs. number of genes ")
-```
-
-Seems normal, though values are lower than our data
-
-## Filter anything with more than 20% mito content
-
-Creating new data variable for this. Results in the filtering of 29% of cells to leave 1,553,556 cells. Biologically, filtering
-
-```{r}
-#Create data with less than 20 % mt
-Ximerakis_mitofilter20<-subset(Ximerakis_total,subset= percent.mt <20)
-
-FeatureScatter(Ximerakis_mitofilter20, feature1 = "nCount_RNA", feature2 = "percent.mt")+ggtitle("UMIs per cell vs. % mitochondrial genes detected (filtered by mt%)")
-
-#compared to the first assessment
-VlnPlot(Ximerakis_mitofilter20, features=c("nFeature_RNA","nCount_RNA","percent.mt", "percent.rp"), ncol=4, pt.size = 0.05)+ggtitle("Mitochondria-fitlered summary")
-```
-
-## Filter out anything with less than 20 reads
-
-This removes around 3/4 of data. Not filtered by mitochondria, just reads. Results in the filtering of 29% of cells to leave 1,035,865 cells ??
-
-```{r}
-Ximerakis_readfilter<-subset(Ximerakis_total,subset= nCount_RNA > 20)
-#Verify the effects
-FeatureScatter(Ximerakis_readfilter, feature1 = "nCount_RNA", feature2 = "percent.mt")+ggtitle("UMIs per cell vs. % mitochondrial genes detected with read filtering")
-#compared violin plot to the first assessment
-VlnPlot(Ximerakis_readfilter, features=c("nFeature_RNA","nCount_RNA","percent.mt", "percent.rp"), ncol=4, pt.size = 0.05)+ggtitle("Read-fitlered summary")
-```
-
-## Applying all filters
-
-Filtering by at elast 10 genes, less than 20% mitochondrial gene content and more than 20 UMIs. Would give 390,282 cells.
-
-```{r}
-barplot(table(Idents((subset(Ximerakis_total, subset= nFeature_RNA >10 & percent.mt <20 & nCount_RNA > 20)))))
-```
-
-## Assign a 'pass' status for these QC filters
-
-```{r}
-#Doesn't work yet
-
-#At least 250 genes
-Ximerakis_total[['QC']] <- ifelse(Ximerakis_total@meta.data$nFeature_RNA < 250,'Low_nFeature',Ximerakis_total@meta.data$QC)
-
-
-Ximerakis_total[['QC']] <- ifelse(Ximerakis_total@meta.data$nFeature_RNA < 250 & Ximerakis_total@meta.data$QC != 'Pass' &Ximerakis_total@meta.data$QC != 'Low_nFeature',paste('Low_nFeature',Ximerakis_total@meta.data$QC,sep = ','),Ximerakis_total@meta.data$QC)
-
-#Less than 20% mitochondrial
-Ximerakis_total[['QC']] <- ifelse(Ximerakis_total@meta.data$percent.mt > 20 & Ximerakis_total@meta.data$QC =='Pass','High_MT',Ximerakis_total@meta.data$QC)
-
-Ximerakis_total[['QC']] <- ifelse(Ximerakis_total@meta.data$nFeature_RNA < 250 & Ximerakis_total@meta.data$QC != 'Pass' &Ximerakis_total@meta.data$QC != 'High_MT',paste('High_MT',Ximerakis_total@meta.data$QC,sep = ','),Ximerakis_total@meta.data$QC)
-
-table(Ximerakis_total[['QC']])
-```
-
-```{r}
-#filter out the cells with mitochondrial genes more than 5% and genes with more than .... genes as instructed by Nick
-Ximerakis_total<- subset(Ximerakis_total, 
-                         subset= percent.mt <20 &
-                           #FIXME add more filters here
-                         )
-#                         & nFeature_RNA > 1000)      ##FIXME filter needs adjusting
-```
 
 ## Doublet finder for all samples
 
 ```{r}
 #adapted from https://youtu.be/p49seH2_i8Y , https://github.com/kpatel427/YouTubeTutorials/blob/5b3c795cecafb22f0e992da069eae2efd6b5cb95/singleCell_doublets.R , https://rpubs.com/kenneditodd/doublet_finder_example 
 
-Ximerakis.list <- SplitObject(Ximerakis_total, split.by = "sample")
+Ximerakis.list <- SplitObject(Ximerakis_filtered, split.by = "sample")
 
 # Perform doublet detection on each sample using lapply
 Ximerakis.list <- lapply(Ximerakis.list, function(sample) {
@@ -619,13 +542,25 @@ Ximerakis.list <- lapply(Ximerakis.list, function(sample) {
 
 ```{r}
 #Show doublet info 
-FeatureScatter(Ximerakis_total, feature1 = "nFeature_RNA", feature2 = "Doublet_score")
+FeatureScatter(Ximerakis_filtered, feature1 = "nGene", feature2 = "Doublet_score")
 
 ```
+
+
+### Saving object 
+
+```{r}
+# Create .RData object to load at any time
+save(Ximerakis_filtered, file="Rdata/Ximerakis_filtered.RData")
+
+```
+
+
 
 ```{r}
 #Misc code
 # code from https://github.com/kpatel427/YouTubeTutorials/blob/5b3c795cecafb22f0e992da069eae2efd6b5cb95/singleCell_doublets.R
+
 
 #show the capture of variability in the PCs
 ElbowPlot(Ximerakis.list[[1]])+ggtitle("Variability captured at each level of PC in PCA (sample OX1X)")
