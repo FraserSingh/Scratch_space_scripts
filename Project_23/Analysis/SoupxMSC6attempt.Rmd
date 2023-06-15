@@ -1,11 +1,12 @@
 ```{r}
-# if (!require("SoupX", quietly = TRUE))
-#     install.packages("SoupX")
-# 
-# library(Seurat)
-# library(SoupX)
-# library(DropletUtils)
-# library(ggplot2)
+if (!require("SoupX", quietly = TRUE))
+    install.packages("SoupX")
+
+library(Seurat)
+library(tidyverse)
+library(SoupX)
+library(DropletUtils)
+library(ggplot2)
 remotes::install_github('chris-mcginnis-ucsf/DoubletFinder')
 
 library(DoubletFinder)
