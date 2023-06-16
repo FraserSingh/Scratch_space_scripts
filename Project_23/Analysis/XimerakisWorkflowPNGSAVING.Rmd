@@ -54,7 +54,7 @@ folder_names <- paste0("cr", sample_names)
 
 # Loop through each folder to process it
 for (folder_name in folder_names) {
-  folder_path=paste0("/home/s2268606/University_Directories/Project_23/External_datasets/Ximerakis/",folder_name, "/outs/")
+  folder_path=paste0("/home/s2268606/University_Directories/Project_23/External_datasets/Ximerakis/",folder_name,"/outs/")
   
   #Load the data in from the cellranger-created folder
   current_data<-load10X(folder_path)
@@ -85,7 +85,7 @@ matching_vars <- matching_vars[!matching_vars %in% c("current_obj", "objName")]
 Ximerakis_total <- merge(crOX1Xobj, y= c(crOX2Xobj,crOX3Xobj,crOX4Xobj,crOX5Xobj,crOX6Xobj,crOX7Xobj,crOX8Xobj,crYX1Lobj,crYX2Lobj,crYX3Robj,crYX4Robj,crYX5Robj,crYX6Lobj,crYX7Robj,crYX8Lobj), add.cell.ids=c("OX1X", "OX2X", "OX3X", "OX4X", "OX5X", "OX6X", "OX7X", "OX8X", "YX1L", "YX2L","YX3R", "YX4R", "YX5R" ,"YX6L", "YX7R", "YX8L"), project="Ximerakis")
 
 #cleaning up memory
-rm("crOX1X", "crOX2X", "crOX3X", "crOX4X", "crOX5X", "crOX6X", "crOX7X", "crOX8X", "crYX1L", "crYX2L","crYX3R", "crYX4R", "crYX5R" ,"crYX6L", "crYX7R", "crYX8L","matching_vars","current_data","current_obj")
+rm("souped_matrix","matching_vars","current_data","current_obj", "folder_name", "objName", "folder_path")
 ```
 
 ## Identify mitochondrial and ribosomal populations
@@ -266,7 +266,7 @@ dev.off()
 
 ```{r}
 # Visualize the distribution of genes detected per cell via histogram
-png("Distribution_of_genes_per_cell1.png", width=1000)
+# png("Distribution_of_genes_per_cell1.png", width=1000)
 metadata_test %>% 
   	ggplot(aes(color=sample, x=nGene, fill= sample)) + 
   	geom_density(alpha = 0.2) + 
@@ -274,10 +274,10 @@ metadata_test %>%
   	scale_x_log10() + 
   	geom_vline(xintercept = 300)+
     ggplot2::ggtitle("Distribution of genes per cell", subtitle="Ximerakis, filtered to minimum 20 genes")
-dev.off()
+# dev.off()
 
 # Visualize the distribution of genes detected per cell via boxplot
-png("Distribution_of_genes_per_cell2.png", width=1000)
+# png("Distribution_of_genes_per_cell2.png", width=1000)
 metadata_test %>% 
   	ggplot(aes(x=sample, y=log10(nGene), fill=sample)) + 
   	geom_boxplot() + 
@@ -285,7 +285,7 @@ metadata_test %>%
   	theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
   	theme(plot.title = element_text(hjust=0.5, face="bold")) +
   	ggplot2::ggtitle("Distribution of genes per cell", subtitle="Ximerakis, filtered to minimum 20 genes")
-dev.off()
+# dev.off()
 ```
 
 ### UMI vs. genes detected
@@ -295,7 +295,7 @@ We want cells in top right
 ```{r}
 #Some code commented out because it introduced infitine values with a log transform
 # Visualize the correlation between genes detected and number of UMIs and determine whether strong presence of cells with low numbers of genes/UMIs
-png("UMIs_vs_genes_detected.png", width=1000)
+png("UMIs_vs_genes_detected.png", width=2000)
 metadata_test %>% 
   	ggplot(aes(x=nUMI, y=nGene, color=mitoRatio)) + 
   	geom_point() + 
@@ -354,7 +354,7 @@ dev.off()
 
 ```{r}
 metadata_filtered<- metadata_test %>%
-    filter(nUMI > 0, nGene >300, percent.mt <20)
+    filter(nUMI > 0, nGene >150, percent.mt <20)
 ```
 
 ## Repeat the QC analysis
@@ -489,7 +489,7 @@ Ximerakis_total@meta.data<-temp_meta
 Ximerakis_filtered<- subset(Ximerakis_total,subset= 
                               percent.mt <20 &
                               nUMI > 0 &
-                              nGene >300
+                              nGene >150
                             )
 rm(temp_meta, metadata_test, metadata_filtered)
 ```
@@ -515,7 +515,7 @@ filtered_counts <- counts[keep_genes, ]
 
 # Reassign to filtered Seurat object
 Ximerakis_filtered <- CreateSeuratObject(filtered_counts, meta.data = Ximerakis_filtered@meta.data)
-
+rm(filtered_counts, nonzero)
 ```
 
 ### Saving object
@@ -593,7 +593,7 @@ Ximerakis.list <- lapply(Ximerakis.list, function(sample) {
 })
 
 #subset data by singlet status
-Ximerakis.list <- lapply(Ximerakis.list, function(sample) {
+Ximerakis.list.singlets <- lapply(Ximerakis.list, function(sample) {
   sample<- subset(sample, subset= doublet_finder == 'Singlet')
   return(sample)
   })
