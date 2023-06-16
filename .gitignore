@@ -11,6 +11,6 @@ BPSM_MATERIALS/
 MLP/
 NGG/
 Project_23/
-!./Project_23/**/*.Rmd
-!./Project_23/**/*.sh
+!Project_23/**/*.Rmd
+!Project_23/**/*.sh
 !.gitignore

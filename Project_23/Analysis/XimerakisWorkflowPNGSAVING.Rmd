@@ -53,22 +53,25 @@ folder_names <- paste0("cr", sample_names)
 
 # Loop through each folder to process it
 for (folder_name in folder_names) {
-  folder_path=paste0("/home/s2268606/University_Directories/Project_23/External_datasets/Ximerakis/",folder_name, "/outs/raw_feature_bc_matrix/")
+  folder_path=paste0("/home/s2268606/University_Directories/Project_23/External_datasets/Ximerakis/",folder_name, "/outs/")
   
-  current_data<-Read10X(data.dir =folder_path)
+  current_data<-load10X(folder_path)
   
-  #error trap for one of the variables... not sure which
-  if (is.null(colnames(current_data))) {
-    cat("Error: No cell names present in the input matrix for folder", folder_name, "\n")
-    next  # Skip to the next iteration of the loop
-  }
+  #set margins for plot
+  par(mar = c(1, 1, 1, 1))
   
-  # Assign the object to a variable with the folder name as the variable name
-  assign(folder_name, current_data)
+  #get soup ratio
+  current_data <- autoEstCont(current_data)
+  
+  #save soup-less matrix
+  souped_matrix <-adjustCounts(current_data, roundToInt = T)
+  
+  
+  #Hopefully use the reduced matrix
+  current_obj <- CreateSeuratObject(counts = souped_matrix, project = "Ximerakis")
   
   # Make names for and create the Seurat objects
   objName <- paste0(folder_name, "obj")
-  current_obj <- CreateSeuratObject(counts = current_data, project = "Ximerakis")
   assign(objName, current_obj)
 }
 
@@ -80,7 +83,7 @@ matching_vars <- matching_vars[!matching_vars %in% c("current_obj", "objName")]
 Ximerakis_total <- merge(crOX1Xobj, y= c(crOX2Xobj,crOX3Xobj,crOX4Xobj,crOX5Xobj,crOX6Xobj,crOX7Xobj,crOX8Xobj,crYX1Lobj,crYX2Lobj,crYX3Robj,crYX4Robj,crYX5Robj,crYX6Lobj,crYX7Robj,crYX8Lobj), add.cell.ids=c("OX1X", "OX2X", "OX3X", "OX4X", "OX5X", "OX6X", "OX7X", "OX8X", "YX1L", "YX2L","YX3R", "YX4R", "YX5R" ,"YX6L", "YX7R", "YX8L"), project="Ximerakis")
 
 #cleaning up memory
-# rm("crOX1X", "crOX2X", "crOX3X", "crOX4X", "crOX5X", "crOX6X", "crOX7X", "crOX8X", "crYX1L", "crYX2L","crYX3R", "crYX4R", "crYX5R" ,"crYX6L", "crYX7R", "crYX8L","matching_vars")
+rm("crOX1X", "crOX2X", "crOX3X", "crOX4X", "crOX5X", "crOX6X", "crOX7X", "crOX8X", "crYX1L", "crYX2L","crYX3R", "crYX4R", "crYX5R" ,"crYX6L", "crYX7R", "crYX8L","matching_vars")
 ```
 
 ## Identify mitochondrial and ribosomal populations
