@@ -266,7 +266,7 @@ dev.off()
 
 ```{r}
 # Visualize the distribution of genes detected per cell via histogram
-# png("Distribution_of_genes_per_cell1.png", width=1000)
+png("Distribution_of_genes_per_cell1.png", width=1000)
 metadata_test %>% 
   	ggplot(aes(color=sample, x=nGene, fill= sample)) + 
   	geom_density(alpha = 0.2) + 
@@ -274,10 +274,10 @@ metadata_test %>%
   	scale_x_log10() + 
   	geom_vline(xintercept = 300)+
     ggplot2::ggtitle("Distribution of genes per cell", subtitle="Ximerakis, filtered to minimum 20 genes")
-# dev.off()
+dev.off()
 
 # Visualize the distribution of genes detected per cell via boxplot
-# png("Distribution_of_genes_per_cell2.png", width=1000)
+png("Distribution_of_genes_per_cell2.png", width=1000)
 metadata_test %>% 
   	ggplot(aes(x=sample, y=log10(nGene), fill=sample)) + 
   	geom_boxplot() + 
@@ -285,7 +285,7 @@ metadata_test %>%
   	theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
   	theme(plot.title = element_text(hjust=0.5, face="bold")) +
   	ggplot2::ggtitle("Distribution of genes per cell", subtitle="Ximerakis, filtered to minimum 20 genes")
-# dev.off()
+dev.off()
 ```
 
 ### UMI vs. genes detected
@@ -515,20 +515,28 @@ filtered_counts <- counts[keep_genes, ]
 
 # Reassign to filtered Seurat object
 Ximerakis_filtered <- CreateSeuratObject(filtered_counts, meta.data = Ximerakis_filtered@meta.data)
-rm(filtered_counts, nonzero)
+rm(filtered_counts, nonzero,counts, keep_genes)
 ```
 
 ### Saving object
 
 ```{r}
 # Create .RData object to load at any time
-#save(Ximerakis_filtered, file="./Rdata/Ximerakis_filtered.RData")
+save(Ximerakis_filtered, file="./Rdata/Ximerakis_filtered.RData")
+```
 
+```{r}
+# clearing some space by removing the original seurat objects
+rm(list=paste0(folder_names,"obj"))
 ```
 
 ## Doublet finder for all samples
 
 ```{r}
+
+#load in the filtered Ximerakis object
+#load("./Rdata/Ximerakis_filtered.RData")
+
 #adapted from https://youtu.be/p49seH2_i8Y , https://github.com/kpatel427/YouTubeTutorials/blob/5b3c795cecafb22f0e992da069eae2efd6b5cb95/singleCell_doublets.R , https://rpubs.com/kenneditodd/doublet_finder_example 
 
 Ximerakis.list <- SplitObject(Ximerakis_filtered, split.by = "sample")
