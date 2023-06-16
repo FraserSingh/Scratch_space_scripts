@@ -10,7 +10,7 @@ date: "2023-06-01"
 
 Adapted from [here](https://bioconductor.org/packages/release/bioc/vignettes/DropletUtils/inst/doc/DropletUtils.html#reading-in-10x-genomics-data) and [here](https://www.singlecellcourse.org/scrna-seq-analysis-with-bioconductor.html).
 
-```{r}
+```{r include=FALSE}
 if (!require("BiocManager", quietly = TRUE))
     install.packages("BiocManager")
 
@@ -32,6 +32,7 @@ library(DoubletFinder)
 
 if (!require("SoupX", quietly = TRUE))
     install.packages("SoupX")
+library(SoupX)
 ```
 
 To skip QC and load the filtered object from the directory, run:
@@ -55,6 +56,7 @@ folder_names <- paste0("cr", sample_names)
 for (folder_name in folder_names) {
   folder_path=paste0("/home/s2268606/University_Directories/Project_23/External_datasets/Ximerakis/",folder_name, "/outs/")
   
+  #Load the data in from the cellranger-created folder
   current_data<-load10X(folder_path)
   
   #set margins for plot
@@ -83,7 +85,7 @@ matching_vars <- matching_vars[!matching_vars %in% c("current_obj", "objName")]
 Ximerakis_total <- merge(crOX1Xobj, y= c(crOX2Xobj,crOX3Xobj,crOX4Xobj,crOX5Xobj,crOX6Xobj,crOX7Xobj,crOX8Xobj,crYX1Lobj,crYX2Lobj,crYX3Robj,crYX4Robj,crYX5Robj,crYX6Lobj,crYX7Robj,crYX8Lobj), add.cell.ids=c("OX1X", "OX2X", "OX3X", "OX4X", "OX5X", "OX6X", "OX7X", "OX8X", "YX1L", "YX2L","YX3R", "YX4R", "YX5R" ,"YX6L", "YX7R", "YX8L"), project="Ximerakis")
 
 #cleaning up memory
-rm("crOX1X", "crOX2X", "crOX3X", "crOX4X", "crOX5X", "crOX6X", "crOX7X", "crOX8X", "crYX1L", "crYX2L","crYX3R", "crYX4R", "crYX5R" ,"crYX6L", "crYX7R", "crYX8L","matching_vars")
+rm("crOX1X", "crOX2X", "crOX3X", "crOX4X", "crOX5X", "crOX6X", "crOX7X", "crOX8X", "crYX1L", "crYX2L","crYX3R", "crYX4R", "crYX5R" ,"crYX6L", "crYX7R", "crYX8L","matching_vars","current_data","current_obj")
 ```
 
 ## Identify mitochondrial and ribosomal populations
