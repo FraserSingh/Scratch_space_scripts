@@ -34,8 +34,63 @@ library(DoubletFinder)
 if (!require("SoupX", quietly = TRUE))
     install.packages("SoupX")
 library(SoupX)
+library(Matrix)
+```
+
+```{r}
+#Current working code 
+#try using this next! as the counts, then add metadata.
+Slota_counts<-read10xCounts("/localdisk/home/s2268606/University_Directories/Project_23/External_datasets/Slota_paper_original_format/", col.names=TRUE)
+
+raw_objects_metadata<- read.csv("/localdisk/home/s2268606/University_Directories/Project_23/External_datasets/Slota_paper/metadata.csv")
+
+cluster_file<-read.csv("/localdisk/home/s2268606/University_Directories/Project_23/External_datasets/Slota_paper_original_format/cluster_file.csv")
+
+rawtable<-Read10X("/localdisk/home/s2268606/University_Directories/Project_23/External_datasets/Slota_paper/raw_feature_bc_matrix")
+
+filteredtable<-Read10X("/localdisk/home/s2268606/University_Directories/Project_23/External_datasets/Slota_paper/filtered_feature_bc_matrix/")
+
+
+filteredObject<-CreateSeuratObject(counts=filteredtable, meta.data = raw_objects_metadata)
+
+rawObject<-CreateSeuratObject(counts=rawtable, meta.data = raw_objects_metadata )
+
+#make into soupchannel but make more manual by setting FALSE parameter
+sc = SoupChannel(rawtable, filteredtable, calcSoupProfile = FALSE)
+sc = estimateSoup(sc)
+
+
+#Calculate soup profile (if not done manually, causes issues downstream due to Nan values)
+toc = sc$toc
+scNoDrops = SoupChannel(toc, toc, calcSoupProfile = FALSE)
+soupProf = data.frame(row.names = rownames(toc), est = rowSums(toc)/sum(toc), counts = rowSums(toc))
+scNoDrops = setSoupProfile(scNoDrops, soupProf)
+
+
+#Setup and apply clusters
+cluster_file<-read.csv("/localdisk/home/s2268606/University_Directories/Project_23/External_datasets/Slota_paper_original_format/cluster_file.csv")
+
+#Get the seurat clustering info available in the metadata
+clusters<-raw_objects_metadata[2:nrow(raw_objects_metadata),c("NAME",'seurat_clusters')]
+
+rownames(clusters)<-clusters$NAME
+clusters$NAME<-NULL
+clusters<-t(clusters)
+
+#set clustering info
+sc<-setClusters(scNoDrops,clusters)
+
+
+sc<- autoEstCont(sc, verbose = T)
+#issu here si that 2110 genes passed tf-idf cut-off and 287 soup quantile filter.  Taking the top 100.
+# Warning: NaNs producedError in if (sum(clustExp) == 0) { : 
+#   missing value where TRUE/FALSE needed
+
 
 ```
+
+[investigating this source code to find](https://rdrr.io/github/constantAmateur/SoupX/src/R/setProperties.R#:~:text=if(length(clusters)!%3Dnrow(sc%24metaData))%7B%0A%20%20%20%20%20%20stop(%22Invalid%20cluster%20specification.%20%20See%20help.%22)%0A%20%20%20%20%7Delse%7B) sources of error\
+\
 
 ```{r}
 folder_path_slota<-c("/localdisk/home/s2268606/University_Directories/Project_23/External_datasets/Slota_paper")
