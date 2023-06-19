@@ -70,7 +70,7 @@ Slota_raw_obj[["mitoRatio"]] <- Slota_raw_obj@meta.data$percent.mt / 100
 
 ```{r}
 png("Slota_Preliminary_Data_assessment.png", width=2000)
-VlnPlot(Slota_raw_obj, features=c("nFeature_RNA","nCount_RNA","percent.mt", "percent.rp"), ncol=4, pt.size = 0.01)+ ggplot2::ggtitle("Preliminary Data assessment", subtitle= "Xiemrakis, unfiltered")
+VlnPlot(Slota_raw_obj, features=c("nFeature_RNA","nCount_RNA","percent.mt", "percent.rp"), ncol=4, pt.size = 0.01)+ ggplot2::ggtitle("Preliminary Data assessment", subtitle= "Slota, unfiltered")
 dev.off()
 ```
 
@@ -298,4 +298,59 @@ metadata_test %>%
   	geom_vline(xintercept = 0.8)+
     ggplot2::ggtitle("Complexity of gene expression (genes per UMI)", subtitle="Slota, filtered to minimum 20 genes")
 dev.off()
+```
+
+Unsure if any filters are really needed, except perhaps an uper limit on nUMI?
+
+### Assign filters to data
+
+```{r}
+#filter out the cells with mitochondrial genes more than 5% and genes with more than .... genes as instructed by Nick
+temp_meta<-Slota_raw_obj@meta.data
+temp_meta <- temp_meta %>%
+    dplyr::rename(nUMI = nCount_RNA,
+                  nGene = nFeature_RNA)
+
+Slota_raw_obj@meta.data<-temp_meta
+
+
+Slota_filtered<- subset(Slota_raw_obj,subset= 
+                              percent.mt <20 &
+                              nUMI > 0 &
+                              nGene >150
+                            )
+rm(temp_meta, metadata_test)
+```
+
+
+
+### Gene-level filtering
+
+Keeping genes which appear in more than 3 cells for statistical power.
+
+```{r}
+
+# Output a logical vector for every gene on whether the more than zero counts per cell
+# Extract counts
+counts <- GetAssayData(object = Slota_filtered, slot = "counts")
+
+# Output a logical vector for every gene on whether the more than zero counts per cell
+nonzero <- counts > 0
+
+# Sums all TRUE values and returns TRUE if more than 3 TRUE values per gene
+keep_genes <- Matrix::rowSums(nonzero) >= 3
+
+# Only keeping those genes expressed in more than 10 cells
+filtered_counts <- counts[keep_genes, ]
+
+# Reassign to filtered Seurat object
+Slota_filtered <- CreateSeuratObject(filtered_counts, meta.data = Slota_filtered@meta.data)
+rm(filtered_counts, nonzero,counts, keep_genes)
+```
+
+### Saving object
+
+```{r}
+# Create .RData object to load at any time
+save(Slota_filtered, file="./Rdata/Slota_filtered.RData")
 ```
