@@ -76,8 +76,6 @@ dev.off()
 
 Low mitochondrial counts compared to Ximerakis, with less than 25%.
 
-
-
 ## Plot each of these respectively, showing trends in cell health
 
 ```{r}
@@ -97,16 +95,14 @@ FeatureScatter(Slota_raw_obj, feature1 = "percent.rp", feature2 = "percent.mt")+
 dev.off()
 ```
 
-
 ```{r}
 #Show overall reads and gene counts for unfiltered data.
 png("Slota_UMIs_per_cell_vs_number_of_genes.png", width=1000)
 FeatureScatter(Slota_raw_obj, feature1 = "nCount_RNA", feature2="nFeature_RNA",raster=FALSE, pt.size = 0.05)+ ggplot2::geom_smooth(method="lm")+ ggplot2::ggtitle("UMIs per cell vs. number of genes ")
 dev.off()
 ```
+
 The data curve sits a bit high, and there is a biforcation in the middle of the graph.... possible patterns or disparities in the data generated based on brain location or experimental method?
-
-
 
 ### Add metadata, adding sample identity
 
@@ -172,8 +168,9 @@ metadata_test$cells<-rownames(metadata_test)
 metadata_test <- metadata_test %>%
     dplyr::rename(nUMI = nCount_RNA,
                   nGene = nFeature_RNA)
-```
 
+
+```
 
 ### Counts per sample
 
@@ -191,8 +188,6 @@ metadata_test %>%
   	ggplot2::ggtitle("Cell counts per sample", subtitle="Slota, unfiltered")
 dev.off()
 ```
-
-
 
 ### UMI/ transcripts per cell
 
@@ -300,57 +295,158 @@ metadata_test %>%
 dev.off()
 ```
 
-Unsure if any filters are really needed, except perhaps an uper limit on nUMI?
+Unsure if any filters are really needed, except perhaps an uper limit on nUMI? uncomment in source view if desired
 
-### Assign filters to data
+<!-- ### Assign filters to data -->
 
-```{r}
-#filter out the cells with mitochondrial genes more than 5% and genes with more than .... genes as instructed by Nick
-temp_meta<-Slota_raw_obj@meta.data
-temp_meta <- temp_meta %>%
-    dplyr::rename(nUMI = nCount_RNA,
-                  nGene = nFeature_RNA)
+<!-- ```{r} -->
 
-Slota_raw_obj@meta.data<-temp_meta
+<!-- #filter out the cells with mitochondrial genes more than 5% and genes with more than .... genes as instructed by Nick -->
 
+<!-- temp_meta<-Slota_raw_obj@meta.data -->
 
-Slota_filtered<- subset(Slota_raw_obj,subset= 
-                              percent.mt <20 &
-                              nUMI > 0 &
-                              nGene >150
-                            )
-rm(temp_meta, metadata_test)
-```
+<!-- temp_meta <- temp_meta %>% -->
 
+<!--     dplyr::rename(nUMI = nCount_RNA, -->
 
+<!--                   nGene = nFeature_RNA) -->
 
-### Gene-level filtering
+<!-- Slota_raw_obj@meta.data<-temp_meta -->
 
-Keeping genes which appear in more than 3 cells for statistical power.
+<!-- Slota_filtered<- subset(Slota_raw_obj,subset=  -->
 
-```{r}
+<!--                               percent.mt <20 & -->
 
-# Output a logical vector for every gene on whether the more than zero counts per cell
-# Extract counts
-counts <- GetAssayData(object = Slota_filtered, slot = "counts")
+<!--                               nUMI > 0 & -->
 
-# Output a logical vector for every gene on whether the more than zero counts per cell
-nonzero <- counts > 0
+<!--                               nGene >150 -->
 
-# Sums all TRUE values and returns TRUE if more than 3 TRUE values per gene
-keep_genes <- Matrix::rowSums(nonzero) >= 3
+<!--                             ) -->
 
-# Only keeping those genes expressed in more than 10 cells
-filtered_counts <- counts[keep_genes, ]
+<!-- rm(temp_meta, metadata_test) -->
 
-# Reassign to filtered Seurat object
-Slota_filtered <- CreateSeuratObject(filtered_counts, meta.data = Slota_filtered@meta.data)
-rm(filtered_counts, nonzero,counts, keep_genes)
-```
+<!-- ``` -->
+
+<!-- ### Gene-level filtering -->
+
+<!-- Keeping genes which appear in more than 3 cells for statistical power. -->
+
+<!-- ```{r} -->
+
+<!-- # Output a logical vector for every gene on whether the more than zero counts per cell -->
+
+<!-- # Extract counts -->
+
+<!-- counts <- GetAssayData(object = Slota_filtered, slot = "counts") -->
+
+<!-- # Output a logical vector for every gene on whether the more than zero counts per cell -->
+
+<!-- nonzero <- counts > 0 -->
+
+<!-- # Sums all TRUE values and returns TRUE if more than 3 TRUE values per gene -->
+
+<!-- keep_genes <- Matrix::rowSums(nonzero) >= 3 -->
+
+<!-- # Only keeping those genes expressed in more than 10 cells -->
+
+<!-- filtered_counts <- counts[keep_genes, ] -->
+
+<!-- # Reassign to filtered Seurat object -->
+
+<!-- Slota_filtered <- CreateSeuratObject(filtered_counts, meta.data = Slota_filtered@meta.data) -->
+
+<!-- rm(filtered_counts, nonzero,counts, keep_genes) -->
+
+<!-- ``` -->
 
 ### Saving object
 
 ```{r}
 # Create .RData object to load at any time
-save(Slota_filtered, file="./Rdata/Slota_filtered.RData")
+save(Slota_raw_obj, file="./Rdata/Slota_filtered.RData")
+```
+
+
+
+## Doublet finder for all samples
+
+```{r}
+
+#load in the filtered Ximerakis object
+#load("./Rdata/Slota_filtered.RData")
+
+#adapted from https://youtu.be/p49seH2_i8Y , https://github.com/kpatel427/YouTubeTutorials/blob/5b3c795cecafb22f0e992da069eae2efd6b5cb95/singleCell_doublets.R , https://rpubs.com/kenneditodd/doublet_finder_example 
+
+Slota.list <- SplitObject(Slota_raw_obj, split.by = "sample")
+
+# Perform doublet detection on each sample using lapply
+Slota.list <- lapply(Slota.list, function(sample) {
+  print(paste0("Sample ",sample@meta.data$sample[1]))
+  # Pre-process seurat object with standard seurat workflow
+  sample <- NormalizeData(sample)
+  sample <- SCTransform(sample)
+  sample <- RunPCA(sample)
+  
+  # Find significant PCs
+  stdv <- sample[["pca"]]@stdev
+  sum.stdv <- sum(sample[["pca"]]@stdev)
+  percent.stdv <- (stdv / sum.stdv) * 100
+  cumulative <- cumsum(percent.stdv)
+  co1 <- which(cumulative > 90 & percent.stdv < 5)[1]
+  co2 <- sort(which((percent.stdv[1:length(percent.stdv) - 1] -
+                       percent.stdv[2:length(percent.stdv)]) > 0.1),
+              decreasing = TRUE)[1] + 1
+  min.pc <- min(co1, co2)
+  
+  # Finish pre-processing
+  sample <- RunUMAP(sample, dims = 1:min.pc)
+  sample <- FindNeighbors(object = sample, dims = 1:min.pc)              
+  sample <- FindClusters(object = sample, resolution = 0.1)
+  
+  # pK identification (no ground-truth)
+  sweep.list <- paramSweep_v3(sample, PCs = 1:min.pc, sct = TRUE)
+  sweep.stats <- summarizeSweep(sweep.list)
+  bcmvn <- find.pK(sweep.stats)
+  
+  # Optimal pK is the max of the bomodality coefficient (BCmvn) distribution
+  bcmvn.max <- bcmvn[which.max(bcmvn$BCmetric),]
+  optimal.pk <- as.numeric(bcmvn.max$pK)
+
+  # Homotypic doublet proportion estimate
+  annotations <- sample@meta.data$seurat_clusters
+  homotypic.prop <- modelHomotypic(annotations) 
+  nExp.poi <- round(0.087 * nrow(sample@meta.data))
+  nExp.poi.adj <- round(nExp.poi * (1 - homotypic.prop))
+  
+  # Run DoubletFinder
+  sample <- doubletFinder_v3(seu = sample, 
+                             PCs = 1:min.pc, 
+                             pK = optimal.pk,
+                             nExp = nExp.poi.adj, 
+                             sct = TRUE, 
+                             pN=0.25)
+  
+  return(sample)
+  
+})
+
+#Rename the columns
+Slota.list <- lapply(Slota.list, function(sample) {
+  doublet_col_index <- which(grepl("DF.classifications_", colnames(sample@meta.data)))
+  sample$doublet_finder <- sample@meta.data[doublet_col_index]
+  sample@meta.data[doublet_col_index]<-NULL
+  return(sample)
+})
+
+#subset data by singlet status
+Slota.list.singlets <- lapply(Slota.list, function(sample) {
+  sample<- subset(sample, subset= doublet_finder == 'Singlet')
+  return(sample)
+  })
+```
+
+```{r}
+#Show doublet info 
+FeatureScatter(Slota_raw_obj, feature1 = "nGene", feature2 = "Doublet_score")
+
 ```
