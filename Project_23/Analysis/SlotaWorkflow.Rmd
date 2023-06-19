@@ -42,10 +42,12 @@ folder_path_slota<-c("/localdisk/home/s2268606/University_Directories/Project_23
 
 #load Slota paper 
 
-raw_objects_metadata<- read.csv(paste0(folder_path_slota,"/metadata.csv"), header = T)
-#remove the extra row about categories
-raw_objects_metadata<-raw_objects_metadata[2:nrow(raw_objects_metadata),]
+#This is the metadata file, but the information is not very useful and loads in as NAs
+# raw_objects_metadata<- read.csv(paste0(folder_path_slota,"/metadata.csv"), header = T)
+# #remove the extra row about categories
+# raw_objects_metadata<-raw_objects_metadata[2:nrow(raw_objects_metadata),]
 
+#Load counts
 rawtable<-Read10X(paste0(folder_path_slota,"/raw_feature_bc_matrix"))
 
 Slota_raw_obj<-CreateSeuratObject(counts=rawtable, project="Slota")
@@ -55,11 +57,245 @@ Slota_raw_obj<-CreateSeuratObject(counts=rawtable, project="Slota")
 
 ```{r}
 #identify mitochondrial and ribosomal protein gene portions, annotations syntax tailored to mouse
-Slota_raw_obj[["percent.mt"]]<- PercentageFeatureSet(Slota_raw_obj, pattern = "^mt")
+Slota_raw_obj[["percent.mt"]]<- PercentageFeatureSet(Slota_raw_obj, pattern = "^Mt")
 Slota_raw_obj[["percent.rp"]]<- PercentageFeatureSet(Slota_raw_obj, pattern = "^Rp")
 
 #Generate genes per umi counts, from https://github.com/hbctraining/scRNA-seq/blob/master/lessons/04_SC_quality_control.md
-Slota_raw_obj$log10GenesPerUMI <- log10(Slota_raw_obj$nFeature_RNA) / log10(Slota_raw_obj$nCount_RNA)
+Slota_raw_obj[["log10GenesPerUMI"]] <- log10(Slota_raw_obj$nFeature_RNA) / log10(Slota_raw_obj$nCount_RNA)
 
-Slota_raw_obj$mitoRatio <- Slota_raw_obj@meta.data$percent.mt / 100
+Slota_raw_obj[["mitoRatio"]] <- Slota_raw_obj@meta.data$percent.mt / 100
+```
+
+## Initial data assessment
+
+```{r}
+png("Slota_Preliminary_Data_assessment.png", width=2000)
+VlnPlot(Slota_raw_obj, features=c("nFeature_RNA","nCount_RNA","percent.mt", "percent.rp"), ncol=4, pt.size = 0.01)+ ggplot2::ggtitle("Preliminary Data assessment", subtitle= "Xiemrakis, unfiltered")
+dev.off()
+```
+
+Low mitochondrial counts compared to Ximerakis, with less than 25%.
+
+
+
+## Plot each of these respectively, showing trends in cell health
+
+```{r}
+#show mitochondrial proportion in reads
+png("Slota_UMIs per cell vs.mitochondrial genes detected.png", width=1000)
+FeatureScatter(Slota_raw_obj, feature1 = "nCount_RNA", feature2 = "percent.mt")+ggplot2::ggtitle("UMIs per cell vs. % mitochondrial genes detected")
+dev.off()
+
+png("Slota_UMIs_per_cell_vsribosomal_protein_genes_detected.png", width=1000)
+#show ribosomal proportion in reads
+FeatureScatter(Slota_raw_obj, feature1 = "nCount_RNA", feature2 = "percent.rp")+ggplot2::ggtitle("UMIs per cell vs. % ribosomal protein  genes detected")
+dev.off()
+
+png("Slota_ribosomal_protein_genes_detected_vsmitochondiral_genes_detected.png", width=1000)
+#Ribosomal vs mitochondrial 
+FeatureScatter(Slota_raw_obj, feature1 = "percent.rp", feature2 = "percent.mt")+ggplot2::ggtitle("% ribosomal protein  genes detected vs. % mitochondiral genes detected")
+dev.off()
+```
+
+
+```{r}
+#Show overall reads and gene counts for unfiltered data.
+png("Slota_UMIs_per_cell_vs_number_of_genes.png", width=1000)
+FeatureScatter(Slota_raw_obj, feature1 = "nCount_RNA", feature2="nFeature_RNA",raster=FALSE, pt.size = 0.05)+ ggplot2::geom_smooth(method="lm")+ ggplot2::ggtitle("UMIs per cell vs. number of genes ")
+dev.off()
+```
+The data curve sits a bit high, and there is a biforcation in the middle of the graph.... possible patterns or disparities in the data generated based on brain location or experimental method?
+
+
+
+### Add metadata, adding sample identity
+
+adapted from <https://youtu.be/p49seH2_i8Y?t=312>
+
+```{r}
+
+#Check whether the whole block is needed here
+sampleLabs<-names(Slota_raw_obj@active.ident)
+
+#Assigning names to the samples to keep identity
+#From Chat GPT
+
+sample_detect <- case_when(
+  str_detect(sampleLabs, "PBS25HP") ~ "PBS25HP",
+  str_detect(sampleLabs, "PBS48CX") ~ "PBS48CX",
+  str_detect(sampleLabs, "PBS48HP") ~ "PBS48HP",
+  str_detect(sampleLabs, "PBS60CX") ~ "PBS60CX",
+  str_detect(sampleLabs, "PBS61CX") ~ "PBS61CX",
+  str_detect(sampleLabs, "PBS73CX") ~ "PBS73CX",
+  str_detect(sampleLabs, "RML122CX") ~ "RML122CX",
+  str_detect(sampleLabs, "RML122HP") ~ "RML122HP",
+  str_detect(sampleLabs, "RML132CX") ~ "RML132CX",
+  str_detect(sampleLabs, "RML132HP") ~ "RML132HP",
+  str_detect(sampleLabs, "RML133CX") ~ "RML133CX",
+  str_detect(sampleLabs, "RML133HP") ~ "RML133HP",
+  str_detect(sampleLabs, "RML134CX") ~ "RML134CX",
+  str_detect(sampleLabs, "RML138CX") ~ "RML138CX",
+  str_detect(sampleLabs, "RML138HP") ~ "RML138HP",
+  str_detect(sampleLabs, "RML140CX") ~ "RML140CX",
+  str_detect(sampleLabs, "RML140HP") ~ "RML140HP",
+  str_detect(sampleLabs, "RML142CX") ~ "RML142CX",
+  str_detect(sampleLabs, "RML142HP") ~ "RML142HP",
+  str_detect(sampleLabs, "RML145CX") ~ "RML145CX",
+  str_detect(sampleLabs, "RML145HP") ~ "RML145HP",
+  TRUE ~ NA_character_
+)
+
+#set the labels we generated
+Slota_raw_obj@meta.data$sample<-sample_detect
+Idents(object=Slota_raw_obj)<-"sample"
+rm(sampleLabs, sample_detect)
+```
+
+### Save the whole data
+
+```{r}
+#Save the data object
+#save(Slota_raw_obj, file="./Rdata/Slota_raw_seurat.RData")
+```
+
+### Create metadata variable to edit it without affecting core data
+
+```{r}
+# Rename columns from https://github.com/hbctraining/scRNA-seq/blob/master/lessons/04_SC_quality_control.md
+
+#Create metadata variable to edit it without affecting core data
+metadata_test<-Slota_raw_obj@meta.data
+
+#Saving cell barcodes as metainfo
+metadata_test$cells<-rownames(metadata_test)
+
+metadata_test <- metadata_test %>%
+    dplyr::rename(nUMI = nCount_RNA,
+                  nGene = nFeature_RNA)
+```
+
+
+### Counts per sample
+
+This shows over 300k cells for some samples, indicating that minimum metrics must be set to remove junk.
+
+```{r}
+# Visualize the number of cell counts per sample with no filtering at all
+png("Slota_Cell_counts_per_sample1.png", width=1500)
+metadata_test %>% 
+  	ggplot2::ggplot(aes(x=sample, fill=sample)) + 
+  	geom_bar() +
+  	theme_classic() +
+  	theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
+  	theme(plot.title = element_text(hjust=0.5, face="bold")) +
+  	ggplot2::ggtitle("Cell counts per sample", subtitle="Slota, unfiltered")
+dev.off()
+```
+
+
+
+### UMI/ transcripts per cell
+
+With line at 500 for ideal minimum
+
+```{r}
+# Visualize the number UMIs/transcripts per cell
+png("Slota_UMI_transcripts_per_cell.png", width=1000)
+metadata_test %>% 
+  	ggplot(aes(color=sample, x=nUMI, fill= sample)) + 
+  	geom_density(alpha = 0.2) + 
+  	scale_x_log10() + 
+  	theme_classic() +
+  	ylab("Cell density") +
+  	geom_vline(xintercept = 500)+
+    ggplot2::ggtitle("UMI/transcripts per cell", subtitle="Slota, filtered to minimum 20 genes")
+dev.off()
+```
+
+### Genes per cell
+
+```{r}
+# Visualize the distribution of genes detected per cell via histogram
+png("Slota_Distribution_of_genes_per_cell1.png", width=1000)
+metadata_test %>% 
+  	ggplot(aes(color=sample, x=nGene, fill= sample)) + 
+  	geom_density(alpha = 0.2) + 
+  	theme_classic() +
+  	scale_x_log10() + 
+  	geom_vline(xintercept = 300)+
+    ggplot2::ggtitle("Distribution of genes per cell", subtitle="Slota, filtered to minimum 20 genes")
+dev.off()
+
+# Visualize the distribution of genes detected per cell via boxplot
+png("Slota_Distribution_of_genes_per_cell2.png", width=1000)
+metadata_test %>% 
+  	ggplot(aes(x=sample, y=log10(nGene), fill=sample)) + 
+  	geom_boxplot() + 
+  	theme_classic() +
+  	theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
+  	theme(plot.title = element_text(hjust=0.5, face="bold")) +
+  	ggplot2::ggtitle("Distribution of genes per cell", subtitle="Slota, filtered to minimum 20 genes")
+dev.off()
+```
+
+### UMI vs. genes detected
+
+We want cells in top right
+
+```{r}
+#Some code commented out because it introduced infitine values with a log transform
+# Visualize the correlation between genes detected and number of UMIs and determine whether strong presence of cells with low numbers of genes/UMIs
+png("Slota_UMIs_vs_genes_detected.png", width=2000)
+metadata_test %>% 
+  	ggplot(aes(x=nUMI, y=nGene, color=mitoRatio)) + 
+  	geom_point() + 
+	scale_colour_gradient(low = "gray90", high = "black") +
+  	#stat_smooth(method=lm) +
+  	scale_x_log10() +
+  	scale_y_log10() +
+  	theme_classic() +
+  	geom_vline(xintercept = 500) +
+  	geom_hline(yintercept = 250) +
+  	facet_wrap(~sample) +
+    ggplot2::ggtitle("UMIs vs. genes detected", subtitle = "Slota, minimum 20 genes")
+dev.off()
+```
+
+### MitoRatio
+
+We want data lower than 0.2
+
+```{r}
+# Visualize the distribution of mitochondrial gene expression detected per cell
+png("Slota_Distribution_of_mitochondrial_gene_expression_per_cell.png", width=1000)
+metadata_test %>% 
+  	ggplot(aes(color=sample, x=mitoRatio, fill=sample)) + 
+  	geom_density(alpha = 0.2) + 
+  	scale_x_log10() + 
+  	theme_classic() +
+  	geom_vline(xintercept = 0.2)+
+    ggplot2::ggtitle("Distribution of mitochondrial gene expression per cell", subtitle="Slota, filtered to minimum 20 genes")
+dev.off()
+```
+
+```{r}
+png("Slota_Repeat_mitoratio.png", width=1000)
+FeatureScatter((subset(Slota_raw_obj, subset= nFeature_RNA > 20)), feature1 = "nFeature_RNA", feature2 = "percent.mt")
+dev.off()
+```
+
+### Complexity
+
+Should be above 0.8.
+
+```{r}
+# Visualize the overall complexity of the gene expression by visualizing the genes detected per UMI
+png("Slota_Complexity_of_gene_expression_genes_per_UMI2.png", width=1000)
+metadata_test %>%
+  	ggplot(aes(x=log10GenesPerUMI, color = sample, fill=sample)) +
+  	geom_density(alpha = 0.2) +
+  	theme_classic() +
+  	geom_vline(xintercept = 0.8)+
+    ggplot2::ggtitle("Complexity of gene expression (genes per UMI)", subtitle="Slota, filtered to minimum 20 genes")
+dev.off()
 ```
