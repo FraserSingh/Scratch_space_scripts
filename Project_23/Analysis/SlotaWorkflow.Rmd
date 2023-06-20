@@ -445,8 +445,4 @@ Slota.list.singlets <- lapply(Slota.list, function(sample) {
   })
 ```
 
-```{r}
-#Show doublet info 
-FeatureScatter(Slota_raw_obj, feature1 = "nGene", feature2 = "Doublet_score")
 
-```

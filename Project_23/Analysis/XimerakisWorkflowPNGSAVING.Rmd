@@ -33,6 +33,10 @@ library(DoubletFinder)
 if (!require("SoupX", quietly = TRUE))
     install.packages("SoupX")
 library(SoupX)
+
+if (!require("scCustomize", quietly = TRUE))
+    install.packages("scCustomize")
+library(scCustomize)
 ```
 
 To skip QC and load the filtered object from the directory, run:
@@ -522,7 +526,7 @@ rm(filtered_counts, nonzero,counts, keep_genes)
 
 ```{r}
 # Create .RData object to load at any time
-save(Ximerakis_filtered, file="./Rdata/Ximerakis_filtered.RData")
+save(Ximerakis_filtered, file="./Rdata/Ximerakis_predoublet.RData")
 ```
 
 ```{r}
@@ -606,15 +610,9 @@ Ximerakis.list.singlets <- lapply(Ximerakis.list, function(sample) {
   return(sample)
   })
 
-
 ```
 
 ```{r}
-#could merge here, but might integrate instead
-
-if (!require("scCustomize", quietly = TRUE))
-    install.packages("scCustomize")
-library(scCustomize)
 #merge the data back together
 Xim_singlets_merged <- Merge_Seurat_List(list_seurat = Ximerakis.list.singlets)
 rm(Ximerakis.list.singlets)
@@ -632,7 +630,7 @@ bm280k.integrated <- IntegrateData(anchorset = anchors, dims = 1:50)
 
 ```{r}
 # Create .RData object to load at any time
-save(Ximerakis.list, file="Rdata/Ximerakis_filtered.RData")
+save(Ximerakis.list, file="Rdata/Xim_singlets_merged.RData")
 
 ```
 
