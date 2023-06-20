@@ -14,7 +14,8 @@ Adapted from
 and
 [here](https://www.singlecellcourse.org/scrna-seq-analysis-with-bioconductor.html).
 
-```{r}
+```{r include=FALSE}
+
 if (!require("BiocManager", quietly = TRUE))
     install.packages("BiocManager")
 
@@ -23,28 +24,37 @@ library(DropletUtils)
 
 BiocManager::install("Seurat")
 library(Seurat)
+library(tidyverse)
 
-#mouse annotation https://bioconductor.org/packages/release/data/annotation/html/org.Mm.eg.db.html
-BiocManager::install("org.Mm.eg.db")
-library(org.Mm.eg.db)
-
-#and https://bioconductor.org/packages/release/data/annotation/html/EnsDb.Mmusculus.v79.html
-BiocManager::install("EnsDb.Mmusculus.v79")
-library(EnsDb.Mmusculus.v79)
+#library(ggplot2)
 
 library(dplyr)
 library(stringr)
-library(ggplot2)
+library(knitr)
 
 remotes::install_github('chris-mcginnis-ucsf/DoubletFinder')
 library(DoubletFinder)
+
+if (!require("SoupX", quietly = TRUE))
+    install.packages("SoupX")
+library(SoupX)
+
+if (!require("scCustomize", quietly = TRUE))
+    install.packages("scCustomize")
+library(scCustomize)
 ```
 
 ```{r}
 #load Verity paper FIXME this will need to be from group folder eventually, so amend paths at the start
 
+#Comment out the samples which aren't needed for the comparison of interest
+
 # List of folder names
-folder_names <- c("sample1", "sample2", "sample5", "sample6", "sample9","sample11")
+folder_names <- c(
+  "sample1", "sample2",
+  "sample5", "sample6",
+  "sample9","sample11"
+  )
 
 # Loop through each folder
 for (folder_name in folder_names) {
@@ -64,7 +74,7 @@ for (folder_name in folder_names) {
   current_parse_interpreted <- CreateSeuratObject(current_parse, meta.data = current_metadata, names.delim = "")
   
   #set identities to the sample, may be overwritten later
-  current_parse_interpreted@meta.data$orig.ident <- factor(rep(sample, nrow(current_parse_interpreted@meta.data)))
+  current_parse_interpreted@meta.data$orig.ident <- factor(rep(folder_name, nrow(current_parse_interpreted@meta.data)))
   
   Idents(current_parse_interpreted) <- current_parse_interpreted@meta.data$orig.ident
 
@@ -101,7 +111,7 @@ for (folder_name in folder_names) {
 Verity_total <- merge(sample1_obj, y=c(sample2_obj, sample5_obj, sample6_obj, sample9_obj,sample11_obj), add.cell.ids=c("sample1", "sample2", "sample5", "sample6", "sample9", "sample11"), project="Verity")
 
 #cleaning up memory
-rm("sample1_obj","sample2_obj", "sample5_obj", "sample6_obj", "sample9_obj", "sample11_obj")
+rm("sample1_obj","sample2_obj", "sample5_obj", "sample6_obj", "sample9_obj", "sample11_obj", current_metadata, current_parse_interpreted, current_parse)
 ```
 
 ## Identify mitochondrial and ribosomal populations
