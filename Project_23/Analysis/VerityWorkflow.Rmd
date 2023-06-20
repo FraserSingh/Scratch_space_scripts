@@ -78,28 +78,6 @@ for (folder_name in folder_names) {
   
   Idents(current_parse_interpreted) <- current_parse_interpreted@meta.data$orig.ident
 
-  
-  # #Alternatively
-  # current_metadata<-read.csv(paste0(folder_path,"/cell_metadata.csv"))
-  # ##replace commas or underscores (view other mtx files to get an idea of correct syntax and the head of our data for our current syntax) FIXME
-  # current_metadata[] <- lapply(current_metadata, function(x) gsub("_", ",", x))
-  # 
-  # current_genes<-read.csv(paste0(folder_path, "/all_genes.csv"))
-  # 
-  # #Add cell identifiers
-  # rownames(current_current_parserix)<-current_metadata[,1]
-  # 
-  # current_Seurat<-CreateSeuratObject(
-  #   counts= current_current_parserix,
-  #   project = "Verity",
-  #   assay = "RNA",
-  #   # names.field = 3, #FIXME CHANGE
-  #   # names.delim = "_", #FIXME CHANGE
-  #   meta.data = current_metadata,
-  #   row.names = current_genes$gene_name
-  #     )
-  # 
-  
 
   # Assign the object to a variable with the folder name as the variable name
   assign((paste0(folder_name, "_obj")),current_parse_interpreted)
