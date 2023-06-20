@@ -105,7 +105,7 @@ Ximerakis_total$mitoRatio <- Ximerakis_total@meta.data$percent.mt / 100
 ## Initial data assessment
 
 ```{r}
-png("Preliminary_Data_assessment.png", width=2000)
+png("Ximerakis_Preliminary_Data_assessment.png", width=2000)
 VlnPlot(Ximerakis_total, features=c("nFeature_RNA","nCount_RNA","percent.mt", "percent.rp"), ncol=4, pt.size = 0.01)+ ggplot2::ggtitle("Preliminary Data assessment", subtitle= "Xiemrakis, unfiltered")
 dev.off()
 ```
@@ -116,16 +116,16 @@ We can see a high proportion of mitochondrial reads which will need to be omitte
 
 ```{r}
 #show mitochondrial proportion in reads
-png("UMIs per cell vs.mitochondrial genes detected.png", width=1000)
+png("Ximerakis_UMIs per cell vs.mitochondrial genes detected.png", width=1000)
 FeatureScatter(Ximerakis_total, feature1 = "nCount_RNA", feature2 = "percent.mt")+ggplot2::ggtitle("UMIs per cell vs. % mitochondrial genes detected")
 dev.off()
 
-png("UMIs_per_cell_vsribosomal_protein_genes_detected.png", width=1000)
+png("Ximerakis_UMIs_per_cell_vsribosomal_protein_genes_detected.png", width=1000)
 #show ribosomal proportion in reads
 FeatureScatter(Ximerakis_total, feature1 = "nCount_RNA", feature2 = "percent.rp")+ggplot2::ggtitle("UMIs per cell vs. % ribosomal protein  genes detected")
 dev.off()
 
-png("ribosomal_protein_genes_detected_vsmitochondiral_genes_detected.png", width=1000)
+png("Ximerakis_ribosomal_protein_genes_detected_vsmitochondiral_genes_detected.png", width=1000)
 #Ribosomal vs mitochondrial 
 FeatureScatter(Ximerakis_total, feature1 = "percent.rp", feature2 = "percent.mt")+ggplot2::ggtitle("% ribosomal protein  genes detected vs. % mitochondiral genes detected")
 dev.off()
@@ -135,7 +135,7 @@ There appears to be a shelf around 35% mt, indicating cell death. It seems that 
 
 ```{r}
 #Show overall reads and gene counts for unfiltered data.
-png("UMIs_per_cell_vs_number_of_genes.png", width=1000)
+png("Ximerakis_UMIs_per_cell_vs_number_of_genes.png", width=1000)
 FeatureScatter(Ximerakis_total, feature1 = "nCount_RNA", feature2="nFeature_RNA",raster=FALSE, pt.size = 0.05)+ ggplot2::geom_smooth(method="lm")+ ggplot2::ggtitle("UMIs per cell vs. number of genes ")
 dev.off()
 ```
@@ -207,7 +207,7 @@ This shows over 300k cells for some samples, indicating that minimum metrics mus
 
 ```{r}
 # Visualize the number of cell counts per sample with no filtering at all
-png("Cell_counts_per_sample1.png", width=1500)
+png("Ximerakis_Cell_counts_per_sample1.png", width=1500)
 metadata_test %>% 
   	ggplot2::ggplot(aes(x=sample, fill=sample)) + 
   	geom_bar() +
@@ -233,7 +233,7 @@ metadata_test <- metadata_test %>%
 
 ```{r}
 # Visualize the number of cell counts per sample with a minimum gene count set
-png("Cell_counts_per_sample2.png", width=1000)
+png("Ximerakis_Cell_counts_per_sample2.png", width=1000)
 metadata_test %>% 
   	ggplot(aes(x=sample, fill=sample)) + 
   	geom_bar() +
@@ -250,7 +250,7 @@ With line at 500 for ideal minimum
 
 ```{r}
 # Visualize the number UMIs/transcripts per cell
-png("UMI_transcripts_per_cell.png", width=1000)
+png("Ximerakis_UMI_transcripts_per_cell.png", width=1000)
 metadata_test %>% 
   	ggplot(aes(color=sample, x=nUMI, fill= sample)) + 
   	geom_density(alpha = 0.2) + 
@@ -266,7 +266,7 @@ dev.off()
 
 ```{r}
 # Visualize the distribution of genes detected per cell via histogram
-png("Distribution_of_genes_per_cell1.png", width=1000)
+png("Ximerakis_Distribution_of_genes_per_cell1.png", width=1000)
 metadata_test %>% 
   	ggplot(aes(color=sample, x=nGene, fill= sample)) + 
   	geom_density(alpha = 0.2) + 
@@ -277,7 +277,7 @@ metadata_test %>%
 dev.off()
 
 # Visualize the distribution of genes detected per cell via boxplot
-png("Distribution_of_genes_per_cell2.png", width=1000)
+png("Ximerakis_Distribution_of_genes_per_cell2.png", width=1000)
 metadata_test %>% 
   	ggplot(aes(x=sample, y=log10(nGene), fill=sample)) + 
   	geom_boxplot() + 
@@ -295,7 +295,7 @@ We want cells in top right
 ```{r}
 #Some code commented out because it introduced infitine values with a log transform
 # Visualize the correlation between genes detected and number of UMIs and determine whether strong presence of cells with low numbers of genes/UMIs
-png("UMIs_vs_genes_detected.png", width=2000)
+png("Ximerakis_UMIs_vs_genes_detected.png", width=2000)
 metadata_test %>% 
   	ggplot(aes(x=nUMI, y=nGene, color=mitoRatio)) + 
   	geom_point() + 
@@ -317,7 +317,7 @@ We want data lower than 0.2
 
 ```{r}
 # Visualize the distribution of mitochondrial gene expression detected per cell
-png("Distribution_of_mitochondrial_gene_expression_per_cell.png", width=1000)
+png("Ximerakis_Distribution_of_mitochondrial_gene_expression_per_cell.png", width=1000)
 metadata_test %>% 
   	ggplot(aes(color=sample, x=mitoRatio, fill=sample)) + 
   	geom_density(alpha = 0.2) + 
@@ -329,7 +329,7 @@ dev.off()
 ```
 
 ```{r}
-png("Repeat_mitoratio.png", width=1000)
+png("Ximerakis_Repeat_mitoratio.png", width=1000)
 FeatureScatter((subset(Ximerakis_total, subset= nFeature_RNA > 20)), feature1 = "nFeature_RNA", feature2 = "percent.mt")
 dev.off()
 ```
@@ -340,7 +340,7 @@ Should be above 0.8.
 
 ```{r}
 # Visualize the overall complexity of the gene expression by visualizing the genes detected per UMI
-png("Complexity_of_gene_expression_genes_per_UMI2.png", width=1000)
+png("Ximerakis_Complexity_of_gene_expression_genes_per_UMI2.png", width=1000)
 metadata_test %>%
   	ggplot(aes(x=log10GenesPerUMI, color = sample, fill=sample)) +
   	geom_density(alpha = 0.2) +
@@ -361,7 +361,7 @@ metadata_filtered<- metadata_test %>%
 
 ```{r}
 # Visualize the number of cell counts per sample with a minimum gene count set
-png("Cell_counts_per_sample2.png", width=1000)
+png("Ximerakis_Cell_counts_per_sample2.png", width=1000)
 metadata_filtered %>% 
   	ggplot(aes(x=sample, fill=sample)) + 
   	geom_bar() +
@@ -380,7 +380,7 @@ With line at 500 for ideal minimum
 
 ```{r}
 # Visualize the number UMIs/transcripts per cell
-png("UMI_transcripts_per_cell2.png", width=1000)
+png("Ximerakis_UMI_transcripts_per_cell2.png", width=1000)
 metadata_filtered %>% 
   	ggplot(aes(color=sample, x=nUMI, fill= sample)) + 
   	geom_density(alpha = 0.2) + 
@@ -396,7 +396,7 @@ dev.off()
 
 ```{r}
 # Visualize the distribution of genes detected per cell via histogram
-png("Distribution_of_genes_per_cell3.png", width=1000)
+png("Ximerakis_Distribution_of_genes_per_cell3.png", width=1000)
 metadata_filtered %>% 
   	ggplot(aes(color=sample, x=nGene, fill= sample)) + 
   	geom_density(alpha = 0.2) + 
@@ -407,7 +407,7 @@ metadata_filtered %>%
 dev.off()
 
 # Visualize the distribution of genes detected per cell via boxplot
-png("Distribution_of_genes_per_cell4.png", width=1000)
+png("Ximerakis_Distribution_of_genes_per_cell4.png", width=1000)
 metadata_filtered %>% 
   	ggplot(aes(x=sample, y=log10(nGene), fill=sample)) + 
   	geom_boxplot() + 
@@ -425,7 +425,7 @@ We want cells in top right
 ```{r,fig.dim = c(8, 6)}
 #Some code commented out because it introduced infitine values with a log transform
 # Visualize the correlation between genes detected and number of UMIs and determine whether strong presence of cells with low numbers of genes/UMIs
-png("UMIs_vs_genes_detected2.png", width=1000)
+png("Ximerakis_UMIs_vs_genes_detected2.png", width=1000)
 metadata_filtered %>% 
   	ggplot(aes(x=nUMI, y=nGene, color=mitoRatio)) + 
   	geom_point() + 
@@ -447,7 +447,7 @@ We want data lower than 0.2
 
 ```{r}
 # Visualize the distribution of mitochondrial gene expression detected per cell
-png("Distribution_of_mitochondrial_gene_expression_per_cell2.png", width=1000)
+png("Ximerakis_Distribution_of_mitochondrial_gene_expression_per_cell2.png", width=1000)
 metadata_filtered %>% 
   	ggplot(aes(color=sample, x=mitoRatio, fill=sample)) + 
   	geom_density(alpha = 0.2) + 
@@ -464,7 +464,7 @@ Should be above 0.8.
 
 ```{r}
 # Visualize the overall complexity of the gene expression by visualizing the genes detected per UMI
-png("Complexity_of_gene_expression_genes_per_UMI_2.png", width=1000)
+png("Ximerakis_Complexity_of_gene_expression_genes_per_UMI_2.png", width=1000)
 metadata_filtered %>%
   	ggplot(aes(x=log10GenesPerUMI, color = sample, fill=sample)) +
   	geom_density(alpha = 0.2) +
@@ -605,19 +605,34 @@ Ximerakis.list.singlets <- lapply(Ximerakis.list, function(sample) {
   sample<- subset(sample, subset= doublet_finder == 'Singlet')
   return(sample)
   })
+
+
 ```
 
 ```{r}
-#Show doublet info 
-FeatureScatter(Ximerakis_filtered, feature1 = "nGene", feature2 = "Doublet_score")
+#could merge here, but might integrate instead
 
+if (!require("scCustomize", quietly = TRUE))
+    install.packages("scCustomize")
+library(scCustomize)
+#merge the data back together
+Xim_singlets_merged <- Merge_Seurat_List(list_seurat = Ximerakis.list.singlets)
+rm(Ximerakis.list.singlets)
+```
+
+
+```{r}
+#work in progress https://satijalab.org/seurat/articles/integration_large_datasets.html
+anchors <- FindIntegrationAnchors(object.list = Ximerakis.list.singlets, reference = c(1, 2), reduction = "rpca",
+    dims = 1:50)
+bm280k.integrated <- IntegrateData(anchorset = anchors, dims = 1:50)
 ```
 
 ### Saving object
 
 ```{r}
 # Create .RData object to load at any time
-#save(Ximerakis_filtered, file="Rdata/Ximerakis_filtered.RData")
+save(Ximerakis.list, file="Rdata/Ximerakis_filtered.RData")
 
 ```
 
