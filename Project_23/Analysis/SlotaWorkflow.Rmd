@@ -1,8 +1,13 @@
 ---
 title: "Slota workflow"
-output: html_document
+output:
+  html_document:
+    self_contained: false
+    keep_md: true
+    code_download: true
 date: "2023-05-23"
 ---
+
 
 ## Seurat for Slota
 
