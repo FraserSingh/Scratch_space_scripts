@@ -173,7 +173,7 @@ rm(sampleLabs, sample_detect)
 
 ```{r}
 #Save the data object
-#save(Verity_total, file="./Rdata/Verity_total.RData")
+save(Verity_total, file="./Rdata/Verity_total_labelled.RData")
 ```
 
 ### Create metadata variable to edit it without affecting core data
@@ -212,7 +212,7 @@ dev.off()
 
 ## Setting a minimum gene count for quality control
 
-20 genes minimum, still gives 80k cells in some samples!
+
 
 ```{r}
 #Setting minimum feature count to filter cells with no genes UMIs vs. genes detected
