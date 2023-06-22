@@ -3,8 +3,8 @@
 **/*.po*
 *.png
 s2268606@eddie
-errors_outputs
-yard
+**/errors_outputs
+**/yard
 B1/
 BD_MATERIALS/
 BPSM_MATERIALS/

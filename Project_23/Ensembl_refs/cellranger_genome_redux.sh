@@ -7,7 +7,7 @@
 #$ -pe sharedmem 3  #added from previous version
 #$ -e Cellranger_genome_redux.e     #where errors go
 
-export PATH=/exports/eddie/scratch/s2268606/yard/cellranger-7.1.0:$PATH #fixme
+export PATH=/exports/eddie/scratch/s2268606/yard/apps/cellranger-7.1.0:$PATH #fixme
 
 
 
