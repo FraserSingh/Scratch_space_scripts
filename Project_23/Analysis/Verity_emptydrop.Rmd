@@ -1,14 +1,15 @@
 ```{r}
-out<-emptyDrops(Verity_total@assays$RNA@counts,niters= 10000)
+out<-emptyDrops(Verity_total@assays$RNA@counts,niters= 17500,BPPARAM=MulticoreParam())
 is.cell <- out$FDR <= 0.001
 sum(is.cell, na.rm=TRUE)
 table(Sig=is.cell, Limited=out$Limited)
 
-#Either make the 
+#Make new matrix files
 Verity_total_cells <- Verity_total@assays$RNA@counts[,which(is.cell),drop=FALSE]
-
-
 Verity_total_drops<- Verity_total@assays$RNA@counts[,which(is.cell),drop=TRUE]
+
+
+
 
 
 metadata_test<-current_obj@meta.data
