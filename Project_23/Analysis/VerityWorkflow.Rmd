@@ -61,54 +61,65 @@ folder_names <- c(
   "sample9","sample11"
   )
 
+#SoupX pre-processing and setup
+
 # #csv taken from DGE_unfiltered in combined folder (all samples)
 raw_objects_metadata<- read.csv("/home/s2268606/University_Directories/Project_23/Group_data/combined/cell_metadata.csv")
-# 
-# 
-# #FIXME need to make cluster file
-# cluster_file<-read.csv("/localdisk/home/s2268606/University_Directories/Project_23/External_datasets/Slota_paper_original_format/cluster_file.csv")
 
-
-#Load the previously creates variables 
+#Load the previously creates variables generated from Verity_emptydrop.Rmd which contain either cells or droplets
 load("./Rdata/Verity_cells.Rdata")
 load("./Rdata/Verity_drops.Rdata")
 
-#Create a seurat object
+#Create a seurat object of each as specified by SoupX
 filtered_obj <- CreateSeuratObject(Verity_total_cells, meta.data = raw_objects_metadata, names.delim = "")
 raw_obj<- CreateSeuratObject(Verity_total_drops, meta.data = raw_objects_metadata, names.delim = "")
 
+#extract the counts
 toc<-filtered_obj@assays$RNA@counts
 tod<-raw_obj@assays$RNA@counts
-  
+
+#convert to SoupX object
 sc = SoupChannel(tod, toc)
 
-#make into soupchannel but make more manual by setting FALSE parameter
-sc = SoupChannel(tod, toc, calcSoupProfile = FALSE)
+#make into soupchannel but make more manual by setting FALSE parameter, this may not be needed
+# sc = SoupChannel(tod, toc, calcSoupProfile = FALSE)
+
+#start SoupX calcs
 sc = estimateSoup(sc)
 
+#tidy up
 gc()
+
+
 ####WORKS UP TO HERE####
 
-Verity.list <- SplitObject(Verity_total, split.by = "sample")
 
+## trying to cluster the Verity data to provide SoupX some info
+
+#This variable was generated from loading the whole dataset, labelling smaples and splitting by samples to have a list of 6
+load("Rdata/Verity_labelled_unfiltered.Rdata")
+
+#Preprocessing to findscale, normalise and find clusters, plot it too if you uncomment the dimplot line
 Verity.list <- lapply(Verity.list, function(sample) {
   print(paste0("Sample ",sample@meta.data$sample[1]))
-  # Pre-process seurat object with standard seurat workflow
+  # Pre-process seurat object with standard seurat workflow. When converse memory is set to TRUE the residual matrix for all genes is never created in full; useful for large data sets, but will take longer to run; this will also set return.only.var.genes to TRUE (https://rdrr.io/github/satijalab/seurat/man/SCTransform.html)
   sample <- SCTransform(sample, method = "glmGamPoi", verbose = TRUE,conserve.memory = TRUE)
-  sample <- RunPCA(sample, verbose = TURE)
+  sample <- RunPCA(sample, verbose = TRUE)
   sample <- RunUMAP(sample, dims = 1:30, verbose = TRUE)
   sample <- FindNeighbors(sample, dims = 1:30, verbose = TRUE)
   sample <- FindClusters(sample, verbose = TRUE)
-  DimPlot(sample, label = TRUE) + NoLegend()
+  #DimPlot(sample, label = TRUE) + NoLegend()
 })
 
+gc()
 
 #Setup and apply clusters
 cluster_file<-read.csv("/localdisk/home/s2268606/University_Directories/Project_23/External_datasets/Slota_paper_original_format/cluster_file.csv")
 
-
+#FIXME change this to use cluster_file
 clusters<-raw_objects_metadata[2:nrow(raw_objects_metadata),c("NAME",'seurat_clusters')]
 
+#set name of cell to rowname
 rownames(clusters)<-clusters$NAME
 
 #Get the seurat clustering info available in the metadata
@@ -118,10 +129,10 @@ clusters<-t(clusters)
 #Read manual or check gihtub
 #set clustering info
 sc=setClusters(sc,clusters)
-sc<-setClusters(scNoDrops,clusters)
-sc<- autoEstCont(sc)
+# alternative path, more manual and might not be required
+# sc<-setClusters(scNoDrops,clusters)
 
-#issu here si that soupProfile is called and generates NaNs
+#calculate soup
 sc<- autoEstCont(sc, verbose = T)
 ```
 
@@ -129,7 +140,6 @@ sc<- autoEstCont(sc, verbose = T)
 # Loop through each folder
 for (folder_name in folder_names) {
   folder_path=paste0("/home/s2268606/University_Directories/Project_23/Group_data/",folder_name, "/DGE_unfiltered")
-  
   
   #Load the matrix file
   current_parse <- ReadParseBio(folder_path)
@@ -226,12 +236,12 @@ sampleLabs<-names(Verity_total@active.ident)
 #Assigning names to the samples to keep identity
 #From Chat GPT
 sample_detect <- case_when(
+  str_detect(sampleLabs, "sample11") ~ "sample11",
   str_detect(sampleLabs, "sample1") ~ "sample1",
   str_detect(sampleLabs, "sample2") ~ "sample2",
   str_detect(sampleLabs, "sample5") ~ "sample5",
   str_detect(sampleLabs, "sample6") ~ "sample6",
   str_detect(sampleLabs, "sample9") ~ "sample9",
-  str_detect(sampleLabs, "sample11") ~ "sample11",
   TRUE ~ NA_character_
 )
 #
