@@ -61,6 +61,7 @@ folder_names <- c(
   "sample9","sample11"
   )
 
+<<<<<<< Updated upstream
 # #csv taken from DGE_unfiltered in combined folder (all samples)
 raw_objects_metadata<- read.csv("/home/s2268606/University_Directories/Project_23/Group_data/combined/cell_metadata.csv")
 # 
@@ -126,6 +127,8 @@ sc<- autoEstCont(sc, verbose = T)
 ```
 
 ```{r}
+=======
+>>>>>>> Stashed changes
 # Loop through each folder
 for (folder_name in folder_names) {
   folder_path=paste0("/home/s2268606/University_Directories/Project_23/Group_data/",folder_name, "/DGE_unfiltered")
@@ -133,7 +136,6 @@ for (folder_name in folder_names) {
   
   #Load the matrix file
   current_parse <- ReadParseBio(folder_path)
-  
   
   #see if there are any empty gene names
   table(rownames(current_parse) == "") 
