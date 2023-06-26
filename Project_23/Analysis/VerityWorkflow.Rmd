@@ -42,6 +42,11 @@ library(SoupX)
 if (!require("scCustomize", quietly = TRUE))
     install.packages("scCustomize")
 library(scCustomize)
+
+if (!requireNamespace("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+
+BiocManager::install("glmGamPoi")
 ```
 
 ```{r}
@@ -72,7 +77,7 @@ load("./Rdata/Verity_drops.Rdata")
 filtered_obj <- CreateSeuratObject(Verity_total_cells, meta.data = raw_objects_metadata, names.delim = "")
 raw_obj<- CreateSeuratObject(Verity_total_drops, meta.data = raw_objects_metadata, names.delim = "")
 
-toc<-fitlered_obj@assays$RNA@counts
+toc<-filtered_obj@assays$RNA@counts
 tod<-raw_obj@assays$RNA@counts
   
 sc = SoupChannel(tod, toc)
@@ -81,8 +86,22 @@ sc = SoupChannel(tod, toc)
 sc = SoupChannel(tod, toc, calcSoupProfile = FALSE)
 sc = estimateSoup(sc)
 
-
+gc()
 ####WORKS UP TO HERE####
+
+Verity.list <- SplitObject(Verity_total, split.by = "sample")
+
+Verity.list <- lapply(Verity.list, function(sample) {
+  print(paste0("Sample ",sample@meta.data$sample[1]))
+  # Pre-process seurat object with standard seurat workflow
+  sample <- SCTransform(sample, method = "glmGamPoi", verbose = TRUE,conserve.memory = TRUE)
+  sample <- RunPCA(sample, verbose = TURE)
+  sample <- RunUMAP(sample, dims = 1:30, verbose = TRUE)
+  sample <- FindNeighbors(sample, dims = 1:30, verbose = TRUE)
+  sample <- FindClusters(sample, verbose = TRUE)
+  DimPlot(sample, label = TRUE) + NoLegend()
+})
+
 
 #Setup and apply clusters
 cluster_file<-read.csv("/localdisk/home/s2268606/University_Directories/Project_23/External_datasets/Slota_paper_original_format/cluster_file.csv")
