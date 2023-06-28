@@ -14,39 +14,34 @@ Adapted from
 and
 [here](https://www.singlecellcourse.org/scrna-seq-analysis-with-bioconductor.html).
 
-```{r include=FALSE}
-
+```{r}
 if (!require("BiocManager", quietly = TRUE))
-    install.packages("BiocManager")
+    install.packages("BiocManager", lib="/exports/cmvm/eddie/eb/groups/mabbott_grp/Fraser/Project_23/Rpackages")
 
-BiocManager::install("DropletUtils")
+BiocManager::install("DropletUtils", lib="/exports/cmvm/eddie/eb/groups/mabbott_grp/Fraser/Project_23/Rpackages")
+BiocManager::install("Seurat", lib="/exports/cmvm/eddie/eb/groups/mabbott_grp/Fraser/Project_23/Rpackages")
+
+remotes::install_github('chris-mcginnis-ucsf/DoubletFinder', lib="/exports/cmvm/eddie/eb/groups/mabbott_grp/Fraser/Project_23/Rpackages")
+
+if (!require("SoupX", quietly = TRUE))
+    install.packages("SoupX", lib="/exports/cmvm/eddie/eb/groups/mabbott_grp/Fraser/Project_23/Rpackages")
+
+if (!require("scCustomize", quietly = TRUE))
+    install.packages("scCustomize", lib="/exports/cmvm/eddie/eb/groups/mabbott_grp/Fraser/Project_23/Rpackages")
+
+BiocManager::install("glmGamPoi", lib="/exports/cmvm/eddie/eb/groups/mabbott_grp/Fraser/Project_23/Rpackages")
+```
+
+```{r}
 library(DropletUtils)
-
-BiocManager::install("Seurat")
 library(Seurat)
 library(tidyverse)
-
-#library(ggplot2)
-
 library(dplyr)
 library(stringr)
 library(knitr)
-
-remotes::install_github('chris-mcginnis-ucsf/DoubletFinder')
 library(DoubletFinder)
-
-if (!require("SoupX", quietly = TRUE))
-    install.packages("SoupX")
 library(SoupX)
-
-if (!require("scCustomize", quietly = TRUE))
-    install.packages("scCustomize")
 library(scCustomize)
-
-if (!requireNamespace("BiocManager", quietly = TRUE))
-    install.packages("BiocManager")
-
-BiocManager::install("glmGamPoi")
 ```
 
 ```{r}
@@ -146,7 +141,6 @@ FeatureScatter(Verity_total, feature1 = "nCount_RNA", feature2="nFeature_RNA",ra
 dev.off()
 ```
 
-
 ### Add metadata, adding sample identity
 
 adapted from <https://youtu.be/p49seH2_i8Y?t=312>
@@ -196,10 +190,10 @@ metadata_test <- metadata_test %>%
                   nGene = nFeature_RNA)
 ```
 
-
 ### Counts per sample
 
-This shows over 300k cells for some samples, indicating that minimum metrics must be set to remove junk.
+This shows over 300k cells for some samples, indicating that minimum
+metrics must be set to remove junk.
 
 ```{r}
 # Visualize the number of cell counts per sample with no filtering at all
@@ -215,8 +209,6 @@ dev.off()
 ```
 
 ## Setting a minimum gene count for quality control
-
-
 
 ```{r}
 #Setting minimum feature count to filter cells with no genes UMIs vs. genes detected
@@ -346,14 +338,7 @@ metadata_test %>%
 dev.off()
 ```
 
-
-
 # STOP HERE
-
-
-
-
-
 
 ### Filtering metadata
 
@@ -530,9 +515,6 @@ rm(filtered_counts, nonzero,counts, keep_genes)
 save(Verity_filtered, file="./Rdata/Verity_predoublet.RData")
 ```
 
-
-
-
 ## Doublet finder for all samples
 
 ```{r}
@@ -548,7 +530,6 @@ Verity.list <- SplitObject(Verity_filtered, split.by = "sample")
 Verity.list <- lapply(Verity.list, function(sample) {
   print(paste0("Sample ",sample@meta.data$sample[1]))
   # Pre-process seurat object with standard seurat workflow
-  sample <- NormalizeData(sample)
   sample <- SCTransform(sample)
   sample <- RunPCA(sample)
   
@@ -624,3 +605,5 @@ rm(Verity.list.singlets)
 save(Ver_singlets_merged, file="Rdata/Ver_singlets_merged.RData")
 
 ```
+
+## Clustering 

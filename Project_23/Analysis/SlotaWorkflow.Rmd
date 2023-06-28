@@ -388,7 +388,6 @@ Slota.list <- SplitObject(Slota_raw_obj, split.by = "sample")
 Slota.list <- lapply(Slota.list, function(sample) {
   print(paste0("Sample ",sample@meta.data$sample[1]))
   # Pre-process seurat object with standard seurat workflow
-  sample <- NormalizeData(sample)
   sample <- SCTransform(sample)
   sample <- RunPCA(sample)
   
