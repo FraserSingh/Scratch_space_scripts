@@ -609,15 +609,27 @@ save(Ver_singlets_merged, file="Rdata/Ver_singlets_merged.RData")
 ## Clustering
 
 ```{r}
-#Ver_singlets_merged@active.assay<-"RNA"
+
+load("Rdata/Ver_singlets_merged.RData")
+
+Ver_singlets_merged@active.assay<-"RNA"
+
+Ver_singlets_merged <- NormalizeData(Ver_singlets_merged, verbose = FALSE)
+Ver_singlets_merged <- FindVariableFeatures(Ver_singlets_merged, verbose = FALSE)
+Ver_singlets_merged <- ScaleData(Ver_singlets_merged, verbose = FALSE)
+
 
 # run sctransform
-Ver_singlets_merged <- SCTransform(Ver_singlets_merged, vars.to.regress = "percent.mt", verbose = FALSE)
-
-Ver_singlets_merged <- RunPCA(Ver_singlets_merged, verbose = FALSE)
-# Ver_singlets_merged <- RunUMAP(Ver_singlets_merged, dims = 1:30, verbose = FALSE)
+# Ver_singlets_merged <- SCTransform(Ver_singlets_merged, vars.to.regress = "percent.mt", verbose = TRUE, conserve.memory = TRUE)
 # 
-# Ver_singlets_merged <- FindNeighbors(Ver_singlets_merged, dims = 1:30, verbose = FALSE)
-# Ver_singlets_merged <- FindClusters(Ver_singlets_merged, verbose = FALSE)
-# DimPlot(Ver_singlets_merged, label = TRUE) + NoLegend()
+# Ver_singlets_merged <- RunPCA(Ver_singlets_merged, verbose = TRUE)
+
+gc()
+
+Ver_singlets_merged <- RunUMAP(Ver_singlets_merged, dims = 1:30, verbose = TRUE)
+ 
+Ver_singlets_merged <- FindNeighbors(Ver_singlets_merged, dims = 1:30, verbose = TRUE)
+Ver_singlets_merged <- FindClusters(Ver_singlets_merged, verbose = TRUE, resolution = 1, random.seed = 42)
+
+#DimPlot(Ver_singlets_merged, label = TRUE, raster=FALSE) + NoLegend()
 ```
