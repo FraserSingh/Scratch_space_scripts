@@ -475,7 +475,7 @@ Slota_singlets_merged <- FindVariableFeatures(Slota_singlets_merged, verbose = T
 Slota_singlets_merged <- ScaleData(Slota_singlets_merged, verbose = T)
 
 
-# run sctransform
+# run sctransform instead
 # Slota_singlets_merged <- SCTransform(Slota_singlets_merged, vars.to.regress = "percent.mt", verbose = TRUE, conserve.memory = TRUE)
 # 
 
