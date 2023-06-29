@@ -338,8 +338,6 @@ metadata_test %>%
 dev.off()
 ```
 
-# STOP HERE
-
 ### Filtering metadata
 
 ```{r}
@@ -627,12 +625,29 @@ Ver_singlets_merged <- ScaleData(Ver_singlets_merged, verbose = FALSE)
 gc()
 
 Ver_singlets_merged <- RunPCA(Ver_singlets_merged, verbose = TRUE)
-Ver_singlets_merged <- RunUMAP(Ver_singlets_merged, dims = 1:30, verbose = TRUE)
- 
-Ver_singlets_merged <- FindNeighbors(Ver_singlets_merged, dims = 1:30, verbose = TRUE)
+ElbowPlot(Ver_singlets_merged)
+
+Ver_singlets_merged <- RunUMAP(Ver_singlets_merged, dims = 1:20, verbose = TRUE)
+
+Ver_singlets_merged <- FindNeighbors(Ver_singlets_merged, dims = 1:20, verbose = TRUE)
 Ver_singlets_merged <- FindClusters(Ver_singlets_merged, verbose = TRUE, resolution = 1, random.seed = 42)
 
-DimPlot(Ver_singlets_merged, label = TRUE, raster=FALSE) + NoLegend()+ ggtitle("Verity clustering", subtitle = "NormalizeData, clustering resolution= 1 ")
+DimPlot(Ver_singlets_merged, label = TRUE, raster=FALSE) + NoLegend()+ ggtitle("Verity clustering", subtitle = "NormalizeData, clustering resolution= 1, UMAPdims20")
+
+#label by sample, move the blue colou8r to highlight a different sample https://github.com/satijalab/seurat/issues/2251
+dimplotcolours=c(
+  rgb(0.53, 0.81, 0.95, 0.5),
+  'NA',
+  #rgb(0.23, 0.51, 0.75, 0.5), #uncomment to give sample 11 colour, but this covers most of the data
+  rgb(0.95, 0.27, 0.14, 0.5),
+  rgb(0.61, 0.09, 0.78, 0.5),
+  rgb(0.44, 0.83, 0.15, 0.5),
+  rgb(0.92, 0.67, 0.12, 0.5),
+  rgb(0.03, 0.65, 0.40, 0.5)
+)
+
+DimPlot(Ver_singlets_merged, label = TRUE, raster=FALSE, group.by = "sample", repel = TRUE)+ ggtitle("Verity clustering", subtitle = "NormalizeData, clustering resolution= 1, UMAPdims20")+ scale_color_manual(values = dimplotcolours)
+
 
 save(Ver_singlets_merged, file="Rdata/Verity_clustering.RData")
 ```
