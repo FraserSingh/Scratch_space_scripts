@@ -3,7 +3,6 @@ title: "Slota workflow"
 output:
   html_document:
     self_contained: false
-    keep_md: true
     code_download: true
 date: "2023-05-23"
 ---
@@ -13,33 +12,34 @@ date: "2023-05-23"
 
 Adapted from [here](https://bioconductor.org/packages/release/bioc/vignettes/DropletUtils/inst/doc/DropletUtils.html#reading-in-10x-genomics-data) and [here](https://www.singlecellcourse.org/scrna-seq-analysis-with-bioconductor.html).
 
-```{r include=FALSE}
+```{r}
 if (!require("BiocManager", quietly = TRUE))
-    install.packages("BiocManager")
+    install.packages("BiocManager", lib="/exports/cmvm/eddie/eb/groups/mabbott_grp/Fraser/Project_23/Rpackages")
 
-BiocManager::install("DropletUtils")
+BiocManager::install("DropletUtils", lib="/exports/cmvm/eddie/eb/groups/mabbott_grp/Fraser/Project_23/Rpackages")
+BiocManager::install("Seurat", lib="/exports/cmvm/eddie/eb/groups/mabbott_grp/Fraser/Project_23/Rpackages")
+
+remotes::install_github('chris-mcginnis-ucsf/DoubletFinder', lib="/exports/cmvm/eddie/eb/groups/mabbott_grp/Fraser/Project_23/Rpackages")
+
+if (!require("SoupX", quietly = TRUE))
+    install.packages("SoupX", lib="/exports/cmvm/eddie/eb/groups/mabbott_grp/Fraser/Project_23/Rpackages")
+
+if (!require("scCustomize", quietly = TRUE))
+    install.packages("scCustomize", lib="/exports/cmvm/eddie/eb/groups/mabbott_grp/Fraser/Project_23/Rpackages")
+
+BiocManager::install("glmGamPoi", lib="/exports/cmvm/eddie/eb/groups/mabbott_grp/Fraser/Project_23/Rpackages")
+```
+
+```{r}
 library(DropletUtils)
-
-if (!require("irlba", quietly = TRUE))
-    install.packages("irlba")
-
-BiocManager::install("Seurat")
 library(Seurat)
 library(tidyverse)
-
-#library(ggplot2)
-
 library(dplyr)
 library(stringr)
 library(knitr)
-
-remotes::install_github('chris-mcginnis-ucsf/DoubletFinder')
 library(DoubletFinder)
-
-if (!require("SoupX", quietly = TRUE))
-    install.packages("SoupX")
 library(SoupX)
-library(Matrix)
+library(scCustomize)
 ```
 
 ```{r}
@@ -306,7 +306,7 @@ Unsure if any filters are really needed, except perhaps an uper limit on nUMI? u
 
 <!-- ```{r} -->
 
-<!-- #filter out the cells with mitochondrial genes more than 5% and genes with more than .... genes as instructed by Nick -->
+<!-- #filter out the cells with mitochondrial genes more than 20% and genes with more than .... genes as instructed by Nick -->
 
 <!-- temp_meta<-Slota_raw_obj@meta.data -->
 
@@ -377,7 +377,7 @@ save(Slota_raw_obj, file="./Rdata/Slota_filtered.RData")
 
 ```{r}
 
-#load in the filtered Ximerakis object
+#load in the filtered Slota object
 #load("./Rdata/Slota_filtered.RData")
 
 #adapted from https://youtu.be/p49seH2_i8Y , https://github.com/kpatel427/YouTubeTutorials/blob/5b3c795cecafb22f0e992da069eae2efd6b5cb95/singleCell_doublets.R , https://rpubs.com/kenneditodd/doublet_finder_example 
@@ -449,4 +449,53 @@ Slota.list.singlets <- lapply(Slota.list, function(sample) {
   })
 ```
 
+```{r}
+#merge the data back together
+Slota_singlets_merged <- Merge_Seurat_List(list_seurat = Slota.list.singlets)
+rm(Verity.list.singlets)
+```
 
+### Saving object
+
+```{r}
+# Create .RData object to load at any time
+save(Slota_singlets_merged, file="Rdata/Slota_singlets_merged.RData")
+```
+
+## Clustering
+
+```{r}
+
+#load("Rdata/Slota_singlets_merged.RData")
+
+Slota_singlets_merged@active.assay<-"RNA"
+
+Slota_singlets_merged <- NormalizeData(Slota_singlets_merged, verbose = T)
+Slota_singlets_merged <- FindVariableFeatures(Slota_singlets_merged, verbose = T)
+Slota_singlets_merged <- ScaleData(Slota_singlets_merged, verbose = T)
+
+
+# run sctransform
+# Slota_singlets_merged <- SCTransform(Slota_singlets_merged, vars.to.regress = "percent.mt", verbose = TRUE, conserve.memory = TRUE)
+# 
+
+
+gc()
+
+Slota_singlets_merged <- RunPCA(Slota_singlets_merged, verbose = TRUE)
+ElbowPlot(Slota_singlets_merged)
+```
+
+```{r}
+Slota_singlets_merged <- RunUMAP(Slota_singlets_merged, dims = 1:20, verbose = TRUE)
+
+Slota_singlets_merged <- FindNeighbors(Slota_singlets_merged, dims = 1:20, verbose = TRUE)
+Slota_singlets_merged <- FindClusters(Slota_singlets_merged, verbose = TRUE, resolution = 1, random.seed = 42)
+
+DimPlot(Slota_singlets_merged, label = TRUE, raster=FALSE) + NoLegend()+ ggtitle("Verity clustering", subtitle = "NormalizeData, clustering resolution= 1, UMAPdims20")
+
+
+DimPlot(Slota_singlets_merged, label = TRUE, raster=FALSE, group.by = "sample", repel = TRUE)+ ggtitle("Verity clustering", subtitle = "NormalizeData, clustering resolution= 1, UMAPdims20")
+
+save(Slota_singlets_merged, file="Rdata/Verity_clustering.RData")
+```
