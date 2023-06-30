@@ -44,6 +44,9 @@ To skip QC and load the filtered object from the directory, run:
 
 ```{r}
 # load("./Rdata/Ximerakis_filteredRedux.Rdata")
+
+#For the object with no doublets, ready for clustering
+#load("Rdata/Xim_singlets_mergedRedux.Rdata")
 ```
 
 OR
@@ -618,6 +621,13 @@ Xim_singlets_merged <- Merge_Seurat_List(list_seurat = Ximerakis.list.singlets)
 rm(Ximerakis.list.singlets)
 ```
 
+### Saving object
+
+```{r}
+# Create Redux.Rdata object to load at any time
+save(Xim_singlets_merged, file="Rdata/Xim_singlets_mergedRedux.Rdata")
+
+```
 
 ```{r}
 #work in progress https://satijalab.org/seurat/articles/integration_large_datasets.html
@@ -626,11 +636,5 @@ anchors <- FindIntegrationAnchors(object.list = Ximerakis.list.singlets, referen
 bm280k.integrated <- IntegrateData(anchorset = anchors, dims = 1:50)
 ```
 
-### Saving object
 
-```{r}
-# Create Redux.Rdata object to load at any time
-save(Xim_singlets_merged, file="Rdata/Xim_singlets_mergedRedux.Rdata")
-
-```
 
