@@ -10,32 +10,33 @@ date: "2023-06-01"
 
 Adapted from [here](https://bioconductor.org/packages/release/bioc/vignettes/DropletUtils/inst/doc/DropletUtils.html#reading-in-10x-genomics-data) and [here](https://www.singlecellcourse.org/scrna-seq-analysis-with-bioconductor.html).
 
-```{r include=FALSE}
+```{r}
 if (!require("BiocManager", quietly = TRUE))
-    install.packages("BiocManager")
+    install.packages("BiocManager", lib="/exports/cmvm/eddie/eb/groups/mabbott_grp/Fraser/Project_23/Rpackages")
 
-BiocManager::install("DropletUtils")
+BiocManager::install("DropletUtils", lib="/exports/cmvm/eddie/eb/groups/mabbott_grp/Fraser/Project_23/Rpackages")
+BiocManager::install("Seurat", lib="/exports/cmvm/eddie/eb/groups/mabbott_grp/Fraser/Project_23/Rpackages")
+
+remotes::install_github('chris-mcginnis-ucsf/DoubletFinder', lib="/exports/cmvm/eddie/eb/groups/mabbott_grp/Fraser/Project_23/Rpackages")
+
+if (!require("SoupX", quietly = TRUE))
+    install.packages("SoupX", lib="/exports/cmvm/eddie/eb/groups/mabbott_grp/Fraser/Project_23/Rpackages")
+
+if (!require("scCustomize", quietly = TRUE))
+    install.packages("scCustomize", lib="/exports/cmvm/eddie/eb/groups/mabbott_grp/Fraser/Project_23/Rpackages")
+
+BiocManager::install("glmGamPoi", lib="/exports/cmvm/eddie/eb/groups/mabbott_grp/Fraser/Project_23/Rpackages")
+```
+
+```{r}
 library(DropletUtils)
-
-BiocManager::install("Seurat")
 library(Seurat)
 library(tidyverse)
-
-#library(ggplot2)
-
 library(dplyr)
 library(stringr)
 library(knitr)
-
-remotes::install_github('chris-mcginnis-ucsf/DoubletFinder')
 library(DoubletFinder)
-
-if (!require("SoupX", quietly = TRUE))
-    install.packages("SoupX")
 library(SoupX)
-
-if (!require("scCustomize", quietly = TRUE))
-    install.packages("scCustomize")
 library(scCustomize)
 ```
 
@@ -54,7 +55,7 @@ OR
 # Create list of folder names
 sample_names<- readLines("/home/s2268606/University_Directories/Project_23/External_datasets/Ximerakis/Ximerakis_BAM_names.txt")
 #rename them for cell ranger counts folders
-folder_names <- paste0("cr", sample_names)
+folder_names <- paste0("Redux", sample_names)
 
 # Loop through each folder to process it
 for (folder_name in folder_names) {
@@ -86,7 +87,7 @@ matching_vars <- ls(pattern = 'obj')
 matching_vars <- matching_vars[!matching_vars %in% c("current_obj", "objName")]
 
 #merge the samples into one object
-Ximerakis_total <- merge(crOX1Xobj, y= c(crOX2Xobj,crOX3Xobj,crOX4Xobj,crOX5Xobj,crOX6Xobj,crOX7Xobj,crOX8Xobj,crYX1Lobj,crYX2Lobj,crYX3Robj,crYX4Robj,crYX5Robj,crYX6Lobj,crYX7Robj,crYX8Lobj), add.cell.ids=c("OX1X", "OX2X", "OX3X", "OX4X", "OX5X", "OX6X", "OX7X", "OX8X", "YX1L", "YX2L","YX3R", "YX4R", "YX5R" ,"YX6L", "YX7R", "YX8L"), project="Ximerakis")
+Ximerakis_total <- merge(ReduxOX1Xobj, y= c(ReduxOX2Xobj,ReduxOX3Xobj,ReduxOX4Xobj,ReduxOX5Xobj,ReduxOX6Xobj,ReduxOX7Xobj,ReduxOX8Xobj,ReduxYX1Lobj,ReduxYX2Lobj,ReduxYX3Robj,ReduxYX4Robj,ReduxYX5Robj,ReduxYX6Lobj,ReduxYX7Robj,ReduxYX8Lobj), add.cell.ids=c("OX1X", "OX2X", "OX3X", "OX4X", "OX5X", "OX6X", "OX7X", "OX8X", "YX1L", "YX2L","YX3R", "YX4R", "YX5R" ,"YX6L", "YX7R", "YX8L"), project="Ximerakis")
 
 #cleaning up memory
 rm("souped_matrix","matching_vars","current_data","current_obj", "folder_name", "objName", "folder_path")
@@ -433,7 +434,7 @@ png("Ximerakis_UMIs_vs_genes_detected2Redux.png", width=1000)
 metadata_filtered %>% 
   	ggplot(aes(x=nUMI, y=nGene, color=mitoRatio)) + 
   	geom_point() + 
-	scale_colour_gradient(low = "gray90", high = "black") +
+	scale_colour_gradient(low = "gray90", high = "black", limits = c(0, 100)) +
   	#stat_smooth(method=lm) +
   	scale_x_log10() +
   	scale_y_log10() +
