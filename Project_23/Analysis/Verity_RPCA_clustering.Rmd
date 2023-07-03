@@ -1,4 +1,4 @@
-
+## 1 Load the packages
 
 ```{r}
 library(DropletUtils)
@@ -16,8 +16,7 @@ library(scCustomize)
 load("Rdata/Ver_singlets_merged.RData")
 ```
 
-
-### Make metadata for treatment
+### 2 Make metadata for treatment
 
 ```{r}
 sampleLabs<-names(Ver_singlets_merged@active.ident)
@@ -43,7 +42,7 @@ Idents(object=Ver_singlets_merged)<-"treatment"
 rm(sampleLabs, treat_detect)
 ```
 
-## Within dataset clustering
+## 3 Setup
 
 ```{r}
 # adapted from https://satijalab.org/seurat/articles/integration_introduction.html
@@ -64,10 +63,13 @@ Ver_list <- lapply(X = Ver_list, FUN = function(x) {
     x <- FindVariableFeatures(x, selection.method = "vst", nfeatures = 2000)
 })
 
-
+# select features that are repeatedly variable across datasets for integration
+features <- SelectIntegrationFeatures(object.list = Ver_list,verbose = TRUE)
 ```
 
-#### RPCA options
+### 3.a RPCA options
+
+from [<https://satijalab.org/seurat/articles/integration_rpca.html>]
 
 ```{r}
 
@@ -77,16 +79,69 @@ Ver_list <- lapply(X = Ver_list, FUN = function(x) {
     x <- RunPCA(x, features = features, verbose = TRUE)
 })
 
-#USe RPCA
+
+#Use RPCA
 Verity.anchors <- FindIntegrationAnchors(object.list = Ver_list, anchor.features = features, verbose=TRUE, reduction='rpca')
+
+# this command creates an 'integrated' data assay
+Verity.combined <- IntegrateData(anchorset = Verity.anchors, verbose=TRUE)
 ```
 
-
-### Default workflow with CCA
- 
 ```{r}
-# select features that are repeatedly variable across datasets for integration
-features <- SelectIntegrationFeatures(object.list = Ver_list,verbose = TRUE)
+# specify that we will perform downstream analysis on the corrected data note that the
+# original unmodified data still resides in the 'RNA' assay
+DefaultAssay(Verity.combined) <- "integrated"
+
+# Run the standard workflow for visualization and clustering
+Verity.combined <- ScaleData(Verity.combined, verbose = FALSE)
+Verity.combined <- RunPCA(Verity.combined, npcs = 30, verbose = FALSE)
+ElbowPlot(Verity.combined, ndims=30)+ggtitle("Elbowplot of Integrated Verity data", subtitle = "RunPCA npcs=30, RPCA workflow")
+
+Verity.combined <- RunUMAP(Verity.combined, reduction = "pca", dims = 1:20)
+Verity.combined <- FindNeighbors(Verity.combined, reduction = "pca", dims = 1:20)
+Verity.combined <- FindClusters(Verity.combined, resolution = 1)
+```
+
+```{r}
+# Visualization
+p1 <- DimPlot(Verity.combined, reduction = "umap", split.by = "treatment", raster=FALSE)+ ggtitle("Integrated Verity data, split by treatement", subtitle="RPCA,Clustering resolution 1, 30 PCs used")
+
+#Check for sample batch effects (shouldn't see this in an integrated dataset). The colou pallete hides sample11 because it covers everything
+
+# dimplotcolours=c(
+#   rgb(0.53, 0.81, 0.95, 0.5),
+#   'NA',
+#   #rgb(0.23, 0.51, 0.75, 0.5), #uncomment to give sample 11 colour, but this covers most of the data
+#   rgb(0.95, 0.27, 0.14, 0.5),
+#   rgb(0.61, 0.09, 0.78, 0.5),
+#   rgb(0.44, 0.83, 0.15, 0.5),
+#   rgb(0.92, 0.67, 0.12, 0.5),
+#   rgb(0.03, 0.65, 0.40, 0.5)
+# )
+# p2 <- DimPlot(Verity.combined, reduction = "umap", group.by = "sample", raster=FALSE +scale_color_manual(values = dimplotcolours))
+
+#This plot would be to label by cell type, not useable as I haven't used singleR yet
+# p3 <- DimPlot(Verity.combined, reduction = "umap", group.by = "seurat_annotations", label = TRUE,repel = TRUE, raster=FALSE)
+
+
+#show the plots
+p1 #+ p2 +p3
+```
+
+```{r}
+DefaultAssay(Verity.combined)<-"RNA"
+
+#Check for a gene of interest in the data's geneset
+filtered_gene_names[grep("^Neuro", filtered_gene_names)]
+
+#try to identify astrocytes  with genes (Aldh1l1, Syp, Csf1r,Tmem119, Map2, Gfap)
+FeaturePlot(Verity.combined,features=c("Aldh1l1","Gfap","Syp","Map2","Csf1r","Tmem119"), raster=FALSE) + 
+  scale_colour_gradientn(colours = rev(brewer.pal(n = 11, name = "Spectral"))) + ggtitle("ALDH1 for astrocytes")
+```
+
+### 3. b Default workflow with CCA
+
+```{r}
 
 #identify anchors
 Verity.anchors <- FindIntegrationAnchors(object.list = Ver_list, anchor.features = features, verbose=TRUE)
@@ -105,6 +160,7 @@ DefaultAssay(Verity.combined) <- "integrated"
 # Run the standard workflow for visualization and clustering
 Verity.combined <- ScaleData(Verity.combined, verbose = FALSE)
 Verity.combined <- RunPCA(Verity.combined, npcs = 30, verbose = FALSE)
+ElbowPlot(Verity.combined)
 Verity.combined <- RunUMAP(Verity.combined, reduction = "pca", dims = 1:30)
 Verity.combined <- FindNeighbors(Verity.combined, reduction = "pca", dims = 1:30)
 Verity.combined <- FindClusters(Verity.combined, resolution = 0.5)
@@ -118,9 +174,7 @@ p1 + p2
 DimPlot(Verity.combined, reduction = "umap", split.by = "treatment")
 ```
 
-
-
-## Verity DE
+## 4. Verity DE
 
 relies on good clustering, needs to be cdone after the splitting has been done properly and clusters are idenitfied.
 
@@ -131,5 +185,3 @@ srat <- FindVariableFeatures(srat, selection.method = "vst", nfeatures = 2000)
 all.genes <- rownames(srat)
 srat <- ScaleData(srat, features = all.genes)
 ```
-
-
