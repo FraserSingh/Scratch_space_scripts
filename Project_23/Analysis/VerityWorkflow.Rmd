@@ -729,4 +729,3 @@ p1 + p2
 #Visualise treatments side by side
 DimPlot(Verity.combined, reduction = "umap", split.by = "treatment")
 ```
-
