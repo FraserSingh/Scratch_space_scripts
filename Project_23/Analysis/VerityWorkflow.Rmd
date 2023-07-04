@@ -604,8 +604,9 @@ save(Ver_singlets_merged, file="Rdata/Ver_singlets_merged.RData")
 
 ```
 
+# Within dataset integration
 
-###  Make metadata for treatment
+### Make metadata for treatment
 
 ```{r}
 sampleLabs<-names(Ver_singlets_merged@active.ident)
@@ -690,9 +691,13 @@ Verity.combinedNBHME7 <- ScaleData(Verity.combinedNBHME7, verbose = FALSE)
 Verity.combinedNBHME7 <- RunPCA(Verity.combinedNBHME7, npcs = 30, verbose = FALSE)
 ElbowPlot(Verity.combinedNBHME7, ndims=30)+ggtitle("Elbowplot of Integrated Verity data", subtitle = "RunPCA npcs=30, RPCA workflow")
 
+#20 PCs seem to cover the variability
 Verity.combinedNBHME7 <- RunUMAP(Verity.combinedNBHME7, reduction = "pca", dims = 1:20)
 Verity.combinedNBHME7 <- FindNeighbors(Verity.combinedNBHME7, reduction = "pca", dims = 1:20)
-Verity.combinedNBHME7 <- FindClusters(Verity.combinedNBHME7, resolution = 1)
+Verity.combinedNBHME7 <- FindClusters(Verity.combinedNBHME7, resolution = c(0.2,0.3,0.5,0.7,1))
+
+#cyclechange resolution number in group.by to see difference in clusters
+DimPlot(Verity.combinedNBHME7, group.by="integrated_snn_res.0.5", label = TRUE, repel = TRUE, raster=F)
 
 save(Verity.combinedNBHME7,file="Rdata/Verity.self_integrated_RPCA_NBHME7.Rdata")
 ```
@@ -732,6 +737,21 @@ filtered_gene_names<-Gene_Names[!grepl("^\\d", Gene_Names)]
 filtered_gene_names[grep("^Slc1a2", filtered_gene_names)]
 
 #try to identify astrocytes  with genes (Aldh1l1, Syp, Csf1r,Tmem119, Map2, Gfap)
-FeaturePlot(Verity.combinedNBHME7,features=c("Aldh1l1","Gfap","Slc1a2"), raster=F)+ggtitle("Integrated Verity data, labelled with astrocyte gene markers", subtitle="RPCA,Clustering resolution 1, 20 PCs used")
+
+astrocyte_genes<-c("Aldh1l1","Gfap","Slc1a2")
+
+FeaturePlot(Verity.combinedNBHME7,features=astrocyte_genes, raster=F)+ggtitle("Integrated Verity data, labelled with astrocyte gene markers", subtitle="RPCA,Clustering resolution 1, 20 PCs used")
 #+scale_colour_gradientn(colours = rev(brewer.pal(n = 11, name = "Spectral"))) + ggtitle("ALDH1 for astrocytes")
 ```
+
+```{r}
+
+#Subset out astrocytes
+
+
+#find clustered astrocyte maerks, differences in astrocyte populations
+
+astrocyte.markers <- FindMarkers(Verity.combinedNBHME7, ident.1 = 1, ident.2 = c(0, 3), min.pct = 0.25)
+head(cluster5.markers, n = 5)
+```
+
