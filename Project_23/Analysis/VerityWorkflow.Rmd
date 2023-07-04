@@ -658,7 +658,6 @@ Ver_list<-SplitObject(Ver_ME7_NBH, split.by = "treatment")
 rm(Ver_ME7_NBH)
 gc()
 
-Ver_list_backup<-Ver_list
 
 # normalize and identify variable features for each dataset independently
 Ver_list <- lapply(X = Ver_list, FUN = function(x) {
@@ -764,14 +763,16 @@ FeaturePlot(Verity.combinedNBHME7,features=astrocyte_genes, raster=F)+ggtitle("I
 
 # Convert cluster names to character
 Idents(Verity.combinedNBHME7) <- as.character(Idents(Verity.combinedNBHME7))
+VlnPlot(Verity.combinedNBHME7, features = "Gfap")
 
 #Subset out astrocytes
-Ver_astrocytes<-subset(Verity.combinedNBHME7, idents=c(3,27,25))
+Ver_astrocytes<-subset(Verity.combinedNBHME7, idents=c('3','27','25'))
 
 
 #find clustered astrocyte markers, differences in astrocyte populations
 
-astrocyte.markers <- FindMarkers(Verity.combinedNBHME7, ident.1 = 1, ident.2 = NULL, min.pct = 0.25, verbose = TRUE, test.use = "DESeq2")
-head(cluster5.markers, n = 5)
+DefaultAssay(Ver_astrocytes)<-'RNA'
+astrocyte.markers <- FindMarkers(Ver_astrocytes, ident.1 = 3, min.pct = 0.25, verbose = TRUE, test.use = "DESeq2")
+head(cluster5.markers, n = 6)
 ```
 
