@@ -10,6 +10,10 @@ library(knitr)
 library(DoubletFinder)
 library(SoupX)
 library(scCustomize)
+install.packages('BiocManager')
+BiocManager::install('multtest')
+install.packages('metap')
+library(metap)
 ```
 
 ```{r}
@@ -100,6 +104,8 @@ ElbowPlot(Verity.combined, ndims=30)+ggtitle("Elbowplot of Integrated Verity dat
 Verity.combined <- RunUMAP(Verity.combined, reduction = "pca", dims = 1:20)
 Verity.combined <- FindNeighbors(Verity.combined, reduction = "pca", dims = 1:20)
 Verity.combined <- FindClusters(Verity.combined, resolution = 1)
+
+save(Verity.combined,file="Rdata/Verity.self_integrated_RPCA.Rdata")
 ```
 
 ```{r}
@@ -132,10 +138,10 @@ p1 #+ p2 +p3
 DefaultAssay(Verity.combined)<-"RNA"
 
 #Check for a gene of interest in the data's geneset
-filtered_gene_names[grep("^Neuro", filtered_gene_names)]
+filtered_gene_names[grep("^Slc1a2", filtered_gene_names)]
 
 #try to identify astrocytes  with genes (Aldh1l1, Syp, Csf1r,Tmem119, Map2, Gfap)
-FeaturePlot(Verity.combined,features=c("Aldh1l1","Gfap","Syp","Csf1r","Tmem119"), raster=FALSE) + ggtitle("Integrated Verity data, labelled with some gene markers", subtitle="RPCA,Clustering resolution 1, 30 PCs used")
+FeaturePlot(Verity.combined,features=c("Aldh1l1","Gfap","Slc1a2"), raster=F)+ggtitle("Integrated Verity data, labelled with astrocyte gene markers", subtitle="RPCA,Clustering resolution 1, 20 PCs used")
 #+scale_colour_gradientn(colours = rev(brewer.pal(n = 11, name = "Spectral"))) + ggtitle("ALDH1 for astrocytes")
 ```
 
@@ -147,10 +153,10 @@ FeaturePlot(Verity.combined,features=c("Aldh1l1","Gfap","Syp","Csf1r","Tmem119")
 Verity.anchors_CCA <- FindIntegrationAnchors(object.list = Ver_list, anchor.features = features, verbose=TRUE)
 
 # this command creates an 'integrated' data assay using the anchors
-Verity.combined <- IntegrateData(anchorset = Verity.anchors_CCA)
+Verity.combined_CCA <- IntegrateData(anchorset = Verity.anchors_CCA)
 
 #save the object
-#save(Verity.combined_CCA,"Rdata/Verity.self_integrated.Rdata")
+#save(Verity.combined_CCA,file="Rdata/Verity.self_integrated.Rdata")
 
 #Perform integrated analysis
 # specify that we will perform downstream analysis on the corrected data note that the
@@ -161,17 +167,17 @@ DefaultAssay(Verity.combined_CCA) <- "integrated"
 Verity.combined_CCA <- ScaleData(Verity.combined_CCA, verbose = FALSE)
 Verity.combined_CCA <- RunPCA(Verity.combined_CCA, npcs = 30, verbose = FALSE)
 ElbowPlot(Verity.combined_CCA)
-Verity.combined_CCA <- RunUMAP(Verity.combined_CCA, reduction = "pca", dims = 1:30)
-Verity.combined_CCA <- FindNeighbors(Verity.combined_CCA, reduction = "pca", dims = 1:30)
+Verity.combined_CCA <- RunUMAP(Verity.combined_CCA, reduction = "pca", dims = 1:20)
+Verity.combined_CCA <- FindNeighbors(Verity.combined_CCA, reduction = "pca", dims = 1:20)
 Verity.combined_CCA <- FindClusters(Verity.combined_CCA, resolution = 0.5)
 
 # Visualization
-p1CCA <- DimPlot(Verity.combined_CCA, reduction = "umap", group.by = "treatment")
-p2CCA <- DimPlot(Verity.combined_CCA, reduction = "umap", label = TRUE, repel = TRUE)
+p1CCA <- DimPlot(Verity.combined_CCA, reduction = "umap", group.by = "treatment", raster=F)
+p2CCA <- DimPlot(Verity.combined_CCA, reduction = "umap", label = TRUE, repel = TRUE, raster=F)
 p1CCA + p2CCA
 
 #Visualise treatments side by side
-DimPlot(Verity.combined_CCA, reduction = "umap", split.by = "treatment")
+DimPlot(Verity.combined_CCA, reduction = "umap", split.by = "treatment", raster=F)
 ```
 
 ## 4. Verity DE

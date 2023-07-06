@@ -452,7 +452,7 @@ Slota.list.singlets <- lapply(Slota.list, function(sample) {
 ```{r}
 #merge the data back together
 Slota_singlets_merged <- Merge_Seurat_List(list_seurat = Slota.list.singlets)
-rm(Verity.list.singlets)
+rm(Slota.list.singlets)
 ```
 
 ### Saving object
