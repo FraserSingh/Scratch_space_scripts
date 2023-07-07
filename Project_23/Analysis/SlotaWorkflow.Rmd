@@ -8,6 +8,11 @@ date: "2023-05-23"
 ---
 
 
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
 ## Seurat for Slota
 
 Adapted from [here](https://bioconductor.org/packages/release/bioc/vignettes/DropletUtils/inst/doc/DropletUtils.html#reading-in-10x-genomics-data) and [here](https://www.singlecellcourse.org/scrna-seq-analysis-with-bioconductor.html).
@@ -28,6 +33,11 @@ if (!require("scCustomize", quietly = TRUE))
     install.packages("scCustomize", lib="/exports/cmvm/eddie/eb/groups/mabbott_grp/Fraser/Project_23/Rpackages")
 
 BiocManager::install("glmGamPoi", lib="/exports/cmvm/eddie/eb/groups/mabbott_grp/Fraser/Project_23/Rpackages")
+
+if (!require("DESeq2", quietly = TRUE))
+    install.packages("DESeq2", lib="/exports/cmvm/eddie/eb/groups/mabbott_grp/Fraser/Project_23/Rpackages")
+
+install.packages("Polychrome")
 ```
 
 ```{r}
@@ -40,6 +50,8 @@ library(knitr)
 library(DoubletFinder)
 library(SoupX)
 library(scCustomize)
+library(DESeq2)
+library(Polychrome)
 ```
 
 ```{r}
@@ -492,10 +504,131 @@ Slota_singlets_merged <- RunUMAP(Slota_singlets_merged, dims = 1:20, verbose = T
 Slota_singlets_merged <- FindNeighbors(Slota_singlets_merged, dims = 1:20, verbose = TRUE)
 Slota_singlets_merged <- FindClusters(Slota_singlets_merged, verbose = TRUE, resolution = 1, random.seed = 42)
 
-DimPlot(Slota_singlets_merged, label = TRUE, raster=FALSE) + NoLegend()+ ggtitle("Verity clustering", subtitle = "NormalizeData, clustering resolution= 1, UMAPdims20")
+DimPlot(Slota_singlets_merged, label = TRUE, raster=FALSE) + NoLegend()+ ggtitle("Slota clustering", subtitle = "NormalizeData, clustering resolution= 1, UMAPdims20")
 
 
-DimPlot(Slota_singlets_merged, label = TRUE, raster=FALSE, group.by = "sample", repel = TRUE)+ ggtitle("Verity clustering", subtitle = "NormalizeData, clustering resolution= 1, UMAPdims20")
+DimPlot(Slota_singlets_merged, label = TRUE, raster=FALSE, group.by = "sample", repel = TRUE)+ ggtitle("Slota clustering", subtitle = "NormalizeData, clustering resolution= 1, UMAPdims20")
 
-save(Slota_singlets_merged, file="Rdata/Verity_clustering.RData")
+save(Slota_singlets_merged, file="Rdata/Slota_clustering.RData")
 ```
+
+```{r}
+#Add metadata on treatment, adapted from Chat GPT
+Slo_singlets_merged<-Slota_singlets_merged
+rm(Slota_singlets_merged)
+gc()
+
+#Slota
+sampleLabs_Slota<- names(Slo_singlets_merged@active.ident)
+
+treat_detect_Slota <- case_when(
+  str_detect(sampleLabs_Slota, "RML.*HP*") ~ "RML_HP",
+  str_detect(sampleLabs_Slota, "PBS.*HP*") ~ "PBS_HP",
+  str_detect(sampleLabs_Slota, "RML.*CX*") ~ "RML_CX",
+  str_detect(sampleLabs_Slota, "PBS.*CX*") ~ "PBS_CX",
+  TRUE ~ NA_character_
+)
+
+Slo_singlets_merged@meta.data$treatment<-treat_detect_Slota
+Idents(object=Slo_singlets_merged)<-"treatment"
+rm(treat_detect_Slota, sampleLabs_Slota)
+
+```
+
+
+## Pre-treat the data for clustering
+
+```{r}
+# adapted from https://satijalab.org/seurat/articles/integration_introduction.html
+
+#FIXME set the RNA assay as active
+DefaultAssay(Slo_singlets_merged) <- "RNA"
+
+# split the dataset into a list of three seurat objects (ME7, NBH, AGEING)
+Slo_list<-SplitObject(Slo_singlets_merged, split.by = "treatment")
+rm(Slo_singlets_merged)
+gc()
+
+
+# normalize and identify variable features for each dataset independently
+Slo_list <- lapply(X = Slo_list, FUN = function(x) {
+    x <- NormalizeData(x)
+    x <- FindVariableFeatures(x, selection.method = "vst", nfeatures = 2000)
+})
+
+# select features that are repeatedly variable across datasets for integration
+features <- SelectIntegrationFeatures(object.list = Slo_list,verbose = TRUE)
+```
+
+### RPCA options
+
+from [<https://satijalab.org/seurat/articles/integration_rpca.html>]
+
+```{r}
+gc()
+#Perform PCA on the data individually before integration
+Slo_list <- lapply(X = Slo_list, FUN = function(x) {
+    x <- ScaleData(x, features = features, verbose = TRUE)
+    x <- RunPCA(x, features = features, verbose = TRUE)
+})
+
+#Use RPCA
+Slota.anchors <- FindIntegrationAnchors(object.list = Slo_list, anchor.features = features, verbose=TRUE, reduction='rpca')
+
+# this command creates an 'integrated' data assay
+Slota.combined <- IntegrateData(anchorset = Slota.anchors, verbose=TRUE)
+```
+
+```{r}
+# specify that we will perform downstream analysis on the corrected data note that the
+# original unmodified data still resides in the 'RNA' assay
+DefaultAssay(Slota.combined) <- "integrated"
+
+# Run the standard workflow for visualization and clustering
+Slota.combined <- ScaleData(Slota.combined, verbose = FALSE)
+Slota.combined <- RunPCA(Slota.combined, npcs = 30, verbose = FALSE)
+ElbowPlot(Slota.combined, ndims=30)+ggtitle("Elbowplot of Integrated Slota data", subtitle = "RunPCA npcs=30, RPCA workflow")
+
+#20 PCs seem to cover the variability
+Slota.combined <- RunUMAP(Slota.combined, reduction = "pca", dims = 1:20)
+Slota.combined <- FindNeighbors(Slota.combined, reduction = "pca", dims = 1:20)
+Slota.combined <- FindClusters(Slota.combined, resolution = c(0.2,0.3,0.5,0.7,1))
+
+#cyclechange resolution number in group.by to see difference in clusters
+DimPlot(Slota.combined, reduction = 'umap', label = TRUE, repel = TRUE, raster=F)+ggtitle("Integrated Slota data, labelled by cluster numbers", subtitle="RPCA,Clustering resolution 1, 20 PCs used")
+
+#set the idents to 0.5
+Slota.combined@active.ident<-Slota.combined@meta.data$integrated_snn_res.0.5
+levels(Slota.combined)
+
+#Save the object
+save(Slota.combined,file="Rdata/Slota.self_integrated_RPCA.Rdata")
+```
+
+```{r}
+# Visualization
+p1 <- DimPlot(Slota.combined, reduction = "umap", split.by = "treatment", raster=FALSE)+ ggtitle("Integrated Slota data, split by treatment", subtitle="RPCA,Clustering resolution 1, 20 PCs used")
+
+#Check for sample batch effects (shouldn't see this in an integrated dataset). The colou pallete hides sample11 because it covers everything
+
+# dimplotcolours=c(
+#   rgb(0.53, 0.81, 0.95, 0.5),
+#   'NA',
+#   #rgb(0.23, 0.51, 0.75, 0.5), #uncomment to give sample 11 colour, but this covers most of the data
+#   rgb(0.95, 0.27, 0.14, 0.5),
+#   rgb(0.61, 0.09, 0.78, 0.5),
+#   rgb(0.44, 0.83, 0.15, 0.5),
+#   rgb(0.92, 0.67, 0.12, 0.5),
+#   rgb(0.03, 0.65, 0.40, 0.5)
+# )
+# p2 <- DimPlot(Slota.combined, reduction = "umap", group.by = "sample", raster=FALSE +scale_color_manual(values = dimplotcolours))
+
+#This plot would be to label by cell type, not useable as I haven't used singleR yet
+# p3 <- DimPlot(Slota.combined, reduction = "umap", group.by = "seurat_annotations", label = TRUE,repel = TRUE, raster=FALSE)
+
+
+#show the plots
+p1 #+ p2 +p3
+```
+
+up to 744 in VerityWorkflow
