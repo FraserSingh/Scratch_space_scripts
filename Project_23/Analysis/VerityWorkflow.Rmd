@@ -681,7 +681,6 @@ Ver_list <- lapply(X = Ver_list, FUN = function(x) {
     x <- RunPCA(x, features = features, verbose = TRUE)
 })
 
-
 #Use RPCA
 Verity.anchors <- FindIntegrationAnchors(object.list = Ver_list, anchor.features = features, verbose=TRUE, reduction='rpca')
 
@@ -786,6 +785,7 @@ save(astrocyte_conserved_markers, file="astrocyte_conserved_markers.RData")
 
 ```
 
+#Plot Heatmap of the DEGs specific to supposed astrocyte cluster
 
 ```{r}
 #adapted from https://www.youtube.com/watch?v=p49seH2_i8Y&t=717s&ab_channel=LiquidBrainBioinformatics
@@ -855,6 +855,8 @@ grid_arrange<-grid_arrange
 
 ```
 
+## Find DEGs within the astrocyte subclusters
+
 
 ```{r}
 #subset, then cluster? Or add Slota first then do this analysis?
@@ -894,5 +896,48 @@ astrocyte_treatment.markers<-astrocyte_treatment.markers[order(-astrocyte_treatm
 write.csv(astrocyte_treatment.markers, file = "astrocyte_treatment.markers.csv")
 
 save(astrocyte_treatment.markers, file="astrocyte_treatment.markers.RData")
+```
+
+
+
+## Cell annotation
+
+```{r}
+
+load("Rdata/Verity.self_integrated_RPCA_NBHME7.Rdata")
+
+library(SingleR)
+library(celldex)
+
+#FIXME change the reference which is loaded to the mouse one
+#library(celldex)
+mouse.ref <- celldex::MouseRNAseqData()
+
+sce <- as.SingleCellExperiment(Verity.combinedNBHME7)
+
+mouse.main <- SingleR(test=sce, ref=mouse.ref, labels=mouse.ref$label.main, de.method="wilcox")
+
+mouse.fine <- SingleR(test=sce, ref=mouse.ref, labels=mouse.ref$label.fine, de.method="wilcox")
+
+table(mouse.fine$labels)
+
+# https://github.com/LTLA/SingleR/blob/master/README.md
+#Add annotation back to Seruat object
+Verity.combinedNBHME7[["SingleR.labels.main"]] <- mouse.main$labels
+Verity.combinedNBHME7[["SingleR.labels.fine"]] <- mouse.fine$labels
+
+Verity.combinedNBHME7 <- SetIdent(Verity.combinedNBHME7, value = "SingleR.labels.fine")
+rm(sce, mouse.fine, mouse.main, mouse.ref)
+
+#Visualise distribution on UMAP
+DimPlot(Verity.combinedNBHME7, label = T , repel = T, label.size = 3, raster=F, split.by = 'treatment')
+
+#Visualise percentages in treatment overall
+
+cell_membership<-as.data.frame(Verity.combinedNBHME7$SingleR.labels.fine)
+
+ggplot(cell_membership, aes(x = treatment, y = percent, fill = Cell_Type))+
+  geom_bar(stat = "identity")+
+  geom_text(aes(label = paste(percent,"%")), position = position_stack(vjust = 0.5))
 ```
 

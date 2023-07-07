@@ -55,10 +55,10 @@ DefaultAssay(Ver_singlets_merged) <- "RNA"
 sampleLabs_Slota<- names(Slo_singlets_merged@active.ident)
 
 treat_detect_Slota <- case_when(
-  str_detect(sampleLabs_Slota, "RML.*HP*") ~ "RML_HP",
-  str_detect(sampleLabs_Slota, "PBS.*HP*") ~ "PBS_HP",
-  str_detect(sampleLabs_Slota, "RML.*CX*") ~ "RML_CX",
-  str_detect(sampleLabs_Slota, "PBS.*CX*") ~ "PBS_CX",
+  str_detect(sampleLabs_Slota, "RML.*HP*") ~ "PRION_HP",
+  str_detect(sampleLabs_Slota, "PBS.*HP*") ~ "CTRL_HP",
+  str_detect(sampleLabs_Slota, "RML.*CX*") ~ "PRION_CX",
+  str_detect(sampleLabs_Slota, "PBS.*CX*") ~ "CTRL_CX",
   TRUE ~ NA_character_
 )
 
@@ -66,6 +66,7 @@ Slo_singlets_merged@meta.data$treatment<-treat_detect_Slota
 Idents(object=Slo_singlets_merged)<-"treatment"
 rm(treat_detect_Slota, sampleLabs_Slota)
 table(Slo_singlets_merged$treatment)
+Slo_singlets_merged@meta.data$source<-"Slota"
 
 #Ximerakis
 sampleLabs_Xim<- names(Xim_singlets_merged@active.ident)
@@ -79,6 +80,7 @@ treat_detect_Xim <- case_when(
 Xim_singlets_merged@meta.data$treatment<-treat_detect_Xim
 Idents(object=Xim_singlets_merged)<-"treatment"
 rm(treat_detect_Xim, sampleLabs_Xim)
+Xim_singlets_merged@meta.data$source<-"Ximerakis"
 
 #Verity
 sampleLabs_Verity<-names(Ver_singlets_merged@active.ident)
@@ -86,10 +88,10 @@ sampleLabs_Verity<-names(Ver_singlets_merged@active.ident)
 #From Chat GPT
 treat_detect_Verity <- case_when(
   str_detect(sampleLabs_Verity, "sample11") ~ "AGEING",
-  str_detect(sampleLabs_Verity, "sample1") ~ "NBH",
-  str_detect(sampleLabs_Verity, "sample2") ~ "NBH",
-  str_detect(sampleLabs_Verity, "sample5") ~ "ME7",
-  str_detect(sampleLabs_Verity, "sample6") ~ "ME7",
+  str_detect(sampleLabs_Verity, "sample1") ~ "CTRL_HP",
+  str_detect(sampleLabs_Verity, "sample2") ~ "CTRL_HP",
+  str_detect(sampleLabs_Verity, "sample5") ~ "PRION_HP",
+  str_detect(sampleLabs_Verity, "sample6") ~ "PRION_HP",
   str_detect(sampleLabs_Verity, "sample9") ~ "AGEING",
   TRUE ~ NA_character_
 )
@@ -99,6 +101,7 @@ Ver_singlets_merged@meta.data$treatment<-treat_detect_Verity
 #FIXME may not be needed if the integration workflow specifies what to consider anyway
 Idents(object=Ver_singlets_merged)<-"treatment"
 rm(sampleLabs_Verity, treat_detect_Verity)
+Ver_singlets_merged@meta.data$source<-"Verity"
 
 gc()
 ```
@@ -116,7 +119,7 @@ gc()
 ```{r}
 #COMPARISON 1 Hippocampus DEG between datasets (Verity and terminal)
 #list of samples to merge
-comp1<-c(Slo_list$PBS_HP,Slo_list$RML_HP,Ver_list$NBH, Ver_list$ME7)
+comp1<-c(Slo_list$CTRL_HP,Slo_list$PRION_HP,Ver_list$CTRL_HP, Ver_list$PRION_HP)
 
 # Merge raw samples, adapted from here https://hbctraining.github.io/scRNA-seq_online/lessons/06a_integration_harmony.html
 comp1_merged <-Merge_Seurat_List(list_seurat=comp1)
@@ -153,7 +156,7 @@ comp1_harmonized <-
   FindClusters(resolution=c(0.2,0.3,0.5,0.7,1))
 
 #This gives a good level of clustering 
-comp1_harmonized@active.ident<-comp1_harmonized@meta.data$RNA_snn_res.0.3
+comp1_harmonized@active.ident<-comp1_harmonized@meta.data$RNA_snn_res.0.2
 
 #Visualisation
 dimplotcolours=c(
