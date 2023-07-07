@@ -765,7 +765,7 @@ Idents(Verity.combinedNBHME7) <- as.character(Idents(Verity.combinedNBHME7))
 VlnPlot(Verity.combinedNBHME7, features = "Gfap")
 
 #Subset out astrocytes
-Ver_astrocytes<-subset(Verity.combinedNBHME7, idents=c('3','27','25'))
+Ver_astrocytes<-subset(Verity.combinedNBHME7, idents=c('3','27','24'))
 
 
 #find clustered astrocyte markers, differences in astrocyte populations
@@ -776,6 +776,7 @@ head(astrocyte.markers, n = 6)
 save(astrocyte.markers, file="astrocyte.markers.RData")
 ```
 
+## Find the identifiers of the astrocyte cluster compared to the wider dataset
 
 ```{r}
 #Seeing what genes are most strongly expressed or not expressed (with high confidence) in the supposed astrocyte cluster
@@ -886,16 +887,16 @@ Idents(Ver_astrocytes) <- as.character(Idents(Ver_astrocytes))
 
 astrocyte_subcluster.markers <- FindMarkers(Ver_astrocytes, ident.1 = 0, min.pct = 0.25, verbose = TRUE, test.use = "DESeq2")
 
-#by treatment
+#by treatment, show the genes DE in Prion condition. LogFC set to a *1 increase in fold change
 Ver_astrocytes@active.ident<-as.factor(Ver_astrocytes$treatment)
-astrocyte_treatment.markers <- FindMarkers(Ver_astrocytes, ident.1 = 'NBH', min.pct = 0.25, verbose = TRUE, test.use = "DESeq2")
+Verity_astrocyte_prion.markers <- FindMarkers(Ver_astrocytes, ident.1 = 'ME7', min.pct = 0.15, verbose = TRUE, test.use = "DESeq2", logfc.threshold = 0.50)
 
 #Sort the list in descending log2FC and ascending pvalues
-astrocyte_treatment.markers<-astrocyte_treatment.markers[order(-astrocyte_treatment.markers$avg_log2FC, astrocyte_treatment.markers$p_val), ]
+Verity_astrocyte_prion.markers<-Verity_astrocyte_prion.markers[order(-Verity_astrocyte_prion.markers$avg_log2FC, Verity_astrocyte_prion.markers$p_val), ]
 #Save the file
-write.csv(astrocyte_treatment.markers, file = "astrocyte_treatment.markers.csv")
+write.csv(astrocyte_treatment.markers, file = "Verity_astrocyte_prion.markers.csv")
 
-save(astrocyte_treatment.markers, file="astrocyte_treatment.markers.RData")
+save(Verity_astrocyte_prion.markers, file="Verity_astrocyte_prion.markers.RData")
 ```
 
 
