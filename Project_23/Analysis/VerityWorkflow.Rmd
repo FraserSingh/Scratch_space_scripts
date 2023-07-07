@@ -38,6 +38,7 @@ BiocManager::install("glmGamPoi", lib="/exports/cmvm/eddie/eb/groups/mabbott_grp
 if (!require("DESeq2", quietly = TRUE))
     install.packages("DESeq2", lib="/exports/cmvm/eddie/eb/groups/mabbott_grp/Fraser/Project_23/Rpackages")
 
+install.packages("Polychrome")
 ```
 
 ```{r}
@@ -51,6 +52,7 @@ library(DoubletFinder)
 library(SoupX)
 library(scCustomize)
 library(DESeq2)
+library(Polychrome)
 ```
 
 ```{r}
@@ -894,7 +896,7 @@ Verity_astrocyte_prion.markers <- FindMarkers(Ver_astrocytes, ident.1 = 'ME7', m
 #Sort the list in descending log2FC and ascending pvalues
 Verity_astrocyte_prion.markers<-Verity_astrocyte_prion.markers[order(-Verity_astrocyte_prion.markers$avg_log2FC, Verity_astrocyte_prion.markers$p_val), ]
 #Save the file
-write.csv(astrocyte_treatment.markers, file = "Verity_astrocyte_prion.markers.csv")
+write.csv(Verity_astrocyte_prion.markers, file = "Verity_astrocyte_prion.markers.csv")
 
 save(Verity_astrocyte_prion.markers, file="Verity_astrocyte_prion.markers.RData")
 ```
@@ -932,13 +934,51 @@ rm(sce, mouse.fine, mouse.main, mouse.ref)
 
 #Visualise distribution on UMAP
 DimPlot(Verity.combinedNBHME7, label = T , repel = T, label.size = 3, raster=F, split.by = 'treatment')
+```
 
+```{r}
 #Visualise percentages in treatment overall
+table(Verity.combinedNBHME7$SingleR.labels.fine)
+write.csv(table(Verity.combinedNBHME7$SingleR.labels.fine), file="Verity_cell_membership.csv")
 
-cell_membership<-as.data.frame(Verity.combinedNBHME7$SingleR.labels.fine)
+cell_membership_df<-read.csv("Verity_cell_membership_percentages.csv")
+cell_membership_df <- cell_membership_df[order(cell_membership_df$Percent_prevalence, decreasing = TRUE), ]
 
-ggplot(cell_membership, aes(x = treatment, y = percent, fill = Cell_Type))+
-  geom_bar(stat = "identity")+
-  geom_text(aes(label = paste(percent,"%")), position = position_stack(vjust = 0.5))
+
+#https://bioinformatics.stackexchange.com/questions/11150/percentage-of-each-cluster-in-seurat
+pt <- table(Idents(Verity.combinedNBHME7), Verity.combinedNBHME7$treatment)
+pt <- as.data.frame(pt)
+pt$Cell_name <- as.character(pt$Var1);pt$Var1<-NULL
+pt$treatment<-as.character(pt$Var2);pt$Var2<-NULL
+ptNBH<-pt[pt$treatment=='NBH',]
+ptME7<-pt[pt$treatment=='ME7',]
+ptNBH$Percent_prevalence <- (ptNBH$Freq / sum(ptNBH$Freq))*100
+ptME7$Percent_prevalence <- (ptME7$Freq / sum(ptME7$Freq))*100
+#Showing how the difference in activated astrocytes between treatments
+ptME7[ptME7$Cell_name=='Astrocytes activated',]
+ptNBH[ptNBH$Cell_name=='Astrocytes activated',]
+
+
+#https://stackoverflow.com/questions/9563711/r-color-palettes-for-many-data-classes and ChatGPT
+
+# build-in color palette
+Glasbey = glasbey.colors(25)
+swatch(Glasbey)
+
+palette <- rainbow_hcl(n=25)
+
+# Create a factor variable with x-axis labels in reverse alphabetical order
+pt$treatment <- factor(pt$treatment, levels = rev(unique(pt$treatment)))
+
+ggplot(pt, aes(x = treatment, y = Freq, fill = Cell_name)) +
+  theme_bw(base_size = 15) +
+  geom_col(position = "fill", width = 0.5) +
+  xlab("Sample") +
+  ylab("Proportion") +
+  scale_fill_manual(values = as.vector(Glasbey)) +
+  theme(legend.title = element_blank()) +
+  ggtitle("Cell identity in Verity dataset", subtitle = "Annotated by SingleR")
+
+
 ```
 
