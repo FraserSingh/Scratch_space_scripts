@@ -344,37 +344,37 @@ Unsure if any filters are really needed, except perhaps an uper limit on nUMI? u
 
 <!-- ``` -->
 
-<!-- ### Gene-level filtering -->
+### Gene-level filtering
 
-<!-- Keeping genes which appear in more than 3 cells for statistical power. -->
+Keeping genes which appear in more than 3 cells for statistical power.
 
-<!-- ```{r} -->
+```{r}
 
-<!-- # Output a logical vector for every gene on whether the more than zero counts per cell -->
+# Output a logical vector for every gene on whether the more than zero counts per cell
 
-<!-- # Extract counts -->
+# Extract counts
 
-<!-- counts <- GetAssayData(object = Slota_filtered, slot = "counts") -->
+counts <- GetAssayData(object = Slota_filtered, slot = "counts")
 
-<!-- # Output a logical vector for every gene on whether the more than zero counts per cell -->
+# Output a logical vector for every gene on whether the more than zero counts per cell
 
-<!-- nonzero <- counts > 0 -->
+nonzero <- counts > 0
 
-<!-- # Sums all TRUE values and returns TRUE if more than 3 TRUE values per gene -->
+# Sums all TRUE values and returns TRUE if more than 3 TRUE values per gene
 
-<!-- keep_genes <- Matrix::rowSums(nonzero) >= 3 -->
+keep_genes <- Matrix::rowSums(nonzero) >= 3
 
-<!-- # Only keeping those genes expressed in more than 10 cells -->
+# Only keeping those genes expressed in more than 10 cells
 
-<!-- filtered_counts <- counts[keep_genes, ] -->
+filtered_counts <- counts[keep_genes, ]
 
-<!-- # Reassign to filtered Seurat object -->
+# Reassign to filtered Seurat object
 
-<!-- Slota_filtered <- CreateSeuratObject(filtered_counts, meta.data = Slota_filtered@meta.data) -->
+Slota_filtered <- CreateSeuratObject(filtered_counts, meta.data = Slota_filtered@meta.data)
 
-<!-- rm(filtered_counts, nonzero,counts, keep_genes) -->
+rm(filtered_counts, nonzero,counts, keep_genes)
 
-<!-- ``` -->
+```
 
 ### Saving object
 
@@ -471,7 +471,7 @@ rm(Slota.list.singlets)
 
 ```{r}
 # Create .RData object to load at any time
-save(Slota_singlets_merged, file="Rdata/Slota_singlets_merged.RData")
+save(Slota_singlets_merged, file="Rdata/Slo_singlets_merged.RData")
 ```
 
 ## Clustering
@@ -495,19 +495,21 @@ Slota_singlets_merged <- ScaleData(Slota_singlets_merged, verbose = T)
 gc()
 
 Slota_singlets_merged <- RunPCA(Slota_singlets_merged, verbose = TRUE)
-ElbowPlot(Slota_singlets_merged)
+ElbowPlot(Slota_singlets_merged, ndims=30)
 ```
 
-```{r}
-Slota_singlets_merged <- RunUMAP(Slota_singlets_merged, dims = 1:20, verbose = TRUE)
+Elbow plot shows a final drop in Sd around 23, so will use 25 PCs
 
-Slota_singlets_merged <- FindNeighbors(Slota_singlets_merged, dims = 1:20, verbose = TRUE)
+```{r}
+Slota_singlets_merged <- RunUMAP(Slota_singlets_merged, dims = 1:25, verbose = TRUE)
+
+Slota_singlets_merged <- FindNeighbors(Slota_singlets_merged, dims = 1:25, verbose = TRUE)
 Slota_singlets_merged <- FindClusters(Slota_singlets_merged, verbose = TRUE, resolution = 1, random.seed = 42)
 
-DimPlot(Slota_singlets_merged, label = TRUE, raster=FALSE) + NoLegend()+ ggtitle("Slota clustering", subtitle = "NormalizeData, clustering resolution= 1, UMAPdims20")
+DimPlot(Slota_singlets_merged, label = TRUE, raster=FALSE) + NoLegend()+ ggtitle("Slota clustering", subtitle = "NormalizeData, clustering resolution= 1, UMAPdims25")
 
 
-DimPlot(Slota_singlets_merged, label = TRUE, raster=FALSE, group.by = "sample", repel = TRUE)+ ggtitle("Slota clustering", subtitle = "NormalizeData, clustering resolution= 1, UMAPdims20")
+DimPlot(Slota_singlets_merged, raster=FALSE, group.by = "sample", repel = TRUE)+ ggtitle("Slota clustering", subtitle = "NormalizeData, clustering resolution= 1, UMAPdims25")
 
 save(Slota_singlets_merged, file="Rdata/Slota_clustering.RData")
 ```
@@ -588,17 +590,23 @@ DefaultAssay(Slota.combined) <- "integrated"
 Slota.combined <- ScaleData(Slota.combined, verbose = FALSE)
 Slota.combined <- RunPCA(Slota.combined, npcs = 30, verbose = FALSE)
 ElbowPlot(Slota.combined, ndims=30)+ggtitle("Elbowplot of Integrated Slota data", subtitle = "RunPCA npcs=30, RPCA workflow")
+```
 
+Elbow plot shows around 25 Pcs again 
+
+```{r}
 #20 PCs seem to cover the variability
-Slota.combined <- RunUMAP(Slota.combined, reduction = "pca", dims = 1:20)
-Slota.combined <- FindNeighbors(Slota.combined, reduction = "pca", dims = 1:20)
+Slota.combined <- RunUMAP(Slota.combined, reduction = "pca", dims = 1:25)
+Slota.combined <- FindNeighbors(Slota.combined, reduction = "pca", dims = 1:25)
 Slota.combined <- FindClusters(Slota.combined, resolution = c(0.2,0.3,0.5,0.7,1))
 
 #cyclechange resolution number in group.by to see difference in clusters
-DimPlot(Slota.combined, reduction = 'umap', label = TRUE, repel = TRUE, raster=F)+ggtitle("Integrated Slota data, labelled by cluster numbers", subtitle="RPCA,Clustering resolution 1, 20 PCs used")
+DimPlot(Slota.combined, reduction = 'umap', label = TRUE, repel = TRUE, raster=F)+ggtitle("Integrated Slota data, labelled by cluster numbers", subtitle="RPCA,Clustering resolution 1, 25 PCs used")
 
-#set the idents to 0.5
-Slota.combined@active.ident<-Slota.combined@meta.data$integrated_snn_res.0.5
+DimPlot(Slota.combined, group.by="integrated_snn_res.0.2", label = TRUE, repel = TRUE, raster=F)
+
+#set the idents to 0.2
+Slota.combined@active.ident<-Slota.combined@meta.data$integrated_snn_res.0.2
 levels(Slota.combined)
 
 #Save the object
@@ -607,20 +615,10 @@ save(Slota.combined,file="Rdata/Slota.self_integrated_RPCA.Rdata")
 
 ```{r}
 # Visualization
-p1 <- DimPlot(Slota.combined, reduction = "umap", split.by = "treatment", raster=FALSE)+ ggtitle("Integrated Slota data, split by treatment", subtitle="RPCA,Clustering resolution 1, 20 PCs used")
+p1 <- DimPlot(Slota.combined, reduction = "umap", split.by = "treatment", raster=FALSE)+ ggtitle("Integrated Slota data, split by treatment", subtitle="RPCA,Clustering resolution 0.2, 25 PCs used")
 
 #Check for sample batch effects (shouldn't see this in an integrated dataset). The colou pallete hides sample11 because it covers everything
 
-# dimplotcolours=c(
-#   rgb(0.53, 0.81, 0.95, 0.5),
-#   'NA',
-#   #rgb(0.23, 0.51, 0.75, 0.5), #uncomment to give sample 11 colour, but this covers most of the data
-#   rgb(0.95, 0.27, 0.14, 0.5),
-#   rgb(0.61, 0.09, 0.78, 0.5),
-#   rgb(0.44, 0.83, 0.15, 0.5),
-#   rgb(0.92, 0.67, 0.12, 0.5),
-#   rgb(0.03, 0.65, 0.40, 0.5)
-# )
 # p2 <- DimPlot(Slota.combined, reduction = "umap", group.by = "sample", raster=FALSE +scale_color_manual(values = dimplotcolours))
 
 #This plot would be to label by cell type, not useable as I haven't used singleR yet
@@ -631,4 +629,92 @@ p1 <- DimPlot(Slota.combined, reduction = "umap", split.by = "treatment", raster
 p1 #+ p2 +p3
 ```
 
-up to 744 in VerityWorkflow
+##Preliminary Astrocyte checks
+
+```{r}
+DefaultAssay(Slota.combined)<-"RNA"
+
+#Check for a gene of interest in the data's geneset
+Gene_Names<-Slota.combined@assays[["RNA"]]@counts@Dimnames[[1]]
+filtered_gene_names<-Gene_Names[!grepl("^\\d", Gene_Names)]
+filtered_gene_names[grep("^Aldh1lh", filtered_gene_names)]
+
+#try to identify astrocytes  with genes (Aldh1l1, Syp, Csf1r,Tmem119, Map2, Gfap)
+
+astrocyte_genes<-c("Aldh1l1","Gfap","Slc1a2")
+
+FeaturePlot(Slota.combined,features=astrocyte_genes, raster=F)+ggtitle("Integrated Verity data, labelled with astrocyte gene markers", subtitle="RPCA,Clustering resolution 0.2, 25 PCs used")
+#+scale_colour_gradientn(colours = rev(brewer.pal(n = 11, name = "Spectral"))) + ggtitle("ALDH1 for astrocytes")
+```
+
+
+## Cell annotation
+
+```{r}
+
+library(SingleR)
+library(celldex)
+
+#FIXME change the reference which is loaded to the mouse one
+#library(celldex)
+mouse.ref <- celldex::MouseRNAseqData()
+
+sce <- as.SingleCellExperiment(Slota.combined)
+
+mouse.main <- SingleR(test=sce, ref=mouse.ref, labels=mouse.ref$label.main, de.method="wilcox")
+
+mouse.fine <- SingleR(test=sce, ref=mouse.ref, labels=mouse.ref$label.fine, de.method="wilcox")
+
+table(mouse.fine$labels)
+
+# https://github.com/LTLA/SingleR/blob/master/README.md
+#Add annotation back to Seruat object
+Slota.combined[["SingleR.labels.main"]] <- mouse.main$labels
+Slota.combined[["SingleR.labels.fine"]] <- mouse.fine$labels
+
+Slota.combined <- SetIdent(Slota.combined, value = "SingleR.labels.fine")
+rm(sce, mouse.fine, mouse.main, mouse.ref)
+
+#Visualise distribution on UMAP
+DimPlot(Slota.combined, label = T , repel = T, label.size = 3, raster=F)+ggtitle("Slota dataset integrated clustering", subtitle="Cell annotation with SingleR")
+```
+
+
+## Investigate astrocytes
+
+```{r}
+
+# Convert cluster names to character
+Idents(Slota.combined) <- as.character(Idents(Slota.combined))
+VlnPlot(Slota.combined, features = "Slc1a2")
+
+#Subset out astrocytes
+Slo_astrocytes<-subset(Slota.combined, idents=c('Astrocytes', 'Astrocytes activated'))
+
+#Show the data membership acorss cell type in the astrocyte set
+table(Slo_astrocytes$treatment)
+table(Slo_astrocytes$SingleR.labels.fine)
+
+#find clustered astrocyte markers, differences in astrocyte populations
+
+DefaultAssay(Slo_astrocytes)<-'RNA'
+
+#make counts whole numbers
+Slo_astrocytes@assays$RNA@counts@x <-round(Slo_astrocytes@assays$RNA@counts@x)
+
+#'solution' from github forums is to add counts to all genes to remove 0 mean https://github.com/satijalab/seurat/issues/1570
+Slo_astrocytes[["RNA"]]@counts<-as.matrix(Slo_astrocytes[["RNA"]]@counts)+1
+
+astrocyte.markers <- FindMarkers(Slo_astrocytes, 
+                                 ident.1 = 'Astrocytes', 
+                                 min.pct = 0.25,
+                                 verbose = TRUE,
+                                 slot='counts',
+                                 test.use = 'DESeq2'
+                                 )
+head(astrocyte.markers, n = 6)
+save(astrocyte.markers, file="Slota_astrocyte.markers.RData")
+```
+
+
+

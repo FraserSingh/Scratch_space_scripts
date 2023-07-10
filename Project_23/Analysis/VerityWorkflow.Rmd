@@ -758,150 +758,6 @@ FeaturePlot(Verity.combinedNBHME7,features="Nalcn", raster=F)+ggtitle("Integrate
 #+scale_colour_gradientn(colours = rev(brewer.pal(n = 11, name = "Spectral"))) + ggtitle("ALDH1 for astrocytes")
 ```
 
-## Investigate astrocytes
-
-```{r}
-
-# Convert cluster names to character
-Idents(Verity.combinedNBHME7) <- as.character(Idents(Verity.combinedNBHME7))
-VlnPlot(Verity.combinedNBHME7, features = "Gfap")
-
-#Subset out astrocytes
-Ver_astrocytes<-subset(Verity.combinedNBHME7, idents=c('3','27','24'))
-
-
-#find clustered astrocyte markers, differences in astrocyte populations
-
-DefaultAssay(Ver_astrocytes)<-'RNA'
-astrocyte.markers <- FindMarkers(Ver_astrocytes, ident.1 = 3, min.pct = 0.25, verbose = TRUE, test.use = "DESeq2")
-head(astrocyte.markers, n = 6)
-save(astrocyte.markers, file="astrocyte.markers.RData")
-```
-
-## Find the identifiers of the astrocyte cluster compared to the wider dataset
-
-```{r}
-#Seeing what genes are most strongly expressed or not expressed (with high confidence) in the supposed astrocyte cluster
-astrocyte_conserved_markers<-FindConservedMarkers(Verity.combinedNBHME7, ident.1 = 3, grouping.var = "treatment", verbose = T,test.use = "DESeq2")
-#https://github.com/brandonyph/Seurat_Integration_Introduction#chapter-2---identify-conserved-cell-type-markers:~:text=Chapter%202%20%2D%20Identify%20conserved%20cell%20type%20markers
-save(astrocyte_conserved_markers, file="astrocyte_conserved_markers.RData")
-
-```
-
-#Plot Heatmap of the DEGs specific to supposed astrocyte cluster
-
-```{r}
-#adapted from https://www.youtube.com/watch?v=p49seH2_i8Y&t=717s&ab_channel=LiquidBrainBioinformatics
-library(ComplexHeatmap)
-heatmapdf <- astrocyte.markers[1:25,]
-row_ha = rowAnnotation("A1" = anno_barplot(heatmapdf$pct.1),
-                       "Others"= anno_barplot(heatmapdf$pct.2),
-                       width = unit(10, "cm"))
-
-ht0 <- Heatmap(heatmapdf$avg_log2FC,
-                name = "Log2FC",
-                cluster_rows = TRUE, 
-                row_labels = rownames(heatmapdf), 
-                right_annotation = row_ha,
-                width = unit(1, "cm"),
-               column_title ="DEGs of overall astrocytes cluster compared to the entire dataset (min.pct = 0.25, cluster 3 of Verity data" )
-
-ht0
-```
-
-
-```{r}
-#Getting markers of cluster3 (main astrocytes cluster)
-#Filter the gene list of DEGS that are most strongly expressed in cluster3 by positive log2FC
-positive_astrocyte_conserved<-subset(astrocyte_conserved_markers, NBH_avg_log2FC>0)
-
-#Sort the list in descending log2FC and ascending pvalues regarding NBH treatment
-positive_astrocyte_conserved<-positive_astrocyte_conserved[order(-positive_astrocyte_conserved$NBH_avg_log2FC, positive_astrocyte_conserved$NBH_p_val), ]
-
-#Save the df with a new name, save the gene names as an object, remove the old object and view the top 6 genes (lowest pvalue and ighes log2FC)
-positive_astrocyte_conserved_df<-positive_astrocyte_conserved
-positive_astrocyte_conserved_genes<-rownames(positive_astrocyte_conserved)
-rm(positive_astrocyte_conserved)
-positive_astrocyte_conserved_genes[1:6]
-
-#Save the file
-write.csv(positive_astrocyte_conserved_df, file = "Supposed_astrocyte_markers.csv")
-
-#Show these top genes on the UMAP
-DefaultAssay(Verity.combinedNBHME7)<-"RNA"
-FeaturePlot(Verity.combinedNBHME7,features=positive_astrocyte_conserved_genes[1:6], raster=F)+ggtitle("Integrated Verity data, labelled with cluster 3's strongest markers", subtitle="RPCA,Clustering resolution 1, 20 PCs used")
-DefaultAssay(Verity.combinedNBHME7)<-"integrated"
-```
-
-```{r}
-#trying to plot this on the same scale of colour, but it's changing the scale
-library(gridExtra)
-
-plot_title <- "Integrated Verity data, labelled with cluster 3's strongest markers"
-subtitle <- "RPCA, Clustering resolution 1, 20 PCs used"
-
-# Create a list to store the plots
-plot_list <- list()
-color_range<-c(0,5)
-# Loop over the selected genes and create individual plots
-for (gene in positive_astrocyte_conserved_genes[1:6]) {
-    plot <- FeaturePlot(Verity.combinedNBHME7, features = gene, raster = FALSE)+scale_color_gradient(limits = color_range) +
-        scale_fill_gradient(limits = color_range) 
-    plot_list[[gene]] <- plot
-}
-
-# Arrange the plots in a grid layout
-grid_arrange <- do.call(grid.arrange, c(plot_list, ncol = 3))
-
-# Display the grid of plots
-grid_arrange<-grid_arrange
-
-```
-
-## Find DEGs within the astrocyte subclusters
-
-
-```{r}
-#subset, then cluster? Or add Slota first then do this analysis?
-DefaultAssay(Ver_astrocytes)<-"integrated"
-
-# Run the standard workflow for visualization and clustering
-Ver_astrocytes <- ScaleData(Ver_astrocytes, verbose = FALSE)
-Ver_astrocytes <- RunPCA(Ver_astrocytes, npcs = 30, verbose = FALSE)
-ElbowPlot(Ver_astrocytes, ndims=30)+ggtitle("Elbowplot of Integrated Verity data", subtitle = "RunPCA npcs=30, RPCA workflow")
-
-#20 PCs seem to cover the variability
-Ver_astrocytes <- RunUMAP(Ver_astrocytes, reduction = "pca", dims = 1:20)
-Ver_astrocytes <- FindNeighbors(Ver_astrocytes, reduction = "pca", dims = 1:20)
-Ver_astrocytes <- FindClusters(Ver_astrocytes, resolution = c(0.2,0.3,0.5,0.7,1))
-
-#cyclechange resolution number in group.by to see difference in clusters
-DimPlot(Ver_astrocytes, reduction = 'umap', label = TRUE, repel = TRUE, raster=F)+ggtitle("Integrated Verity data's astrocytes, labelled by treatment", subtitle="13 clusters")
-
-#set the idents to 0.5
-Ver_astrocytes@active.ident<-Ver_astrocytes@meta.data$integrated_snn_res.0.5
-levels(Ver_astrocytes)
-
-DefaultAssay(Ver_astrocytes)<-'RNA'
-
-#set identities to subclusters
-Idents(Ver_astrocytes) <- as.character(Idents(Ver_astrocytes))
-
-astrocyte_subcluster.markers <- FindMarkers(Ver_astrocytes, ident.1 = 0, min.pct = 0.25, verbose = TRUE, test.use = "DESeq2")
-
-#by treatment, show the genes DE in Prion condition. LogFC set to a *1 increase in fold change
-Ver_astrocytes@active.ident<-as.factor(Ver_astrocytes$treatment)
-Verity_astrocyte_prion.markers <- FindMarkers(Ver_astrocytes, ident.1 = 'ME7', min.pct = 0.15, verbose = TRUE, test.use = "DESeq2", logfc.threshold = 0.50)
-
-#Sort the list in descending log2FC and ascending pvalues
-Verity_astrocyte_prion.markers<-Verity_astrocyte_prion.markers[order(-Verity_astrocyte_prion.markers$avg_log2FC, Verity_astrocyte_prion.markers$p_val), ]
-#Save the file
-write.csv(Verity_astrocyte_prion.markers, file = "Verity_astrocyte_prion.markers.csv")
-
-save(Verity_astrocyte_prion.markers, file="Verity_astrocyte_prion.markers.RData")
-```
-
-
 
 ## Cell annotation
 
@@ -982,3 +838,149 @@ ggplot(pt, aes(x = treatment, y = Freq, fill = Cell_name)) +
 
 ```
 
+
+
+## Investigate astrocytes, ensure identification
+
+```{r}
+
+# Convert cluster names to character
+Idents(Verity.combinedNBHME7) <- as.character(Idents(Verity.combinedNBHME7))
+VlnPlot(Verity.combinedNBHME7, features = "Gfap")
+
+#Subset out astrocytes
+Ver_astrocytes<-subset(Verity.combinedNBHME7, idents=c('Astrocytes', 'Astrocytes activated'))
+
+
+#find clustered astrocyte markers, differences in astrocyte populations
+
+DefaultAssay(Ver_astrocytes)<-'RNA'
+astrocyte.markers <- FindMarkers(Ver_astrocytes, ident.1 = 3, min.pct = 0.25, verbose = TRUE, test.use = "DESeq2")
+head(astrocyte.markers, n = 6)
+save(astrocyte.markers, file="astrocyte.markers.RData")
+```
+
+### Find the identifiers of the astrocyte cluster compared to the wider dataset
+
+```{r}
+#Seeing what genes are most strongly expressed or not expressed (with high confidence) in the supposed astrocyte cluster
+astrocyte_conserved_markers<-FindConservedMarkers(Verity.combinedNBHME7, ident.1 = 3, grouping.var = "treatment", verbose = T,test.use = "DESeq2")
+#https://github.com/brandonyph/Seurat_Integration_Introduction#chapter-2---identify-conserved-cell-type-markers:~:text=Chapter%202%20%2D%20Identify%20conserved%20cell%20type%20markers
+save(astrocyte_conserved_markers, file="astrocyte_conserved_markers.RData")
+
+```
+
+###Plot Heatmap of the DEGs specific to supposed astrocyte cluster
+
+```{r}
+#adapted from https://www.youtube.com/watch?v=p49seH2_i8Y&t=717s&ab_channel=LiquidBrainBioinformatics
+library(ComplexHeatmap)
+heatmapdf <- astrocyte.markers[1:25,]
+row_ha = rowAnnotation("A1" = anno_barplot(heatmapdf$pct.1),
+                       "Others"= anno_barplot(heatmapdf$pct.2),
+                       width = unit(10, "cm"))
+
+ht0 <- Heatmap(heatmapdf$avg_log2FC,
+                name = "Log2FC",
+                cluster_rows = TRUE, 
+                row_labels = rownames(heatmapdf), 
+                right_annotation = row_ha,
+                width = unit(1, "cm"),
+               column_title ="DEGs of overall astrocytes cluster compared to the entire dataset (min.pct = 0.25, cluster 3 of Verity data" )
+
+ht0
+```
+
+
+```{r}
+#Getting markers of cluster3 (main astrocytes cluster)
+#Filter the gene list of DEGS that are most strongly expressed in cluster3 by positive log2FC
+positive_astrocyte_conserved<-subset(astrocyte_conserved_markers, NBH_avg_log2FC>0)
+
+#Sort the list in descending log2FC and ascending pvalues regarding NBH treatment
+positive_astrocyte_conserved<-positive_astrocyte_conserved[order(-positive_astrocyte_conserved$NBH_avg_log2FC, positive_astrocyte_conserved$NBH_p_val), ]
+
+#Save the df with a new name, save the gene names as an object, remove the old object and view the top 6 genes (lowest pvalue and ighes log2FC)
+positive_astrocyte_conserved_df<-positive_astrocyte_conserved
+positive_astrocyte_conserved_genes<-rownames(positive_astrocyte_conserved)
+rm(positive_astrocyte_conserved)
+positive_astrocyte_conserved_genes[1:6]
+
+#Save the file
+write.csv(positive_astrocyte_conserved_df, file = "Supposed_astrocyte_markers.csv")
+
+#Show these top genes on the UMAP
+DefaultAssay(Verity.combinedNBHME7)<-"RNA"
+FeaturePlot(Verity.combinedNBHME7,features=positive_astrocyte_conserved_genes[1:6], raster=F)+ggtitle("Integrated Verity data, labelled with cluster 3's strongest markers", subtitle="RPCA,Clustering resolution 1, 20 PCs used")
+DefaultAssay(Verity.combinedNBHME7)<-"integrated"
+```
+
+```{r}
+#trying to plot this on the same scale of colour, but it's changing the scale
+library(gridExtra)
+
+plot_title <- "Integrated Verity data, labelled with cluster 3's strongest markers"
+subtitle <- "RPCA, Clustering resolution 1, 20 PCs used"
+
+# Create a list to store the plots
+plot_list <- list()
+color_range<-c(0,5)
+# Loop over the selected genes and create individual plots
+for (gene in positive_astrocyte_conserved_genes[1:6]) {
+    plot <- FeaturePlot(Verity.combinedNBHME7, features = gene, raster = FALSE)+scale_color_gradient(limits = color_range) +
+        scale_fill_gradient(limits = color_range) 
+    plot_list[[gene]] <- plot
+}
+
+# Arrange the plots in a grid layout
+grid_arrange <- do.call(grid.arrange, c(plot_list, ncol = 3))
+
+# Display the grid of plots
+grid_arrange<-grid_arrange
+
+```
+
+
+
+## Find DEGs within the astrocyte subclusters
+
+
+```{r}
+#subset, then cluster? Or add Slota first then do this analysis?
+DefaultAssay(Ver_astrocytes)<-"integrated"
+
+# Run the standard workflow for visualization and clustering
+Ver_astrocytes <- ScaleData(Ver_astrocytes, verbose = FALSE)
+Ver_astrocytes <- RunPCA(Ver_astrocytes, npcs = 30, verbose = FALSE)
+ElbowPlot(Ver_astrocytes, ndims=30)+ggtitle("Elbowplot of Integrated Verity data", subtitle = "RunPCA npcs=30, RPCA workflow")
+
+#20 PCs seem to cover the variability
+Ver_astrocytes <- RunUMAP(Ver_astrocytes, reduction = "pca", dims = 1:20)
+Ver_astrocytes <- FindNeighbors(Ver_astrocytes, reduction = "pca", dims = 1:20)
+Ver_astrocytes <- FindClusters(Ver_astrocytes, resolution = c(0.2,0.3,0.5,0.7,1))
+
+#cyclechange resolution number in group.by to see difference in clusters
+DimPlot(Ver_astrocytes, reduction = 'umap', label = TRUE, repel = TRUE, raster=F)+ggtitle("Integrated Verity data's astrocytes, labelled by treatment", subtitle="13 clusters")
+
+#set the idents to 0.5
+Ver_astrocytes@active.ident<-Ver_astrocytes@meta.data$integrated_snn_res.0.5
+levels(Ver_astrocytes)
+
+DefaultAssay(Ver_astrocytes)<-'RNA'
+
+#set identities to subclusters
+Idents(Ver_astrocytes) <- as.character(Idents(Ver_astrocytes))
+
+astrocyte_subcluster.markers <- FindMarkers(Ver_astrocytes, ident.1 = 0, min.pct = 0.25, verbose = TRUE, test.use = "DESeq2")
+
+#by treatment, show the genes DE in Prion condition. LogFC set to a *1 increase in fold change
+Ver_astrocytes@active.ident<-as.factor(Ver_astrocytes$treatment)
+Verity_astrocyte_prion.markers <- FindMarkers(Ver_astrocytes, ident.1 = 'ME7', min.pct = 0.15, verbose = TRUE, test.use = "DESeq2", logfc.threshold = 0.50)
+
+#Sort the list in descending log2FC and ascending pvalues
+Verity_astrocyte_prion.markers<-Verity_astrocyte_prion.markers[order(-Verity_astrocyte_prion.markers$avg_log2FC, Verity_astrocyte_prion.markers$p_val), ]
+#Save the file
+write.csv(Verity_astrocyte_prion.markers, file = "Verity_astrocyte_prion.markers.csv")
+
+save(Verity_astrocyte_prion.markers, file="Verity_astrocyte_prion.markers.RData")
+```
