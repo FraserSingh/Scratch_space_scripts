@@ -156,18 +156,101 @@ comp1_harmonized <-
 comp1_harmonized@active.ident<-comp1_harmonized@meta.data$RNA_snn_res.0.3
 
 #Visualisation
-dimplotcolours=c(
-  'NA',
-  rgb(0.53, 0.81, 0.95, 0.5),
-  rgb(0.23, 0.51, 0.75, 0.5), #uncomment to give sample 11 colour, but this covers most of the data
-  rgb(0.95, 0.27, 0.14, 0.5)
-  
-)
+# dimplotcolours=c(
+#   'NA',
+#   rgb(0.53, 0.81, 0.95, 0.5),
+#   rgb(0.23, 0.51, 0.75, 0.5), #uncomment to give sample 11 colour, but this covers most of the data
+#   rgb(0.95, 0.27, 0.14, 0.5)
+#   
+# )
 
 
-DimPlot(comp1_harmonized, label = TRUE, repel = TRUE, raster=F, split.by = 'treatment')+ggtitle("Verity and Slota Hippocampal data", subtitle = "After harmony integration")#+scale_color_manual(values = dimplotcolours)
+DimPlot(comp1_harmonized, raster=F, group.by = 'treatment')+ggtitle("Verity and Slota Hippocampal Astrocyte data", subtitle = "After harmony integration")#+scale_color_manual(values = dimplotcolours)
 
 ```
+
+```{r}
+#Version2 astrocytes only
+
+load("Rdata/Slota.self_integrated_RPCA.Rdata")
+load("Rdata/Verity.self_integrated_RPCA_NBHME7.Rdata")
+
+library(SingleR)
+library(celldex)
+mouse.ref <- celldex::MouseRNAseqData()
+sce <- as.SingleCellExperiment(Verity.combinedNBHME7)
+mouse.main <- SingleR(test=sce, ref=mouse.ref, labels=mouse.ref$label.main, de.method="wilcox")
+mouse.fine <- SingleR(test=sce, ref=mouse.ref, labels=mouse.ref$label.fine, de.method="wilcox")
+table(mouse.fine$labels)
+# https://github.com/LTLA/SingleR/blob/master/README.md
+#Add annotation back to Seruat object
+Verity.combinedNBHME7[["SingleR.labels.main"]] <- mouse.main$labels
+Verity.combinedNBHME7[["SingleR.labels.fine"]] <- mouse.fine$labels
+Verity.combinedNBHME7 <- SetIdent(Verity.combinedNBHME7, value = "SingleR.labels.fine")
+rm(sce, mouse.fine, mouse.main, mouse.ref)
+#Visualise distribution on UMAP
+DimPlot(Verity.combinedNBHME7, label = T , repel = T, label.size = 3, raster=F, split.by = 'treatment')
+View(Verity.combined)
+DimPlot(Verity.combinedNBHME7, label = T , repel = T, label.size = 3, raster=F, split.by = 'treatment')
+# Convert cluster names to character
+Idents(Verity.combinedNBHME7) <- as.character(Idents(Verity.combinedNBHME7))
+VlnPlot(Verity.combinedNBHME7, features = "Gfap")
+#Subset out astrocytes
+Ver_astrocytes<-subset(Verity.combinedNBHME7, idents=c('Astrocytes', 'Astrocytes activated'))
+
+sce <- as.SingleCellExperiment(Slota.combined)
+mouse.main <- SingleR(test=sce, ref=mouse.ref, labels=mouse.ref$label.main, de.method="wilcox")
+mouse.fine <- SingleR(test=sce, ref=mouse.ref, labels=mouse.ref$label.fine, de.method="wilcox")
+table(mouse.fine$labels)
+# https://github.com/LTLA/SingleR/blob/master/README.md
+#Add annotation back to Seruat object
+Slota.combined[["SingleR.labels.main"]] <- mouse.main$labels
+Slota.combined[["SingleR.labels.fine"]] <- mouse.fine$labels
+Slota.combined <- SetIdent(Slota.combined, value = "SingleR.labels.fine")
+rm(sce, mouse.fine, mouse.main, mouse.ref)
+#Visualise distribution on UMAP
+DimPlot(Slota.combined, label = T , repel = T, label.size = 3, raster=F)+ggtitle("Slota dataset integrated clustering", subtitle="Cell annotation with SingleR")
+# Convert cluster names to character
+Idents(Slota.combined) <- as.character(Idents(Slota.combined))
+VlnPlot(Slota.combined, features = "Slc1a2")
+#Subset out astrocytes
+Slo_astrocytes<-subset(Slota.combined, idents=c('Astrocytes', 'Astrocytes activated'))
+#Show the data membership acorss cell type in the astrocyte set
+table(Slo_astrocytes$treatment)
+table(Slo_astrocytes$SingleR.labels.fine)
+
+Slo_list<-SplitObject(Slo_astrocytes, split.by = "treatment")
+Ver_list<-SplitObject(Ver_astrocytes, split.by = "treatment")
+#COMPARISON 1 Hippocampus DEG between datasets (Verity and terminal)
+#list of samples to merge
+DefaultAssay(comp1_merged)<-'RNA'
+comp1_merged <- comp1_merged %>%
+NormalizeData() %>%
+FindVariableFeatures(selection.method = "vst", nfeatures = 2000) %>%
+ScaleData() #%>%
+# Calculate PCs using variable features determined by SCTransform (3000 by default) ##I have changed the assay to RNA and reduced pcs to 30 from 50
+#Visualise the data
+comp1_merged <- RunPCA(comp1_merged, assay = "RNA", npcs = 30)
+#Elbowplot shows around 20 PCs are enough
+comp1_merged<- RunUMAP(comp1_merged, reduction = "pca", dims = 1:20)
+DimPlot(comp1_merged, reduction='umap', group.by = 'treatment', raster=F)+ggtitle("Verity and Slota Hippocampal data", subtitle = "Before harmony integration")
+#Add proper sample labels
+comp1_harmonized <- RunHarmony(comp1_merged, group.by.vars = c("treatment"), #FIXME variable names to integrate on
+reduction = "pca", assay.use = "RNA", reduction.save = "harmony", verbose=T)
+comp1_harmonized <-
+RunUMAP(comp1_harmonized, reduction = "harmony", dims = 1:20) %>%
+FindNeighbors(reduction='harmony', dims=1:20) %>%
+FindClusters(resolution=c(0.2,0.3,0.5,0.7,1))
+#This gives a good level of clustering
+comp1_harmonized@active.ident<-comp1_harmonized@meta.data$RNA_snn_res.0.3
+#Visualisation
+
+DimPlot(comp1_merged, reduction='umap', group.by = 'treatment', raster=F)+ggtitle("Verity and Slota Hippocampal Astrocyte data", subtitle = "Before harmony integration")
+
+DimPlot(comp1_harmonized, raster=F, group.by = 'treatment')+ggtitle("Verity and Slota Hippocampal Astrocyte data", subtitle = "After harmony integration")
+
+```
+
 
 
 ## Untested

@@ -843,7 +843,6 @@ ggplot(pt, aes(x = treatment, y = Freq, fill = Cell_name)) +
 ## Investigate astrocytes, ensure identification
 
 ```{r}
-
 # Convert cluster names to character
 Idents(Verity.combinedNBHME7) <- as.character(Idents(Verity.combinedNBHME7))
 VlnPlot(Verity.combinedNBHME7, features = "Gfap")
