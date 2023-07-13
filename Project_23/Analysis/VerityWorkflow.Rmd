@@ -648,7 +648,6 @@ Ver_ME7_NBH<-subset(Ver_singlets_merged, subset= treatment!="AGEING")
 table(Ver_ME7_NBH@meta.data$treatment)
 ```
 
-
 ```{r}
 # adapted from https://satijalab.org/seurat/articles/integration_introduction.html
 
@@ -752,12 +751,12 @@ filtered_gene_names[grep("^Slc1a2", filtered_gene_names)]
 
 #try to identify astrocytes  with genes (Aldh1l1, Syp, Csf1r,Tmem119, Map2, Gfap)
 
-astrocyte_genes<-c("Aldh1l1","Gfap","Slc1a2")
+astrocyte_genes<-c("Aldh1l1","Gfap","Slc1a2", "Slc1a3", "Glul", "S100b")
 
-FeaturePlot(Verity.combinedNBHME7,features="Nalcn", raster=F)+ggtitle("Integrated Verity data, labelled with astrocyte gene markers", subtitle="RPCA,Clustering resolution 1, 20 PCs used")
+
+FeaturePlot(Verity.combinedNBHME7,features=astrocyte_genes, raster=F)+ggtitle("Integrated Verity data, labelled with astrocyte gene markers from ABCAM", subtitle="RPCA,Clustering resolution 1, 20 PCs used")
 #+scale_colour_gradientn(colours = rev(brewer.pal(n = 11, name = "Spectral"))) + ggtitle("ALDH1 for astrocytes")
 ```
-
 
 ## Cell annotation
 
@@ -806,6 +805,7 @@ pt <- table(Idents(Verity.combinedNBHME7), Verity.combinedNBHME7$treatment)
 pt <- as.data.frame(pt)
 pt$Cell_name <- as.character(pt$Var1);pt$Var1<-NULL
 pt$treatment<-as.character(pt$Var2);pt$Var2<-NULL
+
 ptNBH<-pt[pt$treatment=='NBH',]
 ptME7<-pt[pt$treatment=='ME7',]
 ptNBH$Percent_prevalence <- (ptNBH$Freq / sum(ptNBH$Freq))*100
@@ -818,10 +818,9 @@ ptNBH[ptNBH$Cell_name=='Astrocytes activated',]
 #https://stackoverflow.com/questions/9563711/r-color-palettes-for-many-data-classes and ChatGPT
 
 # build-in color palette
-Glasbey = glasbey.colors(25)
-swatch(Glasbey)
+# Glasbey = glasbey.colors(30)
+# swatch(Glasbey)
 
-palette <- rainbow_hcl(n=25)
 
 # Create a factor variable with x-axis labels in reverse alphabetical order
 pt$treatment <- factor(pt$treatment, levels = rev(unique(pt$treatment)))
@@ -834,11 +833,7 @@ ggplot(pt, aes(x = treatment, y = Freq, fill = Cell_name)) +
   scale_fill_manual(values = as.vector(Glasbey)) +
   theme(legend.title = element_blank()) +
   ggtitle("Cell identity in Verity dataset", subtitle = "Annotated by SingleR")
-
-
 ```
-
-
 
 ## Investigate astrocytes, ensure identification
 
@@ -869,7 +864,7 @@ save(astrocyte_conserved_markers, file="astrocyte_conserved_markers.RData")
 
 ```
 
-###Plot Heatmap of the DEGs specific to supposed astrocyte cluster
+### Plot Heatmap of the DEGs specific to supposed astrocyte cluster
 
 ```{r}
 #adapted from https://www.youtube.com/watch?v=p49seH2_i8Y&t=717s&ab_channel=LiquidBrainBioinformatics
@@ -889,7 +884,6 @@ ht0 <- Heatmap(heatmapdf$avg_log2FC,
 
 ht0
 ```
-
 
 ```{r}
 #Getting markers of cluster3 (main astrocytes cluster)
@@ -939,10 +933,7 @@ grid_arrange<-grid_arrange
 
 ```
 
-
-
 ## Find DEGs within the astrocyte subclusters
-
 
 ```{r}
 #subset, then cluster? Or add Slota first then do this analysis?
@@ -959,7 +950,7 @@ Ver_astrocytes <- FindNeighbors(Ver_astrocytes, reduction = "pca", dims = 1:20)
 Ver_astrocytes <- FindClusters(Ver_astrocytes, resolution = c(0.2,0.3,0.5,0.7,1))
 
 #cyclechange resolution number in group.by to see difference in clusters
-DimPlot(Ver_astrocytes, reduction = 'umap', label = TRUE, repel = TRUE, raster=F)+ggtitle("Integrated Verity data's astrocytes, labelled by treatment", subtitle="13 clusters")
+DimPlot(Ver_astrocytes, reduction = 'umap',  raster=F, group.by='treatment')+ggtitle("Integrated Verity data's astrocytes", subtitle="Labelled by treatment")
 
 #set the idents to 0.5
 Ver_astrocytes@active.ident<-Ver_astrocytes@meta.data$integrated_snn_res.0.5

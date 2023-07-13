@@ -191,7 +191,6 @@ rm(sce, mouse.fine, mouse.main, mouse.ref)
 #Visualise distribution on UMAP
 DimPlot(Verity.combinedNBHME7, label = T , repel = T, label.size = 3, raster=F, split.by = 'treatment')
 View(Verity.combined)
-DimPlot(Verity.combinedNBHME7, label = T , repel = T, label.size = 3, raster=F, split.by = 'treatment')
 # Convert cluster names to character
 Idents(Verity.combinedNBHME7) <- as.character(Idents(Verity.combinedNBHME7))
 VlnPlot(Verity.combinedNBHME7, features = "Gfap")

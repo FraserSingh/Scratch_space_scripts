@@ -831,6 +831,42 @@ rm(sce, mouse.fine, mouse.main, mouse.ref)
 DimPlot(Ximerakis.combined, label = T , repel = T, label.size = 3, raster=F)+ggtitle("Ximerakis dataset integrated clustering", subtitle="Cell annotation with SingleR")
 ```
 
+```{r}
+Ximerakis.combined@active.ident<-as.factor(Ximerakis.combined$SingleR.labels.fine)
+pt <- table(Idents(Ximerakis.combined), Ximerakis.combined$treatment)
+pt <- as.data.frame(pt)
+pt$Cell_name <- as.character(pt$Var1);pt$Var1<-NULL
+pt$treatment<-as.character(pt$Var2);pt$Var2<-NULL
+AGED<-pt[pt$treatment=='AGED',]
+YOUNG<-pt[pt$treatment=='YOUNG',]
+AGED$Percent_prevalence <- (AGED$Freq / sum(AGED$Freq))*100
+YOUNG$Percent_prevalence <- (YOUNG$Freq / sum(YOUNG$Freq))*100
+
+#Showing how the difference in activated astrocytes between treatments
+AGED[AGED$Cell_name=='Astrocytes activated',]
+YOUNG[YOUNG$Cell_name=='Astrocytes activated',]
+
+
+#https://stackoverflow.com/questions/9563711/r-color-palettes-for-many-data-classes and ChatGPT
+(table(pt$treatment))
+
+# build-in color palette
+# Glasbey = glasbey.colors(30)
+# swatch(Glasbey)
+
+
+# Create a factor variable with x-axis labels in reverse alphabetical order
+pt$treatment <- factor(pt$treatment, levels = rev(unique(pt$treatment)))
+
+ggplot(pt, aes(x = treatment, y = Freq, fill = Cell_name)) +
+  theme_bw(base_size = 15) +
+  geom_col(position = "fill", width = 0.5) +
+  xlab("Condition") +
+  ylab("Proportion") +
+  scale_fill_manual(values = as.vector(Glasbey)) +
+  theme(legend.title = element_blank()) +
+  ggtitle("Cell identity in Xinerakis dataset", subtitle = "Annotated by SingleR")
+```
 
 
 ## Investigate astrocytes
