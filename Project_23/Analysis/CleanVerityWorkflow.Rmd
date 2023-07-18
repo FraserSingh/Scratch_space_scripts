@@ -12,11 +12,6 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 
-Adapted from
-[here](https://bioconductor.org/packages/release/bioc/vignettes/DropletUtils/inst/doc/DropletUtils.html#reading-in-10x-genomics-data)
-and
-[here](https://www.singlecellcourse.org/scrna-seq-analysis-with-bioconductor.html).
-
 ```{r}
 if (!require("BiocManager", quietly = TRUE))
     install.packages("BiocManager", lib="/exports/cmvm/eddie/eb/groups/mabbott_grp/Fraser/Project_23/Rpackages")
@@ -56,6 +51,14 @@ library(Polychrome)
 
 #Verity workflow
 
+This workflow loads samples for the control and prion-treated data from Mabbott group's hippocampal prion work. The samples (not including the ageing samples sample9 and 11) are QC assessed, filtered and plotted with clustering by gene expression profiles.
+
+Adapted from
+[here](https://bioconductor.org/packages/release/bioc/vignettes/DropletUtils/inst/doc/DropletUtils.html#reading-in-10x-genomics-data)
+and
+[here](https://www.singlecellcourse.org/scrna-seq-analysis-with-bioconductor.html).
+
+
 ```{r}
 #load Nick Verity's data 
 
@@ -84,7 +87,7 @@ for (folder_name in folder_names) {
   current_parse_interpreted <- CreateSeuratObject(current_parse, meta.data = current_metadata, names.delim = "")
   
   #Save the cell names as metadat and set identities to the sample
-  current_parse_interpreted@meta.data$cell_name<-rowname(current_parse_interpreted@meta.data)
+  current_parse_interpreted@meta.data$cell_name<-rownames(current_parse_interpreted@meta.data)
   current_parse_interpreted@meta.data$sample <- factor(rep(folder_name, nrow(current_parse_interpreted@meta.data)))
   
   Idents(current_parse_interpreted) <- current_parse_interpreted@meta.data$sample
@@ -97,13 +100,24 @@ for (folder_name in folder_names) {
 
 
 #merge the samples into one object
-Verity_total_clean <- merge(sample1_obj, y=c(sample2_obj, sample5_obj, sample6_obj, sample9_obj,sample11_obj), add.cell.ids=c("sample1", "sample2", "sample5", "sample6"), project="Verity")
+Verity_total_clean <- merge(sample1_obj, y=c(sample2_obj, sample5_obj, sample6_obj), add.cell.ids=c("sample1", "sample2", "sample5", "sample6"), project="Verity")
 
 #cleaning up memory
 rm("sample1_obj","sample2_obj", "sample5_obj", "sample6_obj", current_metadata, current_parse_interpreted, current_parse)
 ```
 
-## Add treatment annotation
+# Tailor metadata
+
+```{r}
+metadata_to_remove<-c("bc_wells","species","gene_count","tscp_count", "mread_count","bc1_well","bc2_well","bc3_well","bc1_wind","bc2_wind", "bc3_wind")
+
+for (var in metadata_to_remove){
+  Verity_total_clean[[var]]<-NULL
+}
+```
+
+
+##treatment annotation
 
 ```{r}
 sampleLabs<-names(Verity_total_clean@active.ident)
@@ -144,13 +158,13 @@ View(Verity_total_clean@meta.data)
 ##Initial data assessment
 
 ```{r}
-VlnPlot(Verity_total_clean, features=c("nFeature_RNA","nCount_RNA","percent.mt", "percent.rp"), ncol=4, pt.size = 0.01)+ ggtitle("Preliminary Data assessment", subtitle= "Verity, unfiltered")
+VlnPlot(Verity_total_clean, features=c("nFeature_RNA","nCount_RNA","percent.mt", "percent.rp"), ncol=4, pt.size = 0.0)+ ggtitle("Preliminary Data assessment", subtitle= "Verity, unfiltered")
 
 
 # Plot each of these respectively, showing trends in cell health
 
 #show mitochondrial proportion in reads
-FeatureScatter(Verity_total_clean, feature1 = "nCount_RNA", feature2 = "percent.mt")+ggtitle("Verity_UMIs per cell vs.mitochondrial genes detected", subtitle="UMIs per cell vs. % mitochondrial genes detected")
+FeatureScatter(Verity_total_clean, feature1 = "nCount_RNA", feature2 = "percent.mt", pt.size = 0)+ggtitle("Verity_UMIs per cell vs.mitochondrial genes detected", subtitle="UMIs per cell vs. % mitochondrial genes detected")
 
 
 #show ribosomal proportion in reads
@@ -161,7 +175,7 @@ FeatureScatter(Verity_total_clean, feature1 = "nCount_RNA", feature2 = "percent.
 FeatureScatter(Verity_total_clean, feature1 = "percent.rp", feature2 = "percent.mt")+ggplot2::ggtitle("Verity_ribosomal_protein_genes_detected_vsmitochondrial_genes_detected",subtitle="% ribosomal protein  genes detected vs. % mitochondrial genes detected")
 
 #Show overall reads and gene counts for unfiltered data.
-FeatureScatter(Verity_total_clean, feature1 = "nCount_RNA", feature2="nFeature_RNA",raster=FALSE, pt.size = 0.05)+ geom_smooth(method="lm")+ ggtitle("Verity_UMIs_per_cell_vs_number_of_genes",subtitle="UMIs per cell vs. number of genes ")
+FeatureScatter(Verity_total_clean, feature1 = "nCount_RNA", feature2="nFeature_RNA",raster=F, pt.size = 0.5)+ geom_smooth(method="lm")+ ggtitle("Verity_UMIs_per_cell_vs_number_of_genes",subtitle="UMIs per cell vs. number of genes ")
 ```
 
 ### Save the whole data
@@ -199,7 +213,6 @@ metadata_test <- subset(Verity_total_clean, subset= nFeature_RNA > 20)@meta.data
 ### Plots
 
 
-
 ```{r}
 # Visualize the number of cell counts per sample with no filtering at all
 metadata_test %>% 
@@ -209,6 +222,17 @@ metadata_test %>%
   	theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
   	theme(plot.title = element_text(hjust=0.5, face="bold")) +
   	ggplot2::ggtitle("Verity_Cell_counts_per_sample", subtitle="Filtered to minimum 20 genes")
+
+#Visualise the cutoff when setting nUMI to 35k, potential loss of biological information
+metadata_test %>%
+    filter(nUMI > 500, nGene >1100, nUMI <50000, percent.mt <20) %>%
+  	ggplot(aes(color=sample, x=nUMI, fill= sample)) + 
+  	geom_density(alpha = 0.2) + 
+  	scale_x_log10() + 
+  	theme_classic() +
+  	ylab("Cell density") +
+  	geom_vline(xintercept = 500)+
+    ggplot2::ggtitle("Verity/UMI_transcripts_per_cell", subtitle="Filtered to maximum of 50000 UMIs")
 
 #This shows over 300k cells for some samples, indicating that minimum metrics must be set to remove junk.
 
@@ -220,7 +244,7 @@ metadata_test %>%
   	theme_classic() +
   	ylab("Cell density") +
   	geom_vline(xintercept = 500)+
-    ggplot2::ggtitle("Verity_UMI_transcripts_per_cell", subtitle="Filtered to minimum 20 genes")
+    ggplot2::ggtitle("Verity/UMI_transcripts_per_cell", subtitle="Filtered to minimum 20 genes")
 
 
 # Visualize the distribution of genes detected per cell via histogram
@@ -269,7 +293,7 @@ metadata_test %>%
 
 ```{r}
 metadata_filtered<- metadata_test %>%
-    filter(nUMI > 500, nGene >1100, nGene <3500, percent.mt <20) #Check  upper filter of 3500?
+    filter(nUMI > 500, nGene >1100, nUMI <35000, percent.mt <20) 
 ```
 
 ##Repeat QC plotting
@@ -342,13 +366,13 @@ metadata_filtered %>%
 
 ```{r}
 #Assign the unfiltered metadata to Verity, updating the column names
-Verity_total@meta.data<-metadata_test 
+Verity_total_clean@meta.data<-metadata_test 
 
-Verity_filtered_clean<- subset(Verity_total,subset= 
+Verity_filtered_clean<- subset(Verity_total_clean,subset= 
                               percent.mt <20 &
                               nUMI > 500 &
-                              nGene >1100 &
-                              nGene < 3500  #FIXME
+                              nUMI < 35000 &
+                              nGene >1100
                             )
 
 
@@ -371,7 +395,8 @@ filtered_counts <- counts[keep_genes, ]
 # Reassign to filtered Seurat object
 Verity_filtered_clean <- CreateSeuratObject(filtered_counts, meta.data = Verity_filtered_clean@meta.data)
 
-rm(metadata_test, metadata_filtered,filtered_counts, nonzero,counts, keep_genes)
+rm(metadata_test, metadata_filtered,filtered_counts, nonzero,counts, keep_genes,folder_name,folder_names,folder_path,metadata_to_remove,var)
+gc()
 ```
 
 
@@ -429,7 +454,7 @@ Verity_list_clean <- lapply(Verity_list_clean, function(sample) {
   # Homotypic doublet proportion estimate
   annotations <- sample@meta.data$seurat_clusters
   homotypic.prop <- modelHomotypic(annotations) 
-  nExp.poi <- round(0.087 * nrow(sample@meta.data)) #expected doublets based on 10X platform values
+  nExp.poi <- round(0.03 * nrow(sample@meta.data)) #expected doublets based on values from PMC7424855
   nExp.poi.adj <- round(nExp.poi * (1 - homotypic.prop))
   
   # Run DoubletFinder
@@ -441,7 +466,6 @@ Verity_list_clean <- lapply(Verity_list_clean, function(sample) {
                              pN=0.25)
   
   return(sample)
-  
 })
 ```
 
@@ -455,6 +479,9 @@ Verity_list_clean <- lapply(Verity_list_clean, function(sample) {
   sample@meta.data[doublet_col_index]<-NULL
   return(sample)
 })
+
+VlnPlot(Verity_list_clean, features=c(which(grepl("DF.classifications_", colnames(Verity_list_clean@meta.data)))), ncol=4, pt.size = 0.0)+ ggtitle("Doublet rates by sample", subtitle= "Verity, unfiltered")
+
 
 #subset data by singlet status
 Verity_list_clean.singlets <- lapply(Verity_list_clean, function(sample) {
@@ -473,7 +500,7 @@ Ver_singlets_merged_clean <- Merge_Seurat_List(list_seurat = Verity_list_clean.s
 save(Ver_singlets_merged_clean, file="Rdata/Ver_singlets_merged_clean.RData")
 
 
-rm(Verity_list_clean.singlets)
+rm(Verity_list_clean.singlets);gc()
 ```
 
 
@@ -493,6 +520,8 @@ table(Ver_ME7_NBH_clean[[2]]$treatment)
 ```
 
 # Dimensionality Reduction 
+
+see line 664 in VerityWorkflow and check plotting by treatment to see overlap between treatment levels.
 
 This was integraion before, no longer?
 Read https://github.com/hbctraining/scRNA-seq_online/blob/master/lessons/06_integration.md#to-integrate-or-not-to-integrate to see if it's required.
