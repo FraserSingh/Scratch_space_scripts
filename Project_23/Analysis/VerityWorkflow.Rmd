@@ -356,7 +356,7 @@ dev.off()
 
 ```{r}
 metadata_filtered<- metadata_test %>%
-    filter(nUMI > 500, nGene >1100, percent.mt <20)
+    filter(nUMI > 500, nGene >1100, percent.mt <20) #add upper filter of 3500?
 ```
 
 ## Repeat the QC analysis
