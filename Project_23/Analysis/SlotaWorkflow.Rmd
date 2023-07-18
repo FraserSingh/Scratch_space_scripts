@@ -7,11 +7,9 @@ output:
 date: "2023-05-23"
 ---
 
-
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
-
 
 ## Seurat for Slota
 
@@ -383,8 +381,6 @@ rm(filtered_counts, nonzero,counts, keep_genes)
 save(Slota_raw_obj, file="./Rdata/Slota_filtered.RData")
 ```
 
-
-
 ## Doublet finder for all samples
 
 ```{r}
@@ -474,7 +470,30 @@ rm(Slota.list.singlets)
 save(Slota_singlets_merged, file="Rdata/Slo_singlets_merged.RData")
 ```
 
-## Clustering
+```{r}
+#Add metadata on treatment, adapted from Chat GPT
+Slo_singlets_merged<-Slota_singlets_merged
+rm(Slota_singlets_merged)
+gc()
+
+#Slota
+sampleLabs_Slota<- names(Slo_singlets_merged@active.ident)
+
+treat_detect_Slota <- case_when(
+  str_detect(sampleLabs_Slota, "RML.*HP*") ~ "RML_HP",
+  str_detect(sampleLabs_Slota, "PBS.*HP*") ~ "PBS_HP",
+  str_detect(sampleLabs_Slota, "RML.*CX*") ~ "RML_CX",
+  str_detect(sampleLabs_Slota, "PBS.*CX*") ~ "PBS_CX",
+  TRUE ~ NA_character_
+)
+
+Slo_singlets_merged@meta.data$treatment<-treat_detect_Slota
+Idents(object=Slo_singlets_merged)<-"treatment"
+rm(treat_detect_Slota, sampleLabs_Slota)
+
+```
+
+# Clustering, this is all Slota only work, for crossover with Verity, move to Harmony.Rmd
 
 ```{r}
 
@@ -513,30 +532,6 @@ DimPlot(Slota_singlets_merged, raster=FALSE, group.by = "sample", repel = TRUE)+
 
 save(Slota_singlets_merged, file="Rdata/Slota_clustering.RData")
 ```
-
-```{r}
-#Add metadata on treatment, adapted from Chat GPT
-Slo_singlets_merged<-Slota_singlets_merged
-rm(Slota_singlets_merged)
-gc()
-
-#Slota
-sampleLabs_Slota<- names(Slo_singlets_merged@active.ident)
-
-treat_detect_Slota <- case_when(
-  str_detect(sampleLabs_Slota, "RML.*HP*") ~ "RML_HP",
-  str_detect(sampleLabs_Slota, "PBS.*HP*") ~ "PBS_HP",
-  str_detect(sampleLabs_Slota, "RML.*CX*") ~ "RML_CX",
-  str_detect(sampleLabs_Slota, "PBS.*CX*") ~ "PBS_CX",
-  TRUE ~ NA_character_
-)
-
-Slo_singlets_merged@meta.data$treatment<-treat_detect_Slota
-Idents(object=Slo_singlets_merged)<-"treatment"
-rm(treat_detect_Slota, sampleLabs_Slota)
-
-```
-
 
 ## Pre-treat the data for clustering
 
@@ -592,7 +587,7 @@ Slota.combined <- RunPCA(Slota.combined, npcs = 30, verbose = FALSE)
 ElbowPlot(Slota.combined, ndims=30)+ggtitle("Elbowplot of Integrated Slota data", subtitle = "RunPCA npcs=30, RPCA workflow")
 ```
 
-Elbow plot shows around 25 Pcs again 
+Elbow plot shows around 25 Pcs again
 
 ```{r}
 #20 PCs seem to cover the variability
@@ -623,14 +618,14 @@ p1 <- DimPlot(Slota.combined, reduction = "umap", split.by = "treatment", raster
 p2 <- DimPlot(Slota.combined, reduction = 'umap', raster=F, split.by = 'treatment')+ggtitle("Terminal dataset, split by treatment and labelled by sample")
 
 #This plot would be to label by cell type, not useable as I haven't used singleR yet
-# p3 <- DimPlot(Slota.combined, reduction = "umap", group.by = "seurat_annotations", label = TRUE,repel = TRUE, raster=FALSE)
+p3 <- DimPlot(Slota.combined, reduction = "umap", group.by =  'integrated_snn_res.0.3', label = TRUE,repel = TRUE, raster=FALSE)
 
 
 #show the plots
 p1 + p2 #+p3
 ```
 
-##Preliminary Astrocyte checks
+## Preliminary Astrocyte checks
 
 ```{r}
 DefaultAssay(Slota.combined)<-"RNA"
@@ -642,12 +637,11 @@ filtered_gene_names[grep("^Aldh1lh", filtered_gene_names)]
 
 #try to identify astrocytes  with genes (Aldh1l1, Syp, Csf1r,Tmem119, Map2, Gfap)
 
-astrocyte_genes<-c("Aldh1l1","Gfap","Slc1a2")
+astrocyte_genes<-c("Aldh1l1","Gfap","Slc1a2", "Slc1a3", "Glul", "Cd44")
 
-FeaturePlot(Slota.combined,features=astrocyte_genes, raster=F)+ggtitle("Integrated Verity data, labelled with astrocyte gene markers", subtitle="RPCA,Clustering resolution 0.2, 25 PCs used")
+FeaturePlot(Slota.combined,features="Slc1a3", raster=F)+ggtitle("Integrated Verity data, labelled with astrocyte gene markers", subtitle="RPCA,Clustering resolution 0.2, 25 PCs used")
 #+scale_colour_gradientn(colours = rev(brewer.pal(n = 11, name = "Spectral"))) + ggtitle("ALDH1 for astrocytes")
 ```
-
 
 ## Cell annotation
 
@@ -678,48 +672,48 @@ rm(sce, mouse.fine, mouse.main, mouse.ref)
 
 #Visualise distribution on UMAP
 DimPlot(Slota.combined, label = T , repel = T, label.size = 3, raster=F)+ggtitle("Slota dataset integrated clustering", subtitle="Cell annotation with SingleR")
-```
 
+#Save the object
+save(Slota.combined,file="Rdata/Slota.self_integrated_RPCA_annotated.Rdata")
+```
 
 ## Investigate astrocytes
 
 ```{r}
-
+load("Rdata/Slota.self_integrated_RPCA_annotated.Rdata")
 # Convert cluster names to character
 Idents(Slota.combined) <- as.character(Idents(Slota.combined))
 VlnPlot(Slota.combined, features = "Slc1a2")
 
 #Subset out astrocytes
-Slo_astrocytes<-subset(Slota.combined, idents=c('Astrocytes', 'Astrocytes activated'))
+Slo_astrocytes<-subset(Slota.combined, idents=c('5','12','19','10'))
 
 #Show the data membership acorss cell type in the astrocyte set
 table(Slo_astrocytes$treatment)
-table(Slo_astrocytes$SingleR.labels.fine)
+#table(Slo_astrocytes$SingleR.labels.fine)
 
 #find clustered astrocyte markers, differences in astrocyte populations
 
 DefaultAssay(Slo_astrocytes)<-'RNA'
 
 #make counts whole numbers
-Slo_astrocytes@assays$RNA@counts@x <-round(Slo_astrocytes@assays$RNA@counts@x)
+Slo_astrocytes@assays$RNA@counts <-round(Slo_astrocytes@assays$RNA@counts)
 
 #'solution' from github forums is to add counts to all genes to remove 0 mean https://github.com/satijalab/seurat/issues/1570
-Slo_astrocytes[["RNA"]]@counts<-as.matrix(Slo_astrocytes[["RNA"]]@counts)+1
+#Slo_astrocytes[["RNA"]]@counts<-as.matrix(Slo_astrocytes[["RNA"]]@counts)+1
 
 astrocyte.markers <- FindMarkers(Slo_astrocytes, 
-                                 ident.1 = 'Astrocytes', 
+                                 ident.1 = '5', 
                                  min.pct = 0.25,
                                  verbose = TRUE,
                                  slot='counts',
                                  test.use = 'DESeq2'
                                  )
 head(astrocyte.markers, n = 6)
-save(astrocyte.markers, file="Slota_astrocyte.markers.RData")
+save(astrocyte.markers, file="Slota_astrocyte.markers_Redux.RData")
 ```
 
-
 ## Find DEGs within the astrocyte subclusters
-
 
 ```{r}
 #subset, then cluster? Or add Slota first then do this analysis?
@@ -750,9 +744,9 @@ Slo_astrocytes <- SetIdent(Slo_astrocytes, value = "SingleR.labels.fine")
 DimPlot(Slo_astrocytes, label = TRUE, repel = TRUE, raster=F)+ggtitle("Slota astrocytes",subtitle="Annotated by SingleR")
 ```
 
-### Check for astrocyte subpopulations accoridng to literature 
+### Check for astrocyte subpopulations accoridng to literature
 
-Need to build profiles of astrocytes according to the publish literature. 
+Need to build profiles of astrocytes according to the publish literature.
 
 Can then find markers for the subclusters of interest
 
@@ -764,7 +758,7 @@ DefaultAssay(Slo_astrocytes)<-'RNA'
 #set identities to subclusters
 Idents(Slo_astrocytes) <- as.character(Idents(Slo_astrocytes))
 
-astrocyte_subcluster.markers <- FindMarkers(Slo_astrocytes, ident.1 = 0, min.pct = 0.25, verbose = TRUE, test.use = "DESeq2")
+# astrocyte_subcluster.markers <- FindMarkers(Slo_astrocytes, ident.1 = 0, min.pct = 0.25, verbose = TRUE, test.use = "DESeq2")
 
 #by treatment, show the genes DE in Prion condition. LogFC set to a *1 increase in fold change
 #Compare the RML HP to the PBS HP samples
@@ -773,23 +767,23 @@ Slo_astrocytes@active.ident<-as.factor(Slo_astrocytes$treatment)
 #check grouping of data by treatment
 DimPlot(Slo_astrocytes, label = TRUE, repel = TRUE, raster=F, group.by="treatment")+ggtitle("Slota astrocytes",subtitle="Annotated by treatment")
 
-Slota_astrocyte_prion.markers <- FindMarkers(Slo_astrocytes, ident.1 = 'RML_HP',ident.2 = 'PBS_HP', min.pct = 0.15, verbose = TRUE, test.use = "DESeq2", logfc.threshold = 0.50)
+Slota_astrocyte_prion.markers <- FindMarkers(Slo_astrocytes, ident.1 = 'RML_HP',ident.2 = 'PBS_HP', min.pct = 0.10, verbose = TRUE, test.use = "DESeq2", logfc.threshold = 0.25)
 
 #Sort the list in descending log2FC and ascending pvalues
 Slota_astrocyte_prion.markers<-Slota_astrocyte_prion.markers[order(-Slota_astrocyte_prion.markers$avg_log2FC, Slota_astrocyte_prion.markers$p_val), ]
 #Save the file
-write.csv(Slota_astrocyte_prion.markers, file = "Slota_astrocyte_prion.markers.csv")
+write.csv(Slota_astrocyte_prion.markers, file = "Slota_astrocyte_prion.markers_Redux.csv")
 
-save(Slota_astrocyte_prion.markers, file="Slota_astrocyte_prion.markers.RData")
+save(Slota_astrocyte_prion.markers, file="Slota_astrocyte_prion.markers_Redux.RData")
 
 # Do the same for the infected Cortex samples and their control
-Slota_astrocyte_prion.markers_CX <- FindMarkers(Slo_astrocytes, ident.1 = 'RML_CX',ident.2 = 'PBS_CX', min.pct = 0.15, verbose = TRUE, test.use = "DESeq2", logfc.threshold = 0.50)
+Slota_astrocyte_prion.markers_CX <- FindMarkers(Slo_astrocytes, ident.1 = 'RML_CX',ident.2 = 'PBS_CX', min.pct = 0.10, verbose = TRUE, test.use = "DESeq2", logfc.threshold = 0.25)
 
 #Sort the list in descending log2FC and ascending pvalues
 Slota_astrocyte_prion.markers_CX<-Slota_astrocyte_prion.markers_CX[order(-Slota_astrocyte_prion.markers_CX$avg_log2FC, Slota_astrocyte_prion.markers_CX$p_val), ]
 #Save the file
-write.csv(Slota_astrocyte_prion.markers_CX, file = "Slota_astrocyte_prion.markers_CX.csv")
+write.csv(Slota_astrocyte_prion.markers_CX, file = "Slota_astrocyte_prion.markers_CX_Redux.csv")
 
-save(Slota_astrocyte_prion.markers_CX, file="Slota_astrocyte_prion.markers_CX.RData")
+save(Slota_astrocyte_prion.markers_CX, file="Slota_astrocyte_prion.markers_CX_Redux.RData")
 
 ```

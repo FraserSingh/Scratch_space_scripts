@@ -887,16 +887,16 @@ DefaultAssay(Ver_astrocytes)<-'RNA'
 #set identities to subclusters
 Idents(Ver_astrocytes) <- as.character(Idents(Ver_astrocytes))
 
-astrocyte_subcluster.markers <- FindMarkers(Ver_astrocytes, ident.1 = 0, min.pct = 0.25, verbose = TRUE, test.use = "DESeq2")
+# astrocyte_subcluster.markers <- FindMarkers(Ver_astrocytes, ident.1 = 0, min.pct = 0.25, verbose = TRUE, test.use = "DESeq2",logfc.threshold = 0.25)
 
 #by treatment, show the genes DE in Prion condition. LogFC set to a *1 increase in fold change
 Ver_astrocytes@active.ident<-as.factor(Ver_astrocytes$treatment)
-Verity_astrocyte_prion.markers_defaults <- FindMarkers(Ver_astrocytes, ident.1 = 'ME7', min.pct = 0.10, verbose = TRUE, test.use = "DESeq2")
+Verity_astrocyte_prion.markers_defaults <- FindMarkers(Ver_astrocytes, ident.1 = 'ME7', min.pct = 0.10, verbose = TRUE, test.use = "DESeq2",logfc.threshold = 0.25)
 
 #Sort the list in descending log2FC and ascending pvalues
-Verity_astrocyte_prion.markers<-Verity_astrocyte_prion.markers[order(-Verity_astrocyte_prion.markers$avg_log2FC, Verity_astrocyte_prion.markers$p_val), ]
+Verity_astrocyte_prion.markers_defaults<-Verity_astrocyte_prion.markers_defaults[order(-Verity_astrocyte_prion.markers_defaults$avg_log2FC, Verity_astrocyte_prion.markers_defaults$p_val), ]
 #Save the file
-write.csv(Verity_astrocyte_prion.markers, file = "Verity_astrocyte_prion.markers.csv")
+write.csv(Verity_astrocyte_prion.markers_defaults, file = "Verity_astrocyte_prion.markers_defaults_Redux.csv")
 
-save(Verity_astrocyte_prion.markers, file="Verity_astrocyte_prion.markers.RData")
+save(Verity_astrocyte_prion.markers_defaults, file="Verity_astrocyte_prion.markers_defaults_Redux.RData")
 ```
