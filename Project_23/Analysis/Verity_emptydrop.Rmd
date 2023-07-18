@@ -1,0 +1,29 @@
+```{r}
+out<-emptyDrops(Verity_total@assays$RNA@counts,niters= 17500,BPPARAM=MulticoreParam())
+is.cell <- out$FDR <= 0.001
+sum(is.cell, na.rm=TRUE)
+table(Sig=is.cell, Limited=out$Limited)
+
+#Make new matrix files
+Verity_total_cells <- Verity_total@assays$RNA@counts[,which(is.cell),drop=FALSE]
+Verity_total_drops<- Verity_total@assays$RNA@counts[,which(is.cell),drop=TRUE]
+
+
+
+
+
+metadata_test<-current_obj@meta.data
+#Saving cell barcodes as metainfo
+metadata_test$cells<-rownames(metadata_test)
+metadata_test <- metadata_test %>%
+dplyr::rename(nUMI = nCount_RNA,
+nGene = nFeature_RNA)
+metadata_test %>%
+ggplot(aes( x=nGene, fill= nGene)) +
+geom_density(alpha = 0.2) +
+theme_classic() +
+scale_x_log10() +
+geom_vline(xintercept = 300)+
+ggplot2::ggtitle("Distribution of genes per cell", subtitle="Ximerakis, filtered to minimum 20 genes")
+```
+
