@@ -1,0 +1,102 @@
+---
+title: "Clean Verity workflow"
+output: html_document
+date: "2023-07-18"
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+Adapted from
+[here](https://bioconductor.org/packages/release/bioc/vignettes/DropletUtils/inst/doc/DropletUtils.html#reading-in-10x-genomics-data)
+and
+[here](https://www.singlecellcourse.org/scrna-seq-analysis-with-bioconductor.html).
+
+```{r}
+if (!require("BiocManager", quietly = TRUE))
+    install.packages("BiocManager", lib="/exports/cmvm/eddie/eb/groups/mabbott_grp/Fraser/Project_23/Rpackages")
+
+BiocManager::install("DropletUtils", lib="/exports/cmvm/eddie/eb/groups/mabbott_grp/Fraser/Project_23/Rpackages")
+BiocManager::install("Seurat", lib="/exports/cmvm/eddie/eb/groups/mabbott_grp/Fraser/Project_23/Rpackages")
+
+remotes::install_github('chris-mcginnis-ucsf/DoubletFinder', lib="/exports/cmvm/eddie/eb/groups/mabbott_grp/Fraser/Project_23/Rpackages")
+
+if (!require("SoupX", quietly = TRUE))
+    install.packages("SoupX", lib="/exports/cmvm/eddie/eb/groups/mabbott_grp/Fraser/Project_23/Rpackages")
+
+if (!require("scCustomize", quietly = TRUE))
+    install.packages("scCustomize", lib="/exports/cmvm/eddie/eb/groups/mabbott_grp/Fraser/Project_23/Rpackages")
+
+BiocManager::install("glmGamPoi", lib="/exports/cmvm/eddie/eb/groups/mabbott_grp/Fraser/Project_23/Rpackages")
+
+if (!require("DESeq2", quietly = TRUE))
+    install.packages("DESeq2", lib="/exports/cmvm/eddie/eb/groups/mabbott_grp/Fraser/Project_23/Rpackages")
+
+install.packages("Polychrome")
+```
+
+```{r}
+library(DropletUtils)
+library(Seurat)
+library(tidyverse)
+library(dplyr)
+library(stringr)
+library(knitr)
+library(DoubletFinder)
+library(SoupX)
+library(scCustomize)
+library(DESeq2)
+library(Polychrome)
+```
+
+
+```{r}
+#load Nick Verity's data 
+
+#Comment out the samples which aren't needed for the comparison of interest
+
+# List of folder names
+folder_names <- c(
+  "sample1", "sample2",
+  "sample5", "sample6"
+  )
+
+# Loop through each folder
+for (folder_name in folder_names) {
+  folder_path=paste0("/home/s2268606/University_Directories/Project_23/Group_data/",folder_name, "/DGE_unfiltered")
+  
+  #Load the matrix file
+  current_parse <- ReadParseBio(folder_path)
+  
+  #see if there are any empty gene names
+  table(rownames(current_parse) == "") 
+  
+  #Load the metadata
+  current_metadata<-read.csv(paste0(folder_path,"/cell_metadata.csv"))
+
+  #Create a seurat object
+  current_parse_interpreted <- CreateSeuratObject(current_parse, meta.data = current_metadata, names.delim = "")
+  
+  #set identities to the sample, may be overwritten later
+  current_parse_interpreted@meta.data$sample <- factor(rep(folder_name, nrow(current_parse_interpreted@meta.data)))
+  
+  Idents(current_parse_interpreted) <- current_parse_interpreted@meta.data$sample
+
+
+  # Assign the object to a variable with the folder name as the variable name
+  assign((paste0(folder_name, "_obj")),current_parse_interpreted)
+
+}
+
+
+#merge the samples into one object
+Verity_total <- merge(sample1_obj, y=c(sample2_obj, sample5_obj, sample6_obj, sample9_obj,sample11_obj), add.cell.ids=c("sample1", "sample2", "sample5", "sample6"), project="Verity")
+
+#cleaning up memory
+rm("sample1_obj","sample2_obj", "sample5_obj", "sample6_obj", current_metadata, current_parse_interpreted, current_parse)
+```
