@@ -480,48 +480,184 @@ Verity_list_clean <- lapply(Verity_list_clean, function(sample) {
   return(sample)
 })
 
-VlnPlot(Verity_list_clean, features=c(which(grepl("DF.classifications_", colnames(Verity_list_clean@meta.data)))), ncol=4, pt.size = 0.0)+ ggtitle("Doublet rates by sample", subtitle= "Verity, unfiltered")
-
-
-#subset data by singlet status
-Verity_list_clean.singlets <- lapply(Verity_list_clean, function(sample) {
-  sample<- subset(sample, subset= doublet_finder == 'Singlet')
-  return(sample)
-  })
 
 ```
 
 ###Merge and save the object
 
 ```{r}
-#merge the data back together
-Ver_singlets_merged_clean <- Merge_Seurat_List(list_seurat = Verity_list_clean.singlets)
+Ver_merged_clean <- Merge_Seurat_List(list_seurat = Verity_list_clean)
 
-save(Ver_singlets_merged_clean, file="Rdata/Ver_singlets_merged_clean.RData")
+DefaultAssay(Ver_merged_clean)<-'RNA'
 
+#FIXME show how many doublets there were
+VlnPlot(Ver_merged_clean, features = "nFeature_RNA", group.by = 'doublet_finder', pt.size = 0.1)
 
-rm(Verity_list_clean.singlets);gc()
+save(Ver_merged_clean, file="Rdata/Ver_merged_clean.RData")
+
+#subset data by singlet status and save list of singlets to continue with
+Ver_singlets_merged_clean <- subset(Ver_merged_clean, subset= doublet_finder=='Singlet')
+
+gc()
 ```
 
 
 ```{r}
-#Set identities as treatment
-Idents(object=Ver_singlets_merged_clean)<-"treatment"
-
-# split the dataset into a list of two seurat objects (ME7, NBH)
-Ver_list_clean<-SplitObject(Ver_singlets_merged_clean, split.by = "treatment")
-rm(Ver_singlets_merged_clean)
-gc()
-
-#set up comparison from control and prion
-Ver_ME7_NBH_clean<-list(Ver_list_clean$NBH, Ver_list_clean$ME7)
-table(Ver_ME7_NBH_clean[[1]]$treatment)
-table(Ver_ME7_NBH_clean[[2]]$treatment)
+# #Set identities as treatment
+# Idents(object=Ver_singlets_merged_clean)<-"treatment"
+# 
+# # split the dataset into a list of two seurat objects (ME7, NBH)
+# Ver_list_clean<-SplitObject(Ver_singlets_merged_clean, split.by = "treatment")
+# rm(Ver_singlets_merged_clean)
+# gc()
+# 
+# #set up comparison from control and prion
+# Ver_ME7_NBH_clean<-list(Ver_list_clean$NBH, Ver_list_clean$ME7)
+# table(Ver_ME7_NBH_clean[[1]]$treatment)
+# table(Ver_ME7_NBH_clean[[2]]$treatment)
 ```
 
 # Dimensionality Reduction 
 
-see line 664 in VerityWorkflow and check plotting by treatment to see overlap between treatment levels.
+Is integration of our data justified on the basis of treatment? Showing where our data lies in the featurespace of genes to assess overlap of treatments
 
-This was integraion before, no longer?
-Read https://github.com/hbctraining/scRNA-seq_online/blob/master/lessons/06_integration.md#to-integrate-or-not-to-integrate to see if it's required.
+```{r}
+#https://github.com/hbctraining/scRNA-seq_online/blob/master/lessons/06_SC_SCT_normalization.md
+# Normalize the counts
+Ver_singlets_merged_clean <- NormalizeData(Ver_singlets_merged_clean)
+
+# Identify the most variable genes with defaults
+Ver_singlets_merged_clean <- FindVariableFeatures(Ver_singlets_merged_clean, verbose = T)
+		     
+# Scale the counts
+Ver_singlets_merged_clean <- ScaleData(Ver_singlets_merged_clean)
+
+# Perform PCA
+Ver_singlets_merged_clean <- RunPCA(Ver_singlets_merged_clean)
+
+#Inspect the variability accounted for by the PCS
+#It appears that 29 PCs are responsible, so using 30 from now on
+ElbowPlot(Ver_singlets_merged_clean, ndims=30)+ggtitle("Elbowplot of Verity data", subtitle = "NBH and ME7")
+DimHeatmap(Ver_singlets_merged_clean, dims=1:9, cells=500, balanced=T)
+
+
+#Finish dimensinoality reduction steps
+Ver_singlets_merged_clean <- RunUMAP(Ver_singlets_merged_clean, reduction = "pca", dims = 1:30)
+Ver_singlets_merged_clean <- FindNeighbors(Ver_singlets_merged_clean, reduction = "pca", dims = 1:30)
+Ver_singlets_merged_clean <- FindClusters(Ver_singlets_merged_clean, resolution = c(0.2,0.3,0.5,0.7,1))
+
+```
+Plotting by treatment shows that integration is not required.
+
+###Visualise the clustering resolutions for cluster number
+
+```{r}
+DimPlot(Ver_singlets_merged_clean, reduction = "umap", group.by = "treatment", raster=FALSE)+ ggtitle("Verity data, labelled by treatment", subtitle="Clustering resolution 1, 30 PCs used")
+
+#cyclechange resolution number in group.by to see difference in clusters
+DimPlot(Ver_singlets_merged_clean, group.by = 'RNA_snn_res.0.3', reduction = 'umap', label = TRUE, repel = TRUE, raster=F)+ggtitle("Integrated Verity data, labelled by cluster numbers", subtitle="RPCA,Clustering resolution 0.3, 20 PCs used")
+
+#adapted from https://github.com/hbctraining/scRNA-seq_online/blob/master/lessons/08_SC_clustering_quality_control.md#segregation-of-clusters-by-various-sources-of-uninteresting-variation
+# Determine metrics to plot present in Ver_singlets_merged_clean@meta.data
+metrics <-  c("nUMI", "nGene", "mitoRatio")
+
+#Explore any clustering mishaps by lookin for localisation of any of these traits in a given cluster
+FeaturePlot(Ver_singlets_merged_clean, 
+            reduction = "umap", 
+            features = metrics,
+            pt.size = 0.4, 
+            order = TRUE,
+            min.cutoff = 'q10',
+            label = TRUE)
+```
+
+```{r}
+#set the idents to 0.3
+Ver_singlets_merged_clean@active.ident<-Ver_singlets_merged_clean@meta.data$RNA_snn_res.0.3
+levels(Ver_singlets_merged_clean)
+
+#Save the object
+save(Ver_singlets_merged_clean,file="Rdata/Ver_singlets_merged_clean.Rdata")
+```
+
+```{r}
+
+DefaultAssay(Ver_singlets_merged_clean)<-"RNA"
+
+#Check for a gene of interest in the data's geneset
+Gene_Names<-Ver_singlets_merged_clean@assays[["RNA"]]@counts@Dimnames[[1]]
+filtered_gene_names<-Gene_Names[!grepl("^\\d", Gene_Names)]
+filtered_gene_names[grep("^Slc1a2", filtered_gene_names)]
+
+#try to identify astrocytes  with genes
+astrocyte_genes<-c("Aldh1l1","Gfap","Slc1a2", "Slc1a3", "Glul", "Cd44")
+
+FeaturePlot(Ver_singlets_merged_clean,features=astrocyte_genes, raster=F)#+ggtitle("Verity data, labelled with astrocyte gene markers from ABCAM", subtitle="Clustering resolution 0.3, 20 PCs used")
+
+#FIXME
+# VlnPlot(Ver_singlets_merged_clean, features = "Gfap")
+```
+The astrocyte markers show that clusters 3 and 26 expressed the astrocyte markers the strongest in our clusters or most definitively anyway)
+
+##(SingleR annotation)
+
+Could go here, could be followed by bubbleplot https://rdrr.io/github/milescsmith/seuratBubblePlot/man/bubbleplot.html
+
+Alternatively, load information from the spreadsheet at Analysis/ABCAM_markers.xlsx then bubble plot 
+
+#Investigate astrocytes, ensure identification
+
+```{r}
+# Convert cluster names to character
+Idents(Ver_singlets_merged_clean) <- Ver_singlets_merged_clean$RNA_snn_res.0.3
+
+#Subset out astrocytes
+Ver_astrocytes<-subset(Ver_singlets_merged_clean, idents=c('3', '26'))
+
+```
+
+#DEG work
+
+```{r}
+#subset, then cluster? Or add Slota first then do this analysis?
+DefaultAssay(Ver_astrocytes)<-"RNA"
+
+# Run the standard workflow for visualization and clustering
+Ver_astrocytes <- ScaleData(Ver_astrocytes, verbose = FALSE)
+Ver_astrocytes <- RunPCA(Ver_astrocytes, npcs = 30, verbose = FALSE)
+ElbowPlot(Ver_astrocytes, ndims=30)+ggtitle("Elbowplot of subset Verity astrocytes", subtitle = "RunPCA npcs=30")
+
+#15 PCs sems ok, so use 20 from now
+
+#20 PCs seem to cover the variability
+Ver_astrocytes <- RunUMAP(Ver_astrocytes, reduction = "pca", dims = 1:20)
+Ver_astrocytes <- FindNeighbors(Ver_astrocytes, reduction = "pca", dims = 1:20)
+Ver_astrocytes <- FindClusters(Ver_astrocytes, resolution = c(0.2,0.3,0.5,0.7,1))
+
+#cyclechange resolution number in group.by to see difference in clusters
+DimPlot(Ver_astrocytes, reduction = 'umap',  raster=F, group.by='treatment')+ggtitle("Verity data's astrocytes", subtitle="Labelled by treatment")
+
+#Show the clustering of subset astrocytes
+DimPlot(Ver_astrocytes, group.by = 'RNA_snn_res.0.5', reduction = 'umap', label = TRUE, repel = TRUE, raster=F)
+
+#set the idents to 0.5
+Ver_astrocytes@active.ident<-(Ver_astrocytes@meta.data$RNA_snn_res.0.5)
+levels(Ver_astrocytes)
+
+DefaultAssay(Ver_astrocytes)<-'RNA'
+
+#by treatment, show the genes DE in Prion condition. LogFC set to a *1 increase in fold change
+Ver_astrocytes@active.ident<-as.factor(Ver_astrocytes$treatment)
+Verity_astrocyte_prion_markers<-FindMarkers(Ver_astrocytes, ident.1 = 'ME7', ident.2 = 'NBH',min.pct = 0.10, verbose = TRUE, test.use = "DESeq2",logfc.threshold = 0.25)
+
+#Sort the list in descending log2FC and ascending pvalues
+Verity_astrocyte_prion_markers_clean<-Verity_astrocyte_prion_markers_clean[order(-Verity_astrocyte_prion.markers_defaults$avg_log2FC), ]
+#Save the file
+write.csv(Verity_astrocyte_prion_markers_clean, file = "Verity_astrocyte_prion_markers_clean.csv")
+
+save(Verity_astrocyte_prion_markers_clean, file="Verity_astrocyte_prion_markers_clean.RData")
+```
+
+
+#Functino annotation
+See code from Sam in email
