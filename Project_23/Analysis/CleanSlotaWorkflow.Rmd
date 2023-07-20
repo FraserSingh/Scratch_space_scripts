@@ -519,6 +519,8 @@ Slo_singlets_merged_clean <- RunUMAP(Slo_singlets_merged_clean, reduction = "pca
 Slo_singlets_merged_clean <- FindNeighbors(Slo_singlets_merged_clean, reduction = "pca", dims = 1:30)
 Slo_singlets_merged_clean <- FindClusters(Slo_singlets_merged_clean, resolution = c(0.2,0.3,0.5,0.7,1))
 
+#Save the object
+save(Slo_singlets_merged_clean,file="Rdata/Slo_singlets_merged_clean.Rdata")
 ```
 
 
@@ -543,13 +545,15 @@ FeaturePlot(Slo_singlets_merged_clean,
             #min.cutoff = 'q10', #This was a default in the online script, I don't see the beenfit of colouring less of the range of values
             label = TRUE)
 ```
+QC metrics do not skew by cluster, which is good
+
 
 ```{r}
 #set the idents to 0.3
 Slo_singlets_merged_clean@active.ident<-Slo_singlets_merged_clean@meta.data$RNA_snn_res.0.3
 levels(Slo_singlets_merged_clean)
 
-#Save the object
+#Overwrite the saved the object
 save(Slo_singlets_merged_clean,file="Rdata/Slo_singlets_merged_clean.Rdata")
 ```
 
@@ -574,17 +578,18 @@ FeaturePlot(Slo_singlets_merged_clean,features=astrocyte_genes, raster=F)#+ggtit
 DimPlot(Slo_singlets_merged_clean, group.by = 'RNA_snn_res.0.3', reduction = 'umap', label = TRUE, repel = TRUE, raster=F)+ggtitle("Integrated Slota data, labelled by cluster numbers", subtitle="RPCA,Clustering resolution 0.3, 20 PCs used")
 
 #No compare to the plots of astrocyte genes
-VlnPlot(Slo_singlets_merged_clean, features = astrocyte_genes)
+VlnPlot(Slo_singlets_merged_clean, features = astrocyte_genes, group.by = 'RNA_snn_res.0.3', pt.size = 0.0)
 
 #Glul is maybe a good indicator?
 ```
-Treatment overlaps alot, so intergation is not required, however nGene and nUMI are heavy skewed and lowest in clusters including our supposed astrocytes (as will be shown below). The astrocyte markers show that clusters 3 and 26 expressed the astrocyte markers the strongest in our clusters or most definitively anyway)
+Treatment overlaps alot, so intergation is not required. The astrocyte markers show that clusters 6, 14, 20 and 24 expressed the astrocyte markers the strongest in our clusters or most definitively anyway
 
 ##(SingleR annotation)
 
 Could go here, could be followed by bubbleplot https://rdrr.io/github/milescsmith/seuratBubblePlot/man/bubbleplot.html
 
 Alternatively, load information from the spreadsheet at Analysis/ABCAM_markers.xlsx then bubble plot 
+
 
 #Investigate astrocytes, ensure identification
 
@@ -593,56 +598,163 @@ Alternatively, load information from the spreadsheet at Analysis/ABCAM_markers.x
 Idents(Slo_singlets_merged_clean) <- Slo_singlets_merged_clean$RNA_snn_res.0.3
 
 #Subset out astrocytes
-Slo_astrocytes<-subset(Slo_singlets_merged_clean, idents=c('3', '26'))
+Slo_astrocytes<-subset(Slo_singlets_merged_clean, idents=c('6', '24','14','20'))
+
 ```
 
 #DEG work
 
+Prepare the biomart info
+
 ```{r}
+#Adapted from http://girke.bioinformatics.ucr.edu/CSHL_RNAseq/mydoc/mydoc_systemPipeRNAseq_07/
+#Get annotation info
+library("biomaRt")
+m <- useMart("ensembl", dataset="mmusculus_gene_ensembl")
+```
+
+
+##HP
+
+```{r}
+#Named raw before normalisation
+Slo_astrocytes_HP_raw<-subset(Slo_astrocytes, subset=treatment=='PBS_HP' | treatment=='RML_HP')
+
+
 #subset, then cluster? Or add Slota first then do this analysis?
-DefaultAssay(Slo_astrocytes)<-"RNA"
+DefaultAssay(Slo_astrocytes_HP_raw)<-"RNA"
 
 # Run the standard workflow for visualization and clustering
-Slo_astrocytes <- ScaleData(Slo_astrocytes, verbose = FALSE)
-Slo_astrocytes <- RunPCA(Slo_astrocytes, npcs = 30, verbose = FALSE)
-ElbowPlot(Slo_astrocytes, ndims=30)+ggtitle("Elbowplot of subset Slota astrocytes", subtitle = "RunPCA npcs=30")
+Slo_astrocytes_HP <- ScaleData(Slo_astrocytes_HP_raw, verbose = FALSE)
+Slo_astrocytes_HP <- RunPCA(Slo_astrocytes_HP, npcs = 30, verbose = FALSE)
+ElbowPlot(Slo_astrocytes_HP, ndims=30)+ggtitle("Elbowplot of subset Slota astrocytes", subtitle = "RunPCA npcs=30")
 
 #15 PCs sems ok, so use 20 from now
 
 #20 PCs seem to cover the variability
-Slo_astrocytes <- RunUMAP(Slo_astrocytes, reduction = "pca", dims = 1:20)
-Slo_astrocytes <- FindNeighbors(Slo_astrocytes, reduction = "pca", dims = 1:20)
-Slo_astrocytes <- FindClusters(Slo_astrocytes, resolution = c(0.2,0.3,0.5,0.7,1))
+Slo_astrocytes_HP <- RunUMAP(Slo_astrocytes_HP, reduction = "pca", dims = 1:20)
+Slo_astrocytes_HP <- FindNeighbors(Slo_astrocytes_HP, reduction = "pca", dims = 1:20)
+Slo_astrocytes_HP <- FindClusters(Slo_astrocytes_HP, resolution = c(0.2,0.3,0.5,0.7,1))
+
+#save for reloading
+save(Slo_astrocytes_HP, file="Rdata/Slo_astrocytes_HP.Rdata")
 
 #cyclechange resolution number in group.by to see difference in clusters
-DimPlot(Slo_astrocytes, reduction = 'umap',  raster=F, group.by='treatment')+ggtitle("Slota data's astrocytes", subtitle="Labelled by treatment")
+DimPlot(Slo_astrocytes_HP, reduction = 'umap',  raster=F, group.by='treatment')+ggtitle("Slota data's HP astrocytes", subtitle="Labelled by treatment")
 
 #Show the clustering of subset astrocytes
-DimPlot(Slo_astrocytes, group.by = 'RNA_snn_res.0.5', reduction = 'umap', repel = TRUE, raster=F)
+DimPlot(Slo_astrocytes_HP, group.by = 'RNA_snn_res.0.5', reduction = 'umap', repel = TRUE, raster=F)
 
 #Show sample disctribution in clusters of astrocytes
-DimPlot(Slo_astrocytes, group.by = 'sample', reduction = 'umap', repel = TRUE, raster=F)
+DimPlot(Slo_astrocytes_HP, group.by = 'sample', reduction = 'umap', repel = TRUE, raster=F)
 
 #Show astrocyte markers in astrocyte subset
-FeaturePlot(Slo_astrocytes,features=c('Gfap','Cd44'), raster=F)
+FeaturePlot(Slo_astrocytes_HP,features=c('Gfap','Cd44'), raster=F)
 
 #set the idents to 0.5
-Slo_astrocytes@active.ident<-(Slo_astrocytes@meta.data$RNA_snn_res.0.5)
-levels(Slo_astrocytes)
+Slo_astrocytes_HP@active.ident<-(Slo_astrocytes_HP@meta.data$RNA_snn_res.0.5)
+levels(Slo_astrocytes_HP)
 
-DefaultAssay(Slo_astrocytes)<-'RNA'
+DefaultAssay(Slo_astrocytes_HP)<-'RNA'
 
 #by treatment, show the genes DE in Prion condition. LogFC set to a *1 increase in fold change
-Slo_astrocytes@active.ident<-as.factor(Slo_astrocytes$treatment)
-Slota_astrocyte_prion_markers<-FindMarkers(Slo_astrocytes, ident.1 = 'ME7', ident.2 = 'NBH',min.pct = 0.10, verbose = TRUE, test.use = "DESeq2",logfc.threshold = 0.25)
+Slo_astrocytes_HP@active.ident<-as.factor(Slo_astrocytes_HP$treatment)
+Slota_astrocyte_prion_markers_HP<-FindMarkers(Slo_astrocytes_HP, ident.1 = 'RML_HP', ident.2 = 'PBS_HP',min.pct = 0.10, verbose = TRUE, test.use = "MAST")
 
 #Sort the list in descending log2FC and ascending pvalues
-Slota_astrocyte_prion_markers_clean<-Slota_astrocyte_prion_markers[order(-Slota_astrocyte_prion_markers$avg_log2FC), ]
-#Save the file
-write.csv(Slota_astrocyte_prion_markers_clean, file = "Slota_astrocyte_prion_markers_clean.csv")
+Slota_astrocyte_prion_markers_clean_HP<-Slota_astrocyte_prion_markers_HP[order(-Slota_astrocyte_prion_markers_HP$avg_log2FC), ]
 
-save(Slota_astrocyte_prion_markers_clean, file="Slota_astrocyte_prion_markers_clean.RData")
+
+#Use biomart info
+Slota_astrocyte_prion_markers_clean_HP$gene<-rownames(Slota_astrocyte_prion_markers_clean_HP)
+
+gene_ids <- unique(Slota_astrocyte_prion_markers_clean_HP$gene)
+  
+#get relevant info from the mart
+gene_info <- getBM(attributes = c("ensembl_gene_id", "external_gene_name", "description","chromosome_name"), filters = "external_gene_name", values = gene_ids, mart = m)
+  
+#apply the info to the gene list
+  Slota_astrocyte_prion_markers_clean_HP <- merge(Slota_astrocyte_prion_markers_clean_HP, gene_info, by.x = "gene", by.y = "external_gene_name", all.x = TRUE)
+  
+
+#Save the file
+write.csv(Slota_astrocyte_prion_markers_clean_HP, file = "Slota_astrocyte_prion_markers_clean_HP.csv")
+
+save(Slota_astrocyte_prion_markers_clean_HP, file="Rdata/Slota_astrocyte_prion_markers_clean_HP.RData")
+
+table(Slo_astrocytes_HP$treatment)
 ```
+
+## CX
+
+```{r}
+#HP
+Slo_astrocytes_CX_raw<-subset(Slo_astrocytes, subset=treatment=='PBS_CX' | treatment=='RML_CX')
+
+
+#subset, then cluster? Or add Slota first then do this analysis?
+DefaultAssay(Slo_astrocytes_CX_raw)<-"RNA"
+
+# Run the standard workflow for visualization and clustering
+Slo_astrocytes_CX <- ScaleData(Slo_astrocytes_CX_raw, verbose = FALSE)
+Slo_astrocytes_CX <- RunPCA(Slo_astrocytes_CX, npcs = 30, verbose = FALSE)
+ElbowPlot(Slo_astrocytes_CX, ndims=30)+ggtitle("Elbowplot of subset Slota astrocytes", subtitle = "RunPCA npcs=30")
+
+#15 PCs sems ok, so use 20 from now
+
+#20 PCs seem to cover the variability
+Slo_astrocytes_CX <- RunUMAP(Slo_astrocytes_CX, reduction = "pca", dims = 1:20)
+Slo_astrocytes_CX <- FindNeighbors(Slo_astrocytes_CX, reduction = "pca", dims = 1:20)
+Slo_astrocytes_CX <- FindClusters(Slo_astrocytes_CX, resolution = c(0.2,0.3,0.5,0.7,1))
+
+#save for reloading
+save(Slo_astrocytes_CX, file="Rdata/Slo_astrocytes_CX.Rdata")
+
+#cyclechange resolution number in group.by to see difference in clusters
+DimPlot(Slo_astrocytes_CX, reduction = 'umap',  raster=F, group.by='treatment')+ggtitle("Slota data's CX astrocytes", subtitle="Labelled by treatment")
+
+#Show the clustering of subset astrocytes
+DimPlot(Slo_astrocytes_CX, group.by = 'RNA_snn_res.0.5', reduction = 'umap', repel = TRUE, raster=F)
+
+#Show sample disctribution in clusters of astrocytes
+DimPlot(Slo_astrocytes_CX, group.by = 'sample', reduction = 'umap', repel = TRUE, raster=F)
+
+#Show astrocyte markers in astrocyte subset
+FeaturePlot(Slo_astrocytes_CX,features=c('Gfap','Cd44'), raster=F)
+
+#set the idents to 0.5
+Slo_astrocytes_CX@active.ident<-(Slo_astrocytes_CX@meta.data$RNA_snn_res.0.5)
+levels(Slo_astrocytes_CX)
+
+DefaultAssay(Slo_astrocytes_CX)<-'RNA'
+
+#by treatment, show the genes DE in Prion condition. LogFC set to a *1 increase in fold change
+Slo_astrocytes_CX@active.ident<-as.factor(Slo_astrocytes_CX$treatment)
+Slota_astrocyte_prion_markers_CX<-FindMarkers(Slo_astrocytes_CX, ident.1 = 'RML_CX', ident.2 = 'PBS_CX',min.pct = 0.10, verbose = TRUE, test.use = "MAST")
+
+#Sort the list in descending log2FC and ascending pvalues
+Slota_astrocyte_prion_markers_clean_CX<-Slota_astrocyte_prion_markers_CX[order(-Slota_astrocyte_prion_markers_CX$avg_log2FC), ]
+
+#Use biomart info
+Slota_astrocyte_prion_markers_clean_CX$gene<-rownames(Slota_astrocyte_prion_markers_clean_CX)
+
+gene_ids <- unique(Slota_astrocyte_prion_markers_clean_CX$gene)
+  
+#get relevant info from the mart
+gene_info <- getBM(attributes = c("ensembl_gene_id", "external_gene_name", "description","chromosome_name"), filters = "external_gene_name", values = gene_ids, mart = m)
+  
+#apply the info to the gene list
+  Slota_astrocyte_prion_markers_clean_CX <- merge(Slota_astrocyte_prion_markers_clean_CX, gene_info, by.x = "gene", by.y = "external_gene_name", all.x = TRUE)
+
+
+#Save the file
+write.csv(Slota_astrocyte_prion_markers_clean_CX, file = "Slota_astrocyte_prion_markers_clean_CX.csv")
+
+save(Slota_astrocyte_prion_markers_clean_CX, file="Rdata/Slota_astrocyte_prion_markers_clean_CX.RData")
+
+table(Slo_astrocytes_CX_raw$treatment)
+```
+
 
 #Functional annotation 
 
@@ -705,3 +817,46 @@ ggp8
 # ggsave("SlotaDowncnetplot.jpeg", plot = ggp8, dpi = 300, width = 10, height = 10)
 
 ```
+
+##Plotting all astrocytes from this dataset for the presentation
+
+```{r}
+
+#subset, then cluster? Or add Slota first then do this analysis?
+DefaultAssay(Slo_astrocytes)<-"RNA"
+
+# Run the standard workflow for visualization and clustering
+Slo_astrocytes_processed <- ScaleData(Slo_astrocytes, verbose = FALSE)
+Slo_astrocytes_processed <- RunPCA(Slo_astrocytes_processed, npcs = 30, verbose = FALSE)
+ElbowPlot(Slo_astrocytes_processed, ndims=30)+ggtitle("Elbowplot of subset Slota astrocytes", subtitle = "RunPCA npcs=30")
+
+#15 PCs sems ok, so use 20 from now
+
+#20 PCs seem to cover the variability
+Slo_astrocytes_processed <- RunUMAP(Slo_astrocytes_processed, reduction = "pca", dims = 1:20)
+Slo_astrocytes_processed <- FindNeighbors(Slo_astrocytes_processed, reduction = "pca", dims = 1:20)
+Slo_astrocytes_processed <- FindClusters(Slo_astrocytes_processed, resolution = c(0.2,0.3,0.5,0.7,1))
+
+FeaturePlot(Slo_astrocytes_processed,features="Gfap", raster=F)+ggtitle("Terminal data astrocytes", subtitle="Labelled with established astrocyte gene marker Slc1a2")
+
+DimPlot(Slo_astrocytes_processed, 
+        reduction = 'umap',
+        raster=F, 
+        group.by='treatment',
+        cols=c('#00BFC4','#00BFC4','#f8766d','#f8766d'),
+        order=c('RML_CX','RML_HP')
+        )+ggtitle("Terminal data astrocytes", subtitle="Labelled by treatment")
+
+#save for reloading
+save(Slo_astrocytes_processed, file="Rdata/Slo_astrocytes_processed.Rdata")
+
+#For presentation plotting
+DimPlot(Slo_singlets_merged_clean,
+        reduction = "umap",
+        group.by = "treatment",
+        raster=FALSE,
+        cols=c('#00BFC4','#00BFC4','#f8766d','#f8766d'),
+        order=c('PBS_CX','PBS_HP')
+        )+ ggtitle("Terminal data", subtitle="Labelled by treatment. Clustering resolution 1, 30 PCs used")
+```
+

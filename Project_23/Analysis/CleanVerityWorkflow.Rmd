@@ -667,7 +667,7 @@ DefaultAssay(Ver_astrocytes)<-'RNA'
 
 #by treatment, show the genes DE in Prion condition. LogFC set to a *1 increase in fold change
 Ver_astrocytes@active.ident<-as.factor(Ver_astrocytes$treatment)
-Verity_astrocyte_prion_markers<-FindMarkers(Ver_astrocytes, ident.1 = 'ME7', ident.2 = 'NBH',min.pct = 0.10, verbose = TRUE, test.use = "DESeq2",logfc.threshold = 0.25)
+Verity_astrocyte_prion_markers_clean<-FindMarkers(Ver_astrocytes, ident.1 = 'ME7', ident.2 = 'NBH',verbose = TRUE, test.use = "DESeq2")
 ```
 
 
@@ -675,30 +675,30 @@ Verity_astrocyte_prion_markers<-FindMarkers(Ver_astrocytes, ident.1 = 'ME7', ide
 
 ```{r}
 #to be removed
-load("Verity_astrocyte_prion_markers_clean.RData")
+load("Rdata/Verity_astrocyte_prion_markers_clean.RData")
 
-Verity_astrocyte_prion_markers$gene<-rownames(Verity_astrocyte_prion_markers)
+Verity_astrocyte_prion_markers_clean$gene<-rownames(Verity_astrocyte_prion_markers_clean)
 
 #Adapted from http://girke.bioinformatics.ucr.edu/CSHL_RNAseq/mydoc/mydoc_systemPipeRNAseq_07/
 #Get annotation info
 library("biomaRt")
 m <- useMart("ensembl", dataset="mmusculus_gene_ensembl")
 
-gene_ids <- unique(Verity_astrocyte_prion_markers$gene)
+gene_ids <- unique(Verity_astrocyte_prion_markers_clean$gene)
   
 #get relevant info from the mart
 gene_info <- getBM(attributes = c("ensembl_gene_id", "external_gene_name", "description","chromosome_name"), filters = "external_gene_name", values = gene_ids, mart = m)
   
 #apply the info to the gene list
-Verity_astrocyte_prion_markers <- merge(Verity_astrocyte_prion_markers, gene_info, by.x = "gene", by.y = "external_gene_name", all.x = TRUE)
+Verity_astrocyte_prion_markers_clean <- merge(Verity_astrocyte_prion_markers_clean, gene_info, by.x = "gene", by.y = "external_gene_name", all.x = TRUE)
 
 
 #Sort the list in descending log2FC and ascending pvalues
-Verity_astrocyte_prion_markers_clean<-Verity_astrocyte_prion_markers[order(-Verity_astrocyte_prion_markers$avg_log2FC), ]
+Verity_astrocyte_prion_markers_clean<-Verity_astrocyte_prion_markers_clean[order(-Verity_astrocyte_prion_markers_clean$avg_log2FC), ]
 #Save the file
-write.csv(Verity_astrocyte_prion_markers_clean, file = "Verity_astrocyte_prion_markers_clean.csv")
+write.csv(Verity_astrocyte_prion_markers_clean, file= "Verity_astrocyte_prion_markers_clean.csv")
 
-save(Verity_astrocyte_prion_markers_clean, file="Verity_astrocyte_prion_markers_clean.RData")
+save(Verity_astrocyte_prion_markers_clean, file="Rdata/Verity_astrocyte_prion_markers_clean.RData")
 ```
 
 #Functional annotation 
