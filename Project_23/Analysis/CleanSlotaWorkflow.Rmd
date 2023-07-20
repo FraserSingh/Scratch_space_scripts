@@ -599,7 +599,6 @@ Idents(Slo_singlets_merged_clean) <- Slo_singlets_merged_clean$RNA_snn_res.0.3
 
 #Subset out astrocytes
 Slo_astrocytes<-subset(Slo_singlets_merged_clean, idents=c('6', '24','14','20'))
-
 ```
 
 #DEG work
@@ -671,7 +670,7 @@ Slota_astrocyte_prion_markers_clean_HP$gene<-rownames(Slota_astrocyte_prion_mark
 gene_ids <- unique(Slota_astrocyte_prion_markers_clean_HP$gene)
   
 #get relevant info from the mart
-gene_info <- getBM(attributes = c("ensembl_gene_id", "external_gene_name", "description","chromosome_name"), filters = "external_gene_name", values = gene_ids, mart = m)
+gene_info <- getBM(attributes = c("external_gene_name", "description","chromosome_name"), filters = "external_gene_name", values = gene_ids, mart = m)
   
 #apply the info to the gene list
   Slota_astrocyte_prion_markers_clean_HP <- merge(Slota_astrocyte_prion_markers_clean_HP, gene_info, by.x = "gene", by.y = "external_gene_name", all.x = TRUE)
@@ -741,7 +740,7 @@ Slota_astrocyte_prion_markers_clean_CX$gene<-rownames(Slota_astrocyte_prion_mark
 gene_ids <- unique(Slota_astrocyte_prion_markers_clean_CX$gene)
   
 #get relevant info from the mart
-gene_info <- getBM(attributes = c("ensembl_gene_id", "external_gene_name", "description","chromosome_name"), filters = "external_gene_name", values = gene_ids, mart = m)
+gene_info <- getBM(attributes = c("external_gene_name", "description","chromosome_name"), filters = "external_gene_name", values = gene_ids, mart = m)
   
 #apply the info to the gene list
   Slota_astrocyte_prion_markers_clean_CX <- merge(Slota_astrocyte_prion_markers_clean_CX, gene_info, by.x = "gene", by.y = "external_gene_name", all.x = TRUE)

@@ -127,7 +127,7 @@ for (var in metadata_to_remove){
 ```{r}
 sampleLabs<-names(Verity_total_clean@active.ident)
 
-#FIXME change these to be treatment levels of experimental setup
+
 
 #Assigning names to the samples to keep identity
 #From Chat GPT
@@ -586,7 +586,7 @@ levels(Ver_singlets_merged_clean)
 save(Ver_singlets_merged_clean,file="Rdata/Ver_singlets_merged_clean.Rdata")
 ```
 
-#Can go from here to repeat astrocyte and DEG
+#Visualisation of Verity dataset (Can go from here to repeat astrocyte and DEG)
 
 ```{r}
 #load("Rdata/Ver_singlets_merged_clean.Rdata")
@@ -667,16 +667,13 @@ DefaultAssay(Ver_astrocytes)<-'RNA'
 
 #by treatment, show the genes DE in Prion condition. LogFC set to a *1 increase in fold change
 Ver_astrocytes@active.ident<-as.factor(Ver_astrocytes$treatment)
-Verity_astrocyte_prion_markers_clean<-FindMarkers(Ver_astrocytes, ident.1 = 'ME7', ident.2 = 'NBH',verbose = TRUE, test.use = "DESeq2")
+Verity_astrocyte_prion_markers_clean<-FindMarkers(Ver_astrocytes, ident.1 = 'ME7', ident.2 = 'NBH',verbose = TRUE, test.use = "MAST")
 ```
 
 
 #DEG file generation
 
 ```{r}
-#to be removed
-load("Rdata/Verity_astrocyte_prion_markers_clean.RData")
-
 Verity_astrocyte_prion_markers_clean$gene<-rownames(Verity_astrocyte_prion_markers_clean)
 
 #Adapted from http://girke.bioinformatics.ucr.edu/CSHL_RNAseq/mydoc/mydoc_systemPipeRNAseq_07/
@@ -687,7 +684,11 @@ m <- useMart("ensembl", dataset="mmusculus_gene_ensembl")
 gene_ids <- unique(Verity_astrocyte_prion_markers_clean$gene)
   
 #get relevant info from the mart
-gene_info <- getBM(attributes = c("ensembl_gene_id", "external_gene_name", "description","chromosome_name"), filters = "external_gene_name", values = gene_ids, mart = m)
+gene_info <- getBM(attributes = c("external_gene_name", "description","chromosome_name"), filters = "external_gene_name", values = gene_ids, mart = m)
+  
+#FIXME testing GO TERM RETRIEVAL
+gene_info_GO_added <- getBM(attributes = c("external_gene_name", "description","chromosome_name"), filters = "external_gene_name", values = gene_ids, mart = m)
+Verity_astrocyte_prion_markers_Go_terms<-merge(Verity_astrocyte_prion_markers_clean, gene_info_GO_added, by.x = "gene", by.y = "external_gene_name", all.x = TRUE)
   
 #apply the info to the gene list
 Verity_astrocyte_prion_markers_clean <- merge(Verity_astrocyte_prion_markers_clean, gene_info, by.x = "gene", by.y = "external_gene_name", all.x = TRUE)
@@ -704,6 +705,8 @@ save(Verity_astrocyte_prion_markers_clean, file="Rdata/Verity_astrocyte_prion_ma
 #Functional annotation 
 
 ```{r}
+
+#load("Rdata/Verity_astrocyte_prion_markers_clean.RData")
 
 # Upregulated genes
 Verity_astrocyte_prion_markers_clean_UP<-subset(Verity_astrocyte_prion_markers_clean, subset=avg_log2FC>0.25)
