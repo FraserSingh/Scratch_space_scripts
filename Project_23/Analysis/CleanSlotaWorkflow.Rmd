@@ -65,14 +65,24 @@ and
 
 
 ```{r}
-folder_path_slota<-c("/localdisk/home/s2268606/University_Directories/Project_23/External_datasets/Slota_paper")
+# Create list of folder names
+sample_names<- readLines("/home/s2268606/University_Directories/Project_23/External_datasets/Slota_paper/Slota_samples.txt")
+#rename them for Slota folders
 
-#load Slota paper 
 
-#Load counts
-rawtable<-Read10X(paste0(folder_path_slota,"/raw_feature_bc_matrix"))
+# Loop through each folder to process it
+for (folder in sample_names) {
+  folder_path=paste0("/home/s2268606/University_Directories/Project_23/External_datasets/Slota_paper/SCP1962/other/",folder)
+  
+  
+  current_data<-Read10X(data.dir =folder_path)
+  current_obj<-CreateSeuratObject(counts=current_data, project=folder)
+  assign(paste0(folder,"_object"), current_obj)
+  
+}
 
-Slota_raw_obj_clean<-CreateSeuratObject(counts=rawtable, project="Slota")
+Slota_raw_obj_clean<-merge(PBS25HP_object, y=c(PBS48CX_object,PBS48HP_object,PBS60CX_object,PBS61CX_object,PBS73CX_object,RML122CX_object,RML122HP_object,RML132CX_object,RML132HP_object,RML133CX_object,RML133HP_object,RML134CX_object,RML134HP_object,RML138CX_object,RML138HP_object,RML140CX_object,RML140HP_object,RML142CX_object,RML142HP_object,RML145CX_object,RML145HP_object), add.cells.ids=c('PBS48CX','PBS48HP','PBS60CX','PBS61CX','PBS73CX','RML122CX','RML122HP','RML132CX','RML132HP','RML133CX','RML133HP','RML134CX','RML134HP','RML138CX','RML138HP','RML140CX','RML140HP','RML142CX','RML142HP','RML145CX','RML145HP'
+),project="Terminal")
 ```
 
 # Tailor metadata
@@ -82,12 +92,16 @@ Slota_raw_obj_clean<-CreateSeuratObject(counts=rawtable, project="Slota")
 adapted from <https://youtu.be/p49seH2_i8Y?t=312>
 
 ```{r}
+Slota_raw_obj_clean$sample<-Slota_raw_obj_clean$orig.ident
+#Dealing with new merged object 
+Slota_raw_obj_clean@active.ident<-as.factor(Slota_raw_obj_clean$sample)
 
 #Check whether the whole block is needed here
-sampleLabs<-names(Slota_raw_obj_clean@active.ident)
+sampleLabs<-(Slota_raw_obj_clean@active.ident)
 
 #Assigning names to the samples to keep identity
 #From Chat GPT
+#FIXME NEEDED?
 
 sample_detect <- case_when(
   str_detect(sampleLabs, "PBS25HP") ~ "PBS25HP",
@@ -103,6 +117,7 @@ sample_detect <- case_when(
   str_detect(sampleLabs, "RML133CX") ~ "RML133CX",
   str_detect(sampleLabs, "RML133HP") ~ "RML133HP",
   str_detect(sampleLabs, "RML134CX") ~ "RML134CX",
+  str_detect(sampleLabs, "RML134HP") ~ "RML134HP",
   str_detect(sampleLabs, "RML138CX") ~ "RML138CX",
   str_detect(sampleLabs, "RML138HP") ~ "RML138HP",
   str_detect(sampleLabs, "RML140CX") ~ "RML140CX",
@@ -116,7 +131,7 @@ sample_detect <- case_when(
 
 #set the labels we generated
 Slota_raw_obj_clean@meta.data$sample<-sample_detect
-Idents(object=Slota_raw_obj_clean)<-"sample"
+Idents(object=Slota_raw_obj_clean)<-Slota_raw_obj_clean$sample
 rm(sampleLabs, sample_detect)
 
 gc()
@@ -125,7 +140,7 @@ gc()
 
 
 #Slota
-sampleLabs_Slota<- names(Slota_raw_obj_clean@active.ident)
+sampleLabs_Slota<- (Slota_raw_obj_clean@active.ident)
 
 treat_detect_Slota <- case_when(
   str_detect(sampleLabs_Slota, "RML.*HP*") ~ "RML_HP",
@@ -403,7 +418,7 @@ save(Slota_filtered_clean, file="./Rdata/Slota_filtered_clean.RData")
 
 #adapted from https://youtu.be/p49seH2_i8Y , https://github.com/kpatel427/YouTubeTutorials/blob/5b3c795cecafb22f0e992da069eae2efd6b5cb95/singleCell_doublets.R , https://rpubs.com/kenneditodd/doublet_finder_example 
 
-Slota_list_clean <- SplitObject(Slota_filtered_clean, split.by = "sample")
+Slota_list_clean <- SplitObject(Slota_filtered_clean, split.by = "orig.ident")
 
 # Perform doublet detection on each sample using lapply
 Slota_list_clean <- lapply(Slota_list_clean, function(sample) {
