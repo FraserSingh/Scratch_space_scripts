@@ -87,7 +87,8 @@ and
 # List of folder names
 folder_names <- c(
   "sample1", "sample2",
-  "sample5", "sample6"
+  "sample5", "sample6",
+  "sample9", "sample11"
   )
 
 # Loop through each folder
@@ -120,10 +121,10 @@ for (folder_name in folder_names) {
 
 
 #merge the samples into one object
-Verity_total_clean <- merge(sample1_obj, y=c(sample2_obj, sample5_obj, sample6_obj), add.cell.ids=c("sample1", "sample2", "sample5", "sample6"), project="Verity")
+Verity_total_clean <- merge(sample1_obj, y=c(sample2_obj, sample5_obj, sample6_obj), add.cell.ids=c("sample1", "sample2", "sample5", "sample6", "sample9", "sample11"), project="Verity")
 
 #cleaning up memory
-rm("sample1_obj","sample2_obj", "sample5_obj", "sample6_obj", current_metadata, current_parse_interpreted, current_parse)
+rm("sample1_obj","sample2_obj", "sample5_obj", "sample6_obj", "sample9_obj", "sample11_obj",current_metadata, current_parse_interpreted, current_parse)
 ```
 
 # Tailor metadata
@@ -142,7 +143,6 @@ for (var in metadata_to_remove){
 #FIXME for later addition
 ```
 
-# Tailor metadata
 
 ## treatment annotation
 
@@ -158,6 +158,8 @@ treat_detect <- case_when(
   str_detect(sampleLabs, "sample2") ~ "NBH",
   str_detect(sampleLabs, "sample5") ~ "ME7",
   str_detect(sampleLabs, "sample6") ~ "ME7",
+  str_detect(sampleLabs, "sample9") ~ "AGEING",
+  str_detect(sampleLabs, "sample11") ~ "AGEING",
   TRUE ~ NA_character_
 )
 
@@ -509,7 +511,19 @@ save(Verity_filtered_clean, file="./Rdata/Verity_filtered_clean.RData")
 ```
 
 
-# Doublet finder for all samples
+# Splitting the data by treatment
+
+```{r}
+Verity_Prion_comp<-subset(Verity_filtered_clean, subset=treatment=='NBH' | treatment=='ME7')
+Verity_Ageing_comp<-subset(Verity_filtered_clean, subset=treatment=='NBH' | treatment=='AGEING')
+
+Verity_comparisons<-list(Verity_Prion_comp,Verity_Ageing_comp)
+
+rm(Verity_Prion_comp,Verity_Ageing_comp)
+```
+
+
+# Doublet finder for treatment comparisons separately
 
 ```{r}
 
@@ -518,18 +532,16 @@ save(Verity_filtered_clean, file="./Rdata/Verity_filtered_clean.RData")
 
 #adapted from https://youtu.be/p49seH2_i8Y , https://github.com/kpatel427/YouTubeTutorials/blob/5b3c795cecafb22f0e992da069eae2efd6b5cb95/singleCell_doublets.R , https://rpubs.com/kenneditodd/doublet_finder_example 
 
-Verity_list_clean <- SplitObject(Verity_filtered_clean, split.by = "sample")
-
-# Perform doublet detection on each sample using lapply
-Verity_list_clean <- lapply(Verity_list_clean, function(sample) {
-  print(paste0("Sample ",sample@meta.data$sample[1]))
-  # Pre-process seurat object with standard seurat workflow
-  sample <- SCTransform(sample)
-  sample <- RunPCA(sample)
+#DoubletFinder, keep singlets
+Verity_comparisons <- lapply(Verity_comparisons, function(comp_pair) {
+  
+  #Normalise+Scale with SCTransform?
+  comp_pair <- SCTransform(comp_pair)
+  comp_pair <- RunPCA(comp_pair)
   
   # Find significant PCs
-  stdv <- sample[["pca"]]@stdev
-  sum.stdv <- sum(sample[["pca"]]@stdev)
+  stdv <- comp_pair[["pca"]]@stdev
+  sum.stdv <- sum(comp_pair[["pca"]]@stdev)
   percent.stdv <- (stdv / sum.stdv) * 100
   cumulative <- cumsum(percent.stdv)
   co1 <- which(cumulative > 90 & percent.stdv < 5)[1]
@@ -539,12 +551,12 @@ Verity_list_clean <- lapply(Verity_list_clean, function(sample) {
   min.pc <- min(co1, co2)
   
   # Finish pre-processing
-  sample <- RunUMAP(sample, dims = 1:min.pc)
-  sample <- FindNeighbors(object = sample, dims = 1:min.pc)              
-  sample <- FindClusters(object = sample, resolution = 0.1)
+  comp_pair <- RunUMAP(comp_pair, dims = 1:min.pc)
+  comp_pair <- FindNeighbors(object = comp_pair, dims = 1:min.pc)              
+  comp_pair <- FindClusters(object = comp_pair, resolution = 0.1)
   
   # pK identification (no ground-truth)
-  sweep.list <- paramSweep_v3(sample, PCs = 1:min.pc, sct = TRUE)
+  sweep.list <- paramSweep_v3(comp_pair, PCs = 1:min.pc, sct = TRUE)
   sweep.stats <- summarizeSweep(sweep.list)
   bcmvn <- find.pK(sweep.stats)
   
@@ -553,20 +565,20 @@ Verity_list_clean <- lapply(Verity_list_clean, function(sample) {
   optimal.pk <- as.numeric(bcmvn.max$pK)
 
   # Homotypic doublet proportion estimate
-  annotations <- sample@meta.data$seurat_clusters
+  annotations <- comp_pair@meta.data$seurat_clusters
   homotypic.prop <- modelHomotypic(annotations) 
-  nExp.poi <- round(0.03 * nrow(sample@meta.data)) #expected doublets based on values from PMC7424855
+  nExp.poi <- round(0.03 * nrow(comp_pair@meta.data)) #expected doublets based on values from PMC7424855
   nExp.poi.adj <- round(nExp.poi * (1 - homotypic.prop))
   
   # Run DoubletFinder
-  sample <- doubletFinder_v3(seu = sample, 
+  comp_pair <- doubletFinder_v3(seu = comp_pair, 
                              PCs = 1:min.pc, 
                              pK = optimal.pk,
                              nExp = nExp.poi.adj, 
                              sct = TRUE, 
                              pN=0.25)
   
-  return(sample)
+  return(comp_pair)
 })
 ```
 
@@ -574,11 +586,11 @@ Verity_list_clean <- lapply(Verity_list_clean, function(sample) {
 
 ```{r}
 #Rename the columns
-Verity_list_clean <- lapply(Verity_list_clean, function(sample) {
-  doublet_col_index <- which(grepl("DF.classifications_", colnames(sample@meta.data)))
-  sample$doublet_finder <- sample@meta.data[doublet_col_index]
-  sample@meta.data[doublet_col_index]<-NULL
-  return(sample)
+Verity_comparisons <- lapply(Verity_list_clean, function(comp_pair) {
+  doublet_col_index <- which(grepl("DF.classifications_", colnames(comp_pair@meta.data)))
+  comp_pair$doublet_finder <- comp_pair@meta.data[doublet_col_index]
+  comp_pair@meta.data[doublet_col_index]<-NULL
+  return(comp_pair)
 })
 
 
