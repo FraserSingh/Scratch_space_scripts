@@ -11,7 +11,6 @@ editor_options:
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-
 ```{r}
 if (!require("BiocManager", quietly = TRUE))
     install.packages("BiocManager", lib="/exports/cmvm/eddie/eb/groups/mabbott_grp/Fraser/Project_23/Rpackages")
@@ -54,15 +53,63 @@ library(org.Mm.eg.db)
 library(clusterProfiler)
 ```
 
+Make folder for plots
+
+```{r}
+#Specify the plotting folder to be made in the current working directory
+dir_name <- "Terminal_sample_investigation"
+
+# create folder:
+system(paste0("mkdir ", dir_name))
+
+#save folder path for plot saving
+plotting_path<-paste0("./", dir_name,"/")
+
+```
+
 #Slota workflow
 
-This workflow loads samples for the control and prion-treated data from Slota group's hippocampal and cortex prion work. The samples are QC assessed, filtered and plotted with clustering by gene expression profiles.
+This workflow loads samples for the control and prion-treated data from
+Slota group's hippocampal and cortex prion work. The samples are QC
+assessed, filtered and plotted with clustering by gene expression
+profiles.
 
 Adapted from
 [here](https://bioconductor.org/packages/release/bioc/vignettes/DropletUtils/inst/doc/DropletUtils.html#reading-in-10x-genomics-data)
 and
 [here](https://www.singlecellcourse.org/scrna-seq-analysis-with-bioconductor.html).
 
+# Load the data and format files for processing
+
+```{bash}
+# #CHATGPT assisted
+# 
+# #!/bin/bash
+# 
+# # Define the root directory
+# root_dir="/home/s2268606/University_Directories/Project_23/External_datasets/Slota_paper/SCP1962/other"
+# 
+# # Assuming the sample names are in a file called "Slota_samples.txt"
+# sample_names_file="/home/s2268606/University_Directories/Project_23/External_datasets/Slota_paper/Slota_samples.txt"
+# 
+# # Loop through each sample name in the file
+# while IFS= read -r sample
+# do
+#     # Create a directory for the sample if it doesn't exist
+#     mkdir -p "${root_dir}/${sample}"
+# 
+#     # Move the relevant files to the directory
+#     mv "${root_dir}/${sample}"* "${root_dir}/${sample}"
+# 
+#     # Rename the files
+#     mv "${root_dir}/${sample}/${sample}_barcodes.tsv" "${root_dir}/${sample}/barcodes.tsv"
+#     mv "${root_dir}/${sample}/${sample}_features.tsv" "${root_dir}/${sample}/features.tsv"
+#     mv "${root_dir}/${sample}/${sample}_matrix.mtx" "${root_dir}/${sample}/matrix.mtx"
+# done < "$sample_names_file"
+# 
+# cd $root_dir
+# gzip */{barcodes,features,matrix}*
+```
 
 ```{r}
 # Create list of folder names
@@ -77,17 +124,16 @@ for (folder in sample_names) {
   
   current_data<-Read10X(data.dir =folder_path)
   current_obj<-CreateSeuratObject(counts=current_data, project=folder)
-  assign(paste0(folder,"_object"), current_obj)
+  assign(paste0(folder), current_obj)
   
 }
 
-Slota_raw_obj_clean<-merge(PBS25HP_object, y=c(PBS48CX_object,PBS48HP_object,PBS60CX_object,PBS61CX_object,PBS73CX_object,RML122CX_object,RML122HP_object,RML132CX_object,RML132HP_object,RML133CX_object,RML133HP_object,RML134CX_object,RML134HP_object,RML138CX_object,RML138HP_object,RML140CX_object,RML140HP_object,RML142CX_object,RML142HP_object,RML145CX_object,RML145HP_object), add.cells.ids=c('PBS48CX','PBS48HP','PBS60CX','PBS61CX','PBS73CX','RML122CX','RML122HP','RML132CX','RML132HP','RML133CX','RML133HP','RML134CX','RML134HP','RML138CX','RML138HP','RML140CX','RML140HP','RML142CX','RML142HP','RML145CX','RML145HP'
-),project="Terminal")
+Slota_raw_obj_clean<-merge(PBS25HP, y=c(PBS48CX,PBS48HP,PBS60CX,PBS61CX,PBS73CX,RML122CX,RML122HP,RML132CX,RML132HP,RML133CX,RML133HP,RML134CX,RML134HP,RML138CX,RML138HP,RML140CX,RML140HP,RML142CX,RML142HP,RML145CX,RML145HP), add.cells.ids=c('PBS25HP','PBS48CX','PBS48HP','PBS60CX','PBS61CX','PBS73CX','RML122CX','RML122HP','RML132CX','RML132HP','RML133CX','RML133HP','RML134CX','RML134HP','RML138CX','RML138HP','RML140CX','RML140HP','RML142CX','RML142HP','RML145CX','RML145HP'),project="Terminal")
 ```
 
 # Tailor metadata
 
-##treatment annotation
+## Treatment annotation
 
 adapted from <https://youtu.be/p49seH2_i8Y?t=312>
 
@@ -161,6 +207,7 @@ rm(treat_detect_Slota, sampleLabs_Slota)
 #identify mitochondrial and ribosomal protein gene portions, annotations syntax tailored to mouse
 Slota_raw_obj_clean[["percent.mt"]]<- PercentageFeatureSet(Slota_raw_obj_clean, pattern = "^Mt")
 Slota_raw_obj_clean[["percent.rp"]]<- PercentageFeatureSet(Slota_raw_obj_clean, pattern = "^Rp")
+Slota_raw_obj_clean[["percent.hb"]]<-PercentageFeatureSet(Slota_raw_obj_clean, "^Hb[^(p)]")
 
 #Generate genes per umi counts, from https://github.com/hbctraining/scRNA-seq/blob/master/lessons/04_SC_quality_control.md
 Slota_raw_obj_clean[["log10GenesPerUMI"]] <- log10(Slota_raw_obj_clean$nFeature_RNA) / log10(Slota_raw_obj_clean$nCount_RNA)
@@ -171,23 +218,43 @@ Slota_raw_obj_clean[["mitoRatio"]] <- Slota_raw_obj_clean@meta.data$percent.mt /
 ##Initial data assessment
 
 ```{r}
-VlnPlot(Slota_raw_obj_clean, features=c("nFeature_RNA","nCount_RNA","percent.mt", "percent.rp"), ncol=4, pt.size = 0.0)#+ggtitle("Preliminary Data assessment", subtitle= "Slota, unfiltered")
+p1<-VlnPlot(Slota_raw_obj_clean, features=c("nFeature_RNA","nCount_RNA","percent.mt", "percent.rp","percent.hb"), ncol=5, pt.size = 0.0)#+ggtitle("Preliminary Data assessment", subtitle= "Slota, unfiltered")
 
 # Plot each of these respectively, showing trends in cell health
 
 #show mitochondrial proportion in reads
-FeatureScatter(Slota_raw_obj_clean, feature1 = "nCount_RNA", feature2 = "percent.mt", pt.size = 0)+ggtitle("Slota_UMIs per cell vs.mitochondrial genes detected", subtitle="UMIs per cell vs. % mitochondrial genes detected")
+p2<-FeatureScatter(Slota_raw_obj_clean, feature1 = "nCount_RNA", feature2 = "percent.mt", pt.size = 0)+ggtitle("Slota_UMIs per cell vs.mitochondrial genes detected", subtitle="UMIs per cell vs. % mitochondrial genes detected")
 
 
 #show ribosomal proportion in reads
-FeatureScatter(Slota_raw_obj_clean, feature1 = "nCount_RNA", feature2 = "percent.rp")+ggplot2::ggtitle("Slota_UMIs_per_cell_vsribosomal_protein_genes_detected", subtitle = "UMIs per cell vs. % ribosomal protein  genes detected")
+p3<-FeatureScatter(Slota_raw_obj_clean, feature1 = "nCount_RNA", feature2 = "percent.rp")+ggplot2::ggtitle("Slota_UMIs_per_cell_vsribosomal_protein_genes_detected", subtitle = "UMIs per cell vs. % ribosomal protein  genes detected")
 
 
 #Ribosomal vs mitochondrial 
-FeatureScatter(Slota_raw_obj_clean, feature1 = "percent.rp", feature2 = "percent.mt")+ggplot2::ggtitle("Slota_ribosomal_protein_genes_detected_vsmitochondrial_genes_detected",subtitle="% ribosomal protein  genes detected vs. % mitochondrial genes detected")
+p4<-FeatureScatter(Slota_raw_obj_clean, feature1 = "percent.rp", feature2 = "percent.mt")+ggplot2::ggtitle("Slota_ribosomal_protein_genes_detected_vsmitochondrial_genes_detected",subtitle="% ribosomal protein  genes detected vs. % mitochondrial genes detected")
 
 #Show overall reads and gene counts for unfiltered data.
-FeatureScatter(Slota_raw_obj_clean, feature1 = "nCount_RNA", feature2="nFeature_RNA",raster=F, pt.size = 0.5)+ geom_smooth(method="lm")+ ggtitle("Slota_UMIs_per_cell_vs_number_of_genes",subtitle="UMIs per cell vs. number of genes ")
+p5<-FeatureScatter(Slota_raw_obj_clean, feature1 = "nCount_RNA", feature2="nFeature_RNA",raster=F, pt.size = 0.5)+ geom_smooth(method="lm")+ ggtitle("Slota_UMIs_per_cell_vs_number_of_genes",subtitle="UMIs per cell vs. number of genes ")
+
+p1;p2;p3;p4;p5
+
+#Save plots
+png(paste0(plotting_path,"Terminal_EDA.png"), width = 3000,height = 1000)
+p1
+dev.off()
+png(paste0(plotting_path,"Terminal_UMI_MT.png"), width = 1500,height = 1500)
+p2
+dev.off()
+png(paste0(plotting_path,"Terminal_UMI_RP.png"), width = 3000,height = 1000)
+p3
+dev.off()
+png(paste0(plotting_path,"Terminal_EDA.png"), width = 3000,height = 1000)
+p4
+dev.off()
+png(paste0(plotting_path,"Terminal_EDA.png"), width = 3000,height = 1000)
+p5
+dev.off()
+
 ```
 
 Low mitochondrial counts, good overall quality indicating prefilters?
@@ -222,13 +289,11 @@ metadata_test <- metadata_test %>%
                   nGene = nFeature_RNA)
 ```
 
-
 ### Plots
-
 
 ```{r}
 # Visualize the number of cell counts per sample with no filtering at all
-metadata_test %>% 
+p6<-metadata_test %>% 
   	ggplot2::ggplot(aes(x=sample, fill=sample)) + 
   	geom_bar() +
   	theme_classic() +
@@ -238,7 +303,7 @@ metadata_test %>%
 
 
 # Visualize the number UMIs/transcripts per cell
-metadata_test %>% 
+p7<-metadata_test %>% 
   	ggplot(aes(color=sample, x=nUMI, fill= sample)) + 
   	geom_density(alpha = 0.2) + 
   	scale_x_log10() + 
@@ -249,7 +314,7 @@ metadata_test %>%
 
 
 # Visualize the distribution of genes detected per cell via histogram
-metadata_test %>% 
+p8<-metadata_test %>% 
   	ggplot(aes(color=sample, x=nGene, fill= sample)) + 
   	geom_density(alpha = 0.2) + 
   	theme_classic() +
@@ -259,7 +324,7 @@ metadata_test %>%
 
 
 # Visualize the distribution of genes detected per cell via boxplot
-metadata_test %>% 
+p9<-metadata_test %>% 
   	ggplot(aes(x=sample, y=log10(nGene), fill=sample)) + 
   	geom_boxplot() + 
   	theme_classic() +
@@ -268,7 +333,7 @@ metadata_test %>%
   	ggplot2::ggtitle("Slota distribution of genes per cell", subtitle="Filtered to minimum 20 genes")
 
 # Visualize the correlation between genes detected and number of UMIs and determine whether strong presence of cells with low numbers of genes/UMIs
-metadata_test %>% 
+p10<-metadata_test %>% 
   	ggplot(aes(x=nUMI, y=nGene, color=mitoRatio)) + 
   	geom_point() + 
 	scale_colour_gradient(low = "gray90", high = "black") +
@@ -281,13 +346,15 @@ metadata_test %>%
     ggplot2::ggtitle("Slota UMIs vs. genes detected. Highlighting mitochondrial ratio in genes", subtitle = "Filtered to minimum 20 genes")
 
 # Visualize the distribution of mitochondrial gene expression detected per cell
-metadata_test %>% 
+p11<-metadata_test %>% 
   	ggplot(aes(color=sample, x=mitoRatio, fill=sample)) + 
   	geom_density(alpha = 0.2) + 
   	scale_x_log10() + 
   	theme_classic() +
   	geom_vline(xintercept = 0.2)+
     ggplot2::ggtitle("Slota distribution of mitochondrial gene expression per cell", subtitle = "Filtered to minimum 20 genes")
+
+p6;p7;p8;p9;p10;p11
 ```
 
 ## Filtering metadata
@@ -295,13 +362,18 @@ metadata_test %>%
 ```{r}
 metadata_filtered<- metadata_test %>%
     filter(nUMI > 0, nGene >150, nUMI <35000, percent.mt <20) #FIXME check upper limit on nUMI
+
+#running author's filters
+
+metadata_filtered<- metadata_test %>%
+    filter(nGene > 1000 & percent.mt < 20 & percent.rp > 1 & percent.hb < 20, nUMI < 350000) #FIXME check upper limit on nUMI
 ```
 
 ##Repeat QC plotting
 
 ```{r}
 # Visualize the number of cell counts per sample with no filtering at all
-metadata_filtered %>% 
+p12<-metadata_filtered %>% 
   	ggplot2::ggplot(aes(x=sample, fill=sample)) + 
   	geom_bar() +
   	theme_classic() +
@@ -311,7 +383,7 @@ metadata_filtered %>%
 
 
 # Visualize the number UMIs/transcripts per cell
-metadata_filtered %>% 
+p13<-metadata_filtered %>% 
   	ggplot(aes(color=sample, x=nUMI, fill= sample)) + 
   	geom_density(alpha = 0.2) + 
   	scale_x_log10() + 
@@ -322,7 +394,7 @@ metadata_filtered %>%
 
 
 # Visualize the distribution of genes detected per cell via histogram
-metadata_filtered %>% 
+p14<-metadata_filtered %>% 
   	ggplot(aes(color=sample, x=nGene, fill= sample)) + 
   	geom_density(alpha = 0.2) + 
   	theme_classic() +
@@ -332,7 +404,7 @@ metadata_filtered %>%
 
 
 # Visualize the distribution of genes detected per cell via boxplot
-metadata_filtered %>% 
+p15<-metadata_filtered %>% 
   	ggplot(aes(x=sample, y=log10(nGene), fill=sample)) + 
   	geom_boxplot() + 
   	theme_classic() +
@@ -341,7 +413,7 @@ metadata_filtered %>%
   	ggplot2::ggtitle("Slota distribution of genes per cell", subtitle="nGene>150, nUMI>0, % mito< 20")
 
 # Visualize the correlation between genes detected and number of UMIs and determine whether strong presence of cells with low numbers of genes/UMIs
-metadata_filtered %>% 
+p16<-metadata_filtered %>% 
   	ggplot(aes(x=nUMI, y=nGene, color=mitoRatio)) + 
   	geom_point() + 
 	scale_colour_gradient(low = "gray90", high = "black") +
@@ -354,13 +426,15 @@ metadata_filtered %>%
     ggplot2::ggtitle("Slota UMIs vs. genes detected. Highlighting mitochondrial ratio in genes", subtitle="nGene>150, nUMI>0, % mito< 20")
 
 # Visualize the distribution of mitochondrial gene expression detected per cell
-metadata_filtered %>% 
+p17<-metadata_filtered %>% 
   	ggplot(aes(color=sample, x=mitoRatio, fill=sample)) + 
   	geom_density(alpha = 0.2) + 
   	scale_x_log10() + 
   	theme_classic() +
   	geom_vline(xintercept = 0.2)+
     ggplot2::ggtitle("Slota distribution of mitochondrial gene expression per cell", subtitle="nGene>150, nUMI>0, % mito< 20")
+
+p12;p13;p14;p15;p16;p17
 ```
 
 ## Assign filters to data
@@ -374,6 +448,7 @@ Slota_filtered_clean<- subset(Slota_raw_obj_clean,subset=
                               nUMI > 0 &
                               nUMI < 35000 & #FIXME
                               nGene >150
+                              
                             )
 
 
@@ -400,14 +475,12 @@ rm(metadata_test, metadata_filtered,filtered_counts, nonzero,counts, keep_genes)
 gc()
 ```
 
-
 ### Saving object
 
 ```{r}
 # Create .RData object to load at any time
 save(Slota_filtered_clean, file="./Rdata/Slota_filtered_clean.RData")
 ```
-
 
 # Doublet finder for all samples
 
@@ -492,7 +565,7 @@ Slo_merged_clean <- Merge_Seurat_List(list_seurat = Slota_list_clean)
 DefaultAssay(Slo_merged_clean)<-'RNA'
 
 #FIXME show how many doublets there were
-VlnPlot(Slo_merged_clean, features = "nFeature_RNA", group.by = 'doublet_finder', pt.size = 0.0)
+p18<-VlnPlot(Slo_merged_clean, features = "nFeature_RNA", group.by = 'doublet_finder', pt.size = 0.0)
 table(Slo_merged_clean$doublet_finder)
 
 save(Slo_merged_clean, file="Rdata/Slo_merged_clean.RData")
@@ -501,18 +574,22 @@ save(Slo_merged_clean, file="Rdata/Slo_merged_clean.RData")
 Slo_singlets_merged_clean <- subset(Slo_merged_clean, subset= doublet_finder=='Singlet')
 
 gc()
-```
-Quite low nGenes for Doublts, try plotting the doublet info on the UMAP of the whole dataset
 
+p18
+```
+
+Quite low nGenes for Doublts, try plotting the doublet info on the UMAP
+of the whole dataset
 
 ```{r}
 rm(Slota_list_clean,Slota_raw_obj_clean,Slota_filtered_clean)
 ```
 
+# Dimensionality Reduction
 
-# Dimensionality Reduction 
-
-Is integration of our data justified on the basis of treatment? Showing where our data lies in the featurespace of genes to assess overlap of treatments
+Is integration of our data justified on the basis of treatment? Showing
+where our data lies in the featurespace of genes to assess overlap of
+treatments
 
 ```{r}
 #https://github.com/hbctraining/scRNA-seq_online/blob/master/lessons/06_SC_SCT_normalization.md
@@ -543,7 +620,6 @@ Slo_singlets_merged_clean <- FindClusters(Slo_singlets_merged_clean, resolution 
 save(Slo_singlets_merged_clean,file="Rdata/Slo_singlets_merged_clean.Rdata")
 ```
 
-
 ###Visualise the clustering resolutions for cluster number
 
 ```{r}
@@ -565,8 +641,8 @@ FeaturePlot(Slo_singlets_merged_clean,
             #min.cutoff = 'q10', #This was a default in the online script, I don't see the beenfit of colouring less of the range of values
             label = TRUE)
 ```
-QC metrics do not skew by cluster, which is good
 
+QC metrics do not skew by cluster, which is good
 
 ```{r}
 #set the idents to 0.3
@@ -602,14 +678,18 @@ VlnPlot(Slo_singlets_merged_clean, features = astrocyte_genes, group.by = 'RNA_s
 
 #Glul is maybe a good indicator?
 ```
-Treatment overlaps alot, so intergation is not required. The astrocyte markers show that clusters 6, 14, 20 and 24 expressed the astrocyte markers the strongest in our clusters or most definitively anyway
 
-##(SingleR annotation)
+Treatment overlaps alot, so intergation is not required. The astrocyte
+markers show that clusters 6, 14, 20 and 24 expressed the astrocyte
+markers the strongest in our clusters or most definitively anyway
 
-Could go here, could be followed by bubbleplot https://rdrr.io/github/milescsmith/seuratBubblePlot/man/bubbleplot.html
+\##(SingleR annotation)
 
-Alternatively, load information from the spreadsheet at Analysis/ABCAM_markers.xlsx then bubble plot 
+Could go here, could be followed by bubbleplot
+<https://rdrr.io/github/milescsmith/seuratBubblePlot/man/bubbleplot.html>
 
+Alternatively, load information from the spreadsheet at
+Analysis/ABCAM_markers.xlsx then bubble plot
 
 #Investigate astrocytes, ensure identification
 
@@ -631,7 +711,6 @@ Prepare the biomart info
 library("biomaRt")
 m <- useMart("ensembl", dataset="mmusculus_gene_ensembl")
 ```
-
 
 ##HP
 
@@ -774,8 +853,7 @@ save(Slota_astrocyte_prion_markers_clean_CX, file="Rdata/Slota_astrocyte_prion_m
 table(Slo_astrocytes_CX_raw$treatment)
 ```
 
-
-#Functional annotation 
+#Functional annotation
 
 ```{r}
 
@@ -878,4 +956,3 @@ DimPlot(Slo_singlets_merged_clean,
         order=c('PBS_CX','PBS_HP')
         )+ ggtitle("Terminal data", subtitle="Labelled by treatment. Clustering resolution 1, 30 PCs used")
 ```
-
