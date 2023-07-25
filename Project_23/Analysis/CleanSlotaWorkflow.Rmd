@@ -56,7 +56,7 @@ library(clusterProfiler)
 Make folder for plots
 
 ```{r}
-#Specify the plotting folder to be made in the current working directory
+#Specify the plotting folder to be made in the current working directory EDIT THIS ON EACH RUN TO AVOID OVERWRITING PLOTS
 dir_name <- "Terminal_sample_investigation"
 
 # create folder:
@@ -65,6 +65,7 @@ system(paste0("mkdir ", dir_name))
 #save folder path for plot saving
 plotting_path<-paste0("./", dir_name,"/")
 
+rm(dir_name)
 ```
 
 #Slota workflow
@@ -128,7 +129,9 @@ for (folder in sample_names) {
   
 }
 
-Slota_raw_obj_clean<-merge(PBS25HP, y=c(PBS48CX,PBS48HP,PBS60CX,PBS61CX,PBS73CX,RML122CX,RML122HP,RML132CX,RML132HP,RML133CX,RML133HP,RML134CX,RML134HP,RML138CX,RML138HP,RML140CX,RML140HP,RML142CX,RML142HP,RML145CX,RML145HP), add.cells.ids=c('PBS25HP','PBS48CX','PBS48HP','PBS60CX','PBS61CX','PBS73CX','RML122CX','RML122HP','RML132CX','RML132HP','RML133CX','RML133HP','RML134CX','RML134HP','RML138CX','RML138HP','RML140CX','RML140HP','RML142CX','RML142HP','RML145CX','RML145HP'),project="Terminal")
+Slota_raw_obj_clean<-merge(PBS25HP, y=c(PBS48CX,PBS48HP,PBS60CX,PBS61CX,PBS73CX,RML122CX,RML122HP,RML132CX,RML132HP,RML133CX,RML133HP,RML134CX,RML134HP,RML138CX,RML138HP,RML140CX,RML140HP,RML142CX,RML142HP,RML145CX,RML145HP))
+
+rm(current_data,current_obj, folder, sample_names)
 ```
 
 # Tailor metadata
@@ -142,48 +145,7 @@ Slota_raw_obj_clean$sample<-Slota_raw_obj_clean$orig.ident
 #Dealing with new merged object 
 Slota_raw_obj_clean@active.ident<-as.factor(Slota_raw_obj_clean$sample)
 
-#Check whether the whole block is needed here
-sampleLabs<-(Slota_raw_obj_clean@active.ident)
-
-#Assigning names to the samples to keep identity
-#From Chat GPT
-#FIXME NEEDED?
-
-sample_detect <- case_when(
-  str_detect(sampleLabs, "PBS25HP") ~ "PBS25HP",
-  str_detect(sampleLabs, "PBS48CX") ~ "PBS48CX",
-  str_detect(sampleLabs, "PBS48HP") ~ "PBS48HP",
-  str_detect(sampleLabs, "PBS60CX") ~ "PBS60CX",
-  str_detect(sampleLabs, "PBS61CX") ~ "PBS61CX",
-  str_detect(sampleLabs, "PBS73CX") ~ "PBS73CX",
-  str_detect(sampleLabs, "RML122CX") ~ "RML122CX",
-  str_detect(sampleLabs, "RML122HP") ~ "RML122HP",
-  str_detect(sampleLabs, "RML132CX") ~ "RML132CX",
-  str_detect(sampleLabs, "RML132HP") ~ "RML132HP",
-  str_detect(sampleLabs, "RML133CX") ~ "RML133CX",
-  str_detect(sampleLabs, "RML133HP") ~ "RML133HP",
-  str_detect(sampleLabs, "RML134CX") ~ "RML134CX",
-  str_detect(sampleLabs, "RML134HP") ~ "RML134HP",
-  str_detect(sampleLabs, "RML138CX") ~ "RML138CX",
-  str_detect(sampleLabs, "RML138HP") ~ "RML138HP",
-  str_detect(sampleLabs, "RML140CX") ~ "RML140CX",
-  str_detect(sampleLabs, "RML140HP") ~ "RML140HP",
-  str_detect(sampleLabs, "RML142CX") ~ "RML142CX",
-  str_detect(sampleLabs, "RML142HP") ~ "RML142HP",
-  str_detect(sampleLabs, "RML145CX") ~ "RML145CX",
-  str_detect(sampleLabs, "RML145HP") ~ "RML145HP",
-  TRUE ~ NA_character_
-)
-
-#set the labels we generated
-Slota_raw_obj_clean@meta.data$sample<-sample_detect
-Idents(object=Slota_raw_obj_clean)<-Slota_raw_obj_clean$sample
-rm(sampleLabs, sample_detect)
-
-gc()
-
 #Add metadata on treatment, adapted from Chat GPT
-
 
 #Slota
 sampleLabs_Slota<- (Slota_raw_obj_clean@active.ident)
@@ -242,16 +204,16 @@ p1;p2;p3;p4;p5
 png(paste0(plotting_path,"Terminal_EDA.png"), width = 3000,height = 1000)
 p1
 dev.off()
-png(paste0(plotting_path,"Terminal_UMI_MT.png"), width = 1500,height = 1500)
+png(paste0(plotting_path,"Terminal_UMI_MT.png"), width = 1750,height = 1500)
 p2
 dev.off()
-png(paste0(plotting_path,"Terminal_UMI_RP.png"), width = 3000,height = 1000)
+png(paste0(plotting_path,"Terminal_UMI_RP.png"),width = 1750,height = 1500)
 p3
 dev.off()
-png(paste0(plotting_path,"Terminal_EDA.png"), width = 3000,height = 1000)
+png(paste0(plotting_path,"Terminal_RP_MT.png"),  width = 1750,height = 1500)
 p4
 dev.off()
-png(paste0(plotting_path,"Terminal_EDA.png"), width = 3000,height = 1000)
+png(paste0(plotting_path,"Terminal_UMI_nGene.png"), width = 1750,height = 1500)
 p5
 dev.off()
 
@@ -259,11 +221,15 @@ dev.off()
 
 Low mitochondrial counts, good overall quality indicating prefilters?
 
-### Save the whole data
+### Save the whole data and tidy up
 
 ```{r}
 #Save the data object
 save(Slota_raw_obj_clean, file="./Rdata/Slota_raw_obj_clean.RData")
+
+rm(PBS25HP,PBS48CX,PBS48HP,PBS60CX,PBS61CX,PBS73CX,RML122CX,RML122HP,RML132CX,RML132HP,RML133CX,RML133HP,RML134CX,RML134HP,RML138CX,RML138HP,RML140CX,RML140HP,RML142CX,RML142HP,RML145CX,RML145HP)
+
+gc()
 ```
 
 #QC
@@ -355,18 +321,36 @@ p11<-metadata_test %>%
     ggplot2::ggtitle("Slota distribution of mitochondrial gene expression per cell", subtitle = "Filtered to minimum 20 genes")
 
 p6;p7;p8;p9;p10;p11
+
+#Save plots
+png(paste0(plotting_path,"Terminal_PreF_Counts_sample.png"), width = 2000,height = 1500)
+p6
+dev.off()
+png(paste0(plotting_path,"Terminal_PreF_UMI_cell.png"),width = 2000,height = 1500)
+p7
+dev.off()
+png(paste0(plotting_path,"Terminal_PreF_nGene_hist_sample.png"),width = 2000,height = 1500)
+p8
+dev.off()
+png(paste0(plotting_path,"Terminal_PreF_nGene_hist_sample.png"),width = 2000,height = 1500)
+p9
+dev.off()
+png(paste0(plotting_path,"Terminal_PreF_nGene_UMI_sample.png"),width = 2000,height = 1500)
+p10
+dev.off()
+png(paste0(plotting_path,"Terminal_PreF_MT_cell.png"),width = 2000,height = 1500)
+p11
+dev.off()
 ```
 
 ## Filtering metadata
 
 ```{r}
-metadata_filtered<- metadata_test %>%
-    filter(nUMI > 0, nGene >150, nUMI <35000, percent.mt <20) #FIXME check upper limit on nUMI
 
 #running author's filters
 
 metadata_filtered<- metadata_test %>%
-    filter(nGene > 1000 & percent.mt < 20 & percent.rp > 1 & percent.hb < 20, nUMI < 350000) #FIXME check upper limit on nUMI
+    filter(nGene > 1000 & percent.mt < 20 & percent.rp > 1 & percent.hb < 20 & nUMI < 35000) #FIXME check upper limit on nUMI
 ```
 
 ##Repeat QC plotting
@@ -435,6 +419,26 @@ p17<-metadata_filtered %>%
     ggplot2::ggtitle("Slota distribution of mitochondrial gene expression per cell", subtitle="nGene>150, nUMI>0, % mito< 20")
 
 p12;p13;p14;p15;p16;p17
+
+#Save plots
+png(paste0(plotting_path,"Terminal_PostF_Counts_sample.png"), width = 2000,height = 1500)
+p12
+dev.off()
+png(paste0(plotting_path,"Terminal_PostF_UMI_cell.png"),width = 2000,height = 1500)
+p13
+dev.off()
+png(paste0(plotting_path,"Terminal_PostF_nGene_hist_sample.png"),width = 2000,height = 1500)
+p14
+dev.off()
+png(paste0(plotting_path,"Terminal_PostF_nGene_hist_sample.png"),width = 2000,height = 1500)
+p15
+dev.off()
+png(paste0(plotting_path,"Terminal_PostF_nGene_UMI_sample.png"),width = 2000,height = 1500)
+p16
+dev.off()
+png(paste0(plotting_path,"Terminal_PostF_MT_cell.png"),width = 2000,height = 1500)
+p17
+dev.off()
 ```
 
 ## Assign filters to data
@@ -444,11 +448,11 @@ p12;p13;p14;p15;p16;p17
 Slota_raw_obj_clean@meta.data<-metadata_test 
 
 Slota_filtered_clean<- subset(Slota_raw_obj_clean,subset= 
-                              percent.mt <20 &
-                              nUMI > 0 &
-                              nUMI < 35000 & #FIXME
-                              nGene >150
-                              
+                              nGene > 1000 & 
+                              percent.mt < 20 &
+                              percent.rp > 1 &
+                              percent.hb < 20 &
+                              nUMI < 35000
                             )
 
 
@@ -471,7 +475,7 @@ filtered_counts <- counts[keep_genes, ]
 # Reassign to filtered Seurat object
 Slota_filtered_clean <- CreateSeuratObject(filtered_counts, meta.data = Slota_filtered_clean@meta.data)
 
-rm(metadata_test, metadata_filtered,filtered_counts, nonzero,counts, keep_genes)
+rm(metadata_test, metadata_filtered,filtered_counts, nonzero,counts, keep_genes,Slota_raw_obj_clean)
 gc()
 ```
 
@@ -482,6 +486,19 @@ gc()
 save(Slota_filtered_clean, file="./Rdata/Slota_filtered_clean.RData")
 ```
 
+
+# Splitting the data by tissue
+
+```{r}
+Slota_HP<-subset(Slota_filtered_clean, subset=sample=='PBS_HP' | treatment=='RML_HP')
+Slota_CX<-subset(Slota_filtered_clean, subset=sample=='PBS_CX' | treatment=='RML_CX')
+
+Slota_tissues<-list(Slota_HP,Slota_CX)
+```
+
+
+
+
 # Doublet finder for all samples
 
 ```{r}
@@ -491,7 +508,8 @@ save(Slota_filtered_clean, file="./Rdata/Slota_filtered_clean.RData")
 
 #adapted from https://youtu.be/p49seH2_i8Y , https://github.com/kpatel427/YouTubeTutorials/blob/5b3c795cecafb22f0e992da069eae2efd6b5cb95/singleCell_doublets.R , https://rpubs.com/kenneditodd/doublet_finder_example 
 
-Slota_list_clean <- SplitObject(Slota_filtered_clean, split.by = "orig.ident")
+
+Slota_list_clean <- SplitObject(Slota_filtered_clean, split.by = "sample")
 
 # Perform doublet detection on each sample using lapply
 Slota_list_clean <- lapply(Slota_list_clean, function(sample) {
@@ -576,6 +594,12 @@ Slo_singlets_merged_clean <- subset(Slo_merged_clean, subset= doublet_finder=='S
 gc()
 
 p18
+
+#Save plots
+png(paste0(plotting_path,"Terminal_Doublets.png"), width = 2000,height = 1500)
+p18
+dev.off()
+
 ```
 
 Quite low nGenes for Doublts, try plotting the doublet info on the UMAP
@@ -584,6 +608,8 @@ of the whole dataset
 ```{r}
 rm(Slota_list_clean,Slota_raw_obj_clean,Slota_filtered_clean)
 ```
+
+
 
 # Dimensionality Reduction
 
@@ -607,7 +633,7 @@ Slo_singlets_merged_clean <- RunPCA(Slo_singlets_merged_clean)
 
 #Inspect the variability accounted for by the PCS
 #It appears that 23 PCs are responsible, so using 30 from now on
-ElbowPlot(Slo_singlets_merged_clean, ndims=30)+ggtitle("Elbowplot of Slota data", subtitle = "NBH and ME7")
+p19<-ElbowPlot(Slo_singlets_merged_clean, ndims=30)+ggtitle("Elbowplot of Slota data", subtitle = "NBH and ME7")
 DimHeatmap(Slo_singlets_merged_clean, dims=1:9, cells=500, balanced=T)
 
 
@@ -616,8 +642,17 @@ Slo_singlets_merged_clean <- RunUMAP(Slo_singlets_merged_clean, reduction = "pca
 Slo_singlets_merged_clean <- FindNeighbors(Slo_singlets_merged_clean, reduction = "pca", dims = 1:30)
 Slo_singlets_merged_clean <- FindClusters(Slo_singlets_merged_clean, resolution = c(0.2,0.3,0.5,0.7,1))
 
+p19
+
+#Save plots
+png(paste0(plotting_path,"Terminal__.png"), width = 2000,height = 1500)
+p19
+dev.off()
+
+
 #Save the object
 save(Slo_singlets_merged_clean,file="Rdata/Slo_singlets_merged_clean.Rdata")
+
 ```
 
 ###Visualise the clustering resolutions for cluster number
