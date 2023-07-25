@@ -582,7 +582,7 @@ Verity_comparisons <- lapply(Verity_comparisons, function(comp_pair) {
 })
 ```
 
-##Make singlet list
+## Rename doubletfinder metadata and Show Doublets for each comparison group witihn Verity data. Retain singlets
 
 ```{r}
 #Rename the columns
@@ -590,46 +590,91 @@ Verity_comparisons <- lapply(Verity_list_clean, function(comp_pair) {
   doublet_col_index <- which(grepl("DF.classifications_", colnames(comp_pair@meta.data)))
   comp_pair$doublet_finder <- comp_pair@meta.data[doublet_col_index]
   comp_pair@meta.data[doublet_col_index]<-NULL
+
+  DefaultAssay(comp_pair)<-'RNA'
+
+  #Show how many doublets there were
+  table(comp_pair$doublet_finder)
+
+  #Plot how many doublets there were
+  tmp_plot<-VlnPlot(comp_pair, features = "nFeature_RNA", group.by = 'doublet_finder', pt.size = 0.0)+ggtitle(paste0("Verity data", comp_pair))
+  
+  #Should make a custom name and assign it to the relevant comparison's image, then save it under the correct name in the correct folder as above
+  assign(paste0("p18",comp_pair),tmp_plot)
+  png(paste0(plotting_path,comp_pair,"_doublets.png"), width = 2000,height = 1500)
+  paste0("p18",comp_pair)
+  dev.off()
+
   return(comp_pair)
-})
+})  
 
-
-```
-
-###Merge and save the object
-
-```{r}
-Ver_merged_clean <- Merge_Seurat_List(list_seurat = Verity_list_clean)
-
-DefaultAssay(Ver_merged_clean)<-'RNA'
-
-#FIXME show how many doublets there were
-VlnPlot(Ver_merged_clean, features = "nFeature_RNA", group.by = 'doublet_finder', pt.size = 0.1)
-table(Ver_merged_clean$doublet_finder)
-
-save(Ver_merged_clean, file="Rdata/Ver_merged_clean.RData")
+#Save the data with Doublets retained too
+save(Verity_comparisons, file="Rdata/Verity_comparisons.RData")
 
 #subset data by singlet status and save list of singlets to continue with
-Ver_singlets_merged_clean <- subset(Ver_merged_clean, subset= doublet_finder=='Singlet')
+#FIXME might need to be in loop or explicit if subsetting doesn't work
+Verity_comparisons_singlets_clean <- subset(Verity_comparisons, subset= doublet_finder=='Singlet')
 
 gc()
 ```
-Quite low nGenes for Doublts, try plotting the doublet info on the UMAP of the whole dataset
+
+
+## Visualise the clustering resolutions for cluster number
+
+FIXME Make loop
 
 ```{r}
-# #Set identities as treatment
-# Idents(object=Ver_singlets_merged_clean)<-"treatment"
-# 
-# # split the dataset into a list of two seurat objects (ME7, NBH)
-# Ver_list_clean<-SplitObject(Ver_singlets_merged_clean, split.by = "treatment")
-# rm(Ver_singlets_merged_clean)
-# gc()
-# 
-# #set up comparison from control and prion
-# Ver_ME7_NBH_clean<-list(Ver_list_clean$NBH, Ver_list_clean$ME7)
-# table(Ver_ME7_NBH_clean[[1]]$treatment)
-# table(Ver_ME7_NBH_clean[[2]]$treatment)
+# Determine metrics to plot present in Ver_singlets_merged_clean@meta.data
+metrics <-  c("nUMI", "nGene", "mitoRatio")
+
+Verity_comparisons_singlets_clean <- lapply(Verity_comparisons_singlets_clean, function(comp_pair) {
+
+  #FIXME titles
+  DimPlot(comp_pair, reduction = "umap", group.by = "treatment", raster=FALSE)+ ggtitle(paste0(comp_pair,", labelled by treatment"), subtitle="Clustering resolution 1, 30 PCs used")
+
+  #cyclechange resolution number in group.by to see difference in clusters
+  DimPlot(comp_pair, group.by = 'RNA_snn_res.0.3', reduction = 'umap', label = TRUE, repel = TRUE, raster=F)+ggtitle(paste0(comp_pair,", labelled by cluster numbers"), subtitle="RPCA,Clustering resolution 0.3, 20 PCs used")
+
+  #adapted from https://github.com/hbctraining/scRNA-seq_online/blob/master/lessons/08_SC_clustering_quality_control.md#segregation-of-clusters-by-various-sources-of-uninteresting-variation
+
+  #Explore any clustering mishaps by lookin for localisation of any of these traits in a given cluster
+  FeaturePlot(comp_pair, 
+              reduction = "umap", 
+              features = metrics,
+              pt.size = 0.4, 
+              order = TRUE,
+              #min.cutoff = 'q10', #This was a default in the online script, I don't see the benefit of colouring less of the range of values
+              label = TRUE)
+
+
+})  
+
+rm(metrics)
 ```
+
+
+## Save the singlets with a clsuter resolution?
+
+FIXME might not be required
+```{r}
+#set the idents to _____
+Verity_comparisons_singlets_clean@active.ident<-Verity_comparisons_singlets_clean@meta.data$RNA_snn_res.0.3
+levels(Verity_comparisons_singlets_clean)
+
+#Save the object
+save(Verity_comparisons_singlets_clean,file="Rdata/Verity_comparisons_singlets_clean.Rdata")
+```
+
+# Prion comparison
+
+
+
+# Ageing comparison
+
+
+
+# Previous work 
+
 
 # Dimensionality Reduction 
 
@@ -663,48 +708,13 @@ Ver_singlets_merged_clean <- FindClusters(Ver_singlets_merged_clean, resolution 
 ```
 
 
-###Visualise the clustering resolutions for cluster number
 
-```{r}
-DimPlot(Ver_singlets_merged_clean, reduction = "umap", group.by = "treatment", raster=FALSE)+ ggtitle("Verity data, labelled by treatment", subtitle="Clustering resolution 1, 30 PCs used")
-
-#cyclechange resolution number in group.by to see difference in clusters
-DimPlot(Ver_singlets_merged_clean, group.by = 'RNA_snn_res.0.3', reduction = 'umap', label = TRUE, repel = TRUE, raster=F)+ggtitle("Integrated Verity data, labelled by cluster numbers", subtitle="RPCA,Clustering resolution 0.3, 20 PCs used")
-
-#adapted from https://github.com/hbctraining/scRNA-seq_online/blob/master/lessons/08_SC_clustering_quality_control.md#segregation-of-clusters-by-various-sources-of-uninteresting-variation
-# Determine metrics to plot present in Ver_singlets_merged_clean@meta.data
-metrics <-  c("nUMI", "nGene", "mitoRatio")
-
-#Explore any clustering mishaps by lookin for localisation of any of these traits in a given cluster
-FeaturePlot(Ver_singlets_merged_clean, 
-            reduction = "umap", 
-            features = metrics,
-            pt.size = 0.4, 
-            order = TRUE,
-            #min.cutoff = 'q10', #This was a default in the online script, I don't see the beenfit of colouring less of the range of values
-            label = TRUE)
-```
-
-```{r}
-#set the idents to 0.3
-Ver_singlets_merged_clean@active.ident<-Ver_singlets_merged_clean@meta.data$RNA_snn_res.0.3
-levels(Ver_singlets_merged_clean)
-
-#Save the object
-save(Ver_singlets_merged_clean,file="Rdata/Ver_singlets_merged_clean.Rdata")
-```
-
-#Visualisation of Verity dataset (Can go from here to repeat astrocyte and DEG)
+# Visualisation of Verity dataset (Can go from here to repeat astrocyte and DEG)
 
 ```{r}
 #load("Rdata/Ver_singlets_merged_clean.Rdata")
 
 DefaultAssay(Ver_singlets_merged_clean)<-"RNA"
-
-#Check for a gene of interest in the data's geneset
-Gene_Names<-Ver_singlets_merged_clean@assays[["RNA"]]@counts@Dimnames[[1]]
-filtered_gene_names<-Gene_Names[!grepl("^\\d", Gene_Names)]
-filtered_gene_names[grep("^Slc1a2", filtered_gene_names)]
 
 #try to identify astrocytes  with genes
 astrocyte_genes<-c("Aldh1l1","Gfap","Slc1a2", "Slc1a3", "Glul", "Cd44")
