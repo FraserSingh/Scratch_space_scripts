@@ -647,99 +647,57 @@ Verity_comparisons_singlets_clean <- lapply(Verity_comparisons_singlets_clean, f
               label = TRUE)
 
 
+  ## Save the singlets with a cluster resolution?
+  #FIXME might not be required
+` #set the idents to _____
+  comp_pair@active.ident<-comp_pair@meta.data$RNA_snn_res.0.3
+  levels(comp_pair)
+
 })  
 
 rm(metrics)
 ```
 
 
-## Save the singlets with a clsuter resolution?
-
-FIXME might not be required
-```{r}
-#set the idents to _____
-Verity_comparisons_singlets_clean@active.ident<-Verity_comparisons_singlets_clean@meta.data$RNA_snn_res.0.3
-levels(Verity_comparisons_singlets_clean)
-
-#Save the object
-save(Verity_comparisons_singlets_clean,file="Rdata/Verity_comparisons_singlets_clean.Rdata")
-```
-
-# Prion comparison
-
-
-
-# Ageing comparison
-
-
-
-# Previous work 
-
-
-# Dimensionality Reduction 
-
-Is integration of our data justified on the basis of treatment? Showing where our data lies in the featurespace of genes to assess overlap of treatments
-
-```{r}
-#https://github.com/hbctraining/scRNA-seq_online/blob/master/lessons/06_SC_SCT_normalization.md
-# Normalize the counts
-Ver_singlets_merged_clean <- NormalizeData(Ver_singlets_merged_clean)
-
-# Identify the most variable genes with defaults
-Ver_singlets_merged_clean <- FindVariableFeatures(Ver_singlets_merged_clean, verbose = T)
-		     
-# Scale the counts
-Ver_singlets_merged_clean <- ScaleData(Ver_singlets_merged_clean)
-
-# Perform PCA
-Ver_singlets_merged_clean <- RunPCA(Ver_singlets_merged_clean)
-
-#Inspect the variability accounted for by the PCS
-#It appears that 29 PCs are responsible, so using 30 from now on
-ElbowPlot(Ver_singlets_merged_clean, ndims=30)+ggtitle("Elbowplot of Verity data", subtitle = "NBH and ME7")
-DimHeatmap(Ver_singlets_merged_clean, dims=1:9, cells=500, balanced=T)
-
-
-#Finish dimensinoality reduction steps
-Ver_singlets_merged_clean <- RunUMAP(Ver_singlets_merged_clean, reduction = "pca", dims = 1:30)
-Ver_singlets_merged_clean <- FindNeighbors(Ver_singlets_merged_clean, reduction = "pca", dims = 1:30)
-Ver_singlets_merged_clean <- FindClusters(Ver_singlets_merged_clean, resolution = c(0.2,0.3,0.5,0.7,1))
-
-```
-
-
-
 # Visualisation of Verity dataset (Can go from here to repeat astrocyte and DEG)
 
 ```{r}
+
 #load("Rdata/Ver_singlets_merged_clean.Rdata")
 
-DefaultAssay(Ver_singlets_merged_clean)<-"RNA"
-
-#try to identify astrocytes  with genes
 astrocyte_genes<-c("Aldh1l1","Gfap","Slc1a2", "Slc1a3", "Glul", "Cd44")
 
-FeaturePlot(Ver_singlets_merged_clean,features=astrocyte_genes, raster=F)#+ggtitle("Verity data, labelled with astrocyte gene markers from ABCAM", subtitle="Clustering resolution 0.3, 20 PCs used")
+Verity_comparisons_singlets_clean <- lapply(Verity_comparisons_singlets_clean, function(comp_pair) {
 
-#As a reminder...
-DimPlot(Ver_singlets_merged_clean, group.by = 'RNA_snn_res.0.3', reduction = 'umap', label = TRUE, repel = TRUE, raster=F)+ggtitle("Integrated Verity data, labelled by cluster numbers", subtitle="RPCA,Clustering resolution 0.3, 20 PCs used")
+  DefaultAssay(comp_pair)<-"RNA"
 
-#No compare to the plots of astrocyte genes
-VlnPlot(Ver_singlets_merged_clean, features = astrocyte_genes)
+  #try to identify astrocytes  with genes
 
-#Glul is maybe a good indicator?
+  FeaturePlot(comp_pair,features=astrocyte_genes, raster=F)#+ggtitle("Verity data, labelled with astrocyte gene markers from ABCAM", subtitle="Clustering resolution 0.3, 20 PCs used")
+
+  #As a reminder...
+  DimPlot(comp_pair, group.by = 'RNA_snn_res.0.3', reduction = 'umap', label = TRUE, repel = TRUE, raster=F)#+ggtitle("Integrated Verity data, labelled by cluster numbers", subtitle="RPCA,Clustering resolution 0.3, 20 PCs used")
+
+  #No compare to the plots of astrocyte genes
+  VlnPlot(comp_pair, features = astrocyte_genes)
+
+})
 ```
-Treatment overlaps alot, so intergation is not required, however nGene and nUMI are heavy skewed and lowest in clusters including our supposed astrocytes (as will be shown below). The astrocyte markers show that clusters 3 and 26 expressed the astrocyte markers the strongest in our clusters or most definitively anyway)
 
-##(SingleR annotation)
-
-Could go here, could be followed by bubbleplot https://rdrr.io/github/milescsmith/seuratBubblePlot/man/bubbleplot.html
-
-Alternatively, load information from the spreadsheet at Analysis/ABCAM_markers.xlsx then bubble plot 
-
-#Investigate astrocytes, ensure identification
+# Split the data to focus on astrocytes for DEG work
 
 ```{r}
+#FIXME Manually assign the two parts of the obejct list into two separate objects
+Verity_Ageing_comp<-Verity_comparisons_singlets_clean$
+Verity_Prion_comp<-Verity_comparisons_singlets_clean$
+```
+
+
+## Prion comparison
+
+
+```{r}
+#FIXME needs to be adjusted for the appropriate group
 # Convert cluster names to character
 Idents(Ver_singlets_merged_clean) <- Ver_singlets_merged_clean$RNA_snn_res.0.3
 
@@ -747,7 +705,7 @@ Idents(Ver_singlets_merged_clean) <- Ver_singlets_merged_clean$RNA_snn_res.0.3
 Ver_astrocytes<-subset(Ver_singlets_merged_clean, idents=c('3', '26'))
 ```
 
-#DEG work
+### DEG work
 
 ```{r}
 #subset, then cluster? Or add Verity first then do this analysis?
@@ -789,7 +747,7 @@ Verity_astrocyte_prion_markers_clean<-FindMarkers(Ver_astrocytes, ident.1 = 'ME7
 ```
 
 
-#DEG file generation
+### DEG file generation
 
 ```{r}
 Verity_astrocyte_prion_markers_clean$gene<-rownames(Verity_astrocyte_prion_markers_clean)
@@ -819,6 +777,56 @@ write.csv(Verity_astrocyte_prion_markers_clean, file= "Verity_astrocyte_prion_ma
 
 save(Verity_astrocyte_prion_markers_clean, file="Rdata/Verity_astrocyte_prion_markers_clean.RData")
 ```
+
+
+# Ageing comparison
+
+
+
+# Previous work 
+
+
+## Dimensionality Reduction 
+
+Is integration of our data justified on the basis of treatment? Showing where our data lies in the featurespace of genes to assess overlap of treatments
+
+```{r}
+#https://github.com/hbctraining/scRNA-seq_online/blob/master/lessons/06_SC_SCT_normalization.md
+# Normalize the counts
+Ver_singlets_merged_clean <- NormalizeData(Ver_singlets_merged_clean)
+
+# Identify the most variable genes with defaults
+Ver_singlets_merged_clean <- FindVariableFeatures(Ver_singlets_merged_clean, verbose = T)
+		     
+# Scale the counts
+Ver_singlets_merged_clean <- ScaleData(Ver_singlets_merged_clean)
+
+# Perform PCA
+Ver_singlets_merged_clean <- RunPCA(Ver_singlets_merged_clean)
+
+#Inspect the variability accounted for by the PCS
+#It appears that 29 PCs are responsible, so using 30 from now on
+ElbowPlot(Ver_singlets_merged_clean, ndims=30)+ggtitle("Elbowplot of Verity data", subtitle = "NBH and ME7")
+DimHeatmap(Ver_singlets_merged_clean, dims=1:9, cells=500, balanced=T)
+
+
+#Finish dimensinoality reduction steps
+Ver_singlets_merged_clean <- RunUMAP(Ver_singlets_merged_clean, reduction = "pca", dims = 1:30)
+Ver_singlets_merged_clean <- FindNeighbors(Ver_singlets_merged_clean, reduction = "pca", dims = 1:30)
+Ver_singlets_merged_clean <- FindClusters(Ver_singlets_merged_clean, resolution = c(0.2,0.3,0.5,0.7,1))
+
+```
+
+
+
+## (SingleR annotation)
+
+Could go here, could be followed by bubbleplot https://rdrr.io/github/milescsmith/seuratBubblePlot/man/bubbleplot.html
+
+Alternatively, load information from the spreadsheet at Analysis/ABCAM_markers.xlsx then bubble plot 
+
+#Investigate astrocytes, ensure identification
+
 
 #Functional annotation 
 
