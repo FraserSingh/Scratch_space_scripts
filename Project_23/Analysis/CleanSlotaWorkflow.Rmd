@@ -441,7 +441,7 @@ p17
 dev.off()
 ```
 
-## Assign filters to data
+## Assign filters to data, removing three poor quality samples
 
 ```{r}
 #Assign the unfiltered metadata to Slota, updating the column names
@@ -452,8 +452,13 @@ Slota_filtered_clean<- subset(Slota_raw_obj_clean,subset=
                               percent.mt < 20 &
                               percent.rp > 1 &
                               percent.hb < 20 &
-                              nUMI < 35000
+                              nUMI < 35000 &
+                              sample !="PBS73CX" &
+                              sample !="RML133HP" &
+                              sample !="RML134HP" 
                             )
+
+
 
 
 # Gene-level filtering
@@ -475,7 +480,26 @@ filtered_counts <- counts[keep_genes, ]
 # Reassign to filtered Seurat object
 Slota_filtered_clean <- CreateSeuratObject(filtered_counts, meta.data = Slota_filtered_clean@meta.data)
 
-rm(metadata_test, metadata_filtered,filtered_counts, nonzero,counts, keep_genes,Slota_raw_obj_clean)
+
+p17a<-Slota_filtered_clean@meta.data %>% 
+  	ggplot2::ggplot(aes(x=sample, fill=sample)) + 
+  	geom_bar() +
+  	theme_classic() +
+  	theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
+  	theme(plot.title = element_text(hjust=0.5, face="bold")) +
+  	ggplot2::ggtitle("Slota_Cell_counts_per_sample", subtitle="nGene>1000, nUMI>0<35,000, % mito< 20, % rp>1, % hb <20")
+
+p17b<-Slota_filtered_clean@meta.data %>% 
+  	ggplot(aes(color=sample, x=nGene, fill= sample)) + 
+  	geom_density(alpha = 0.2) + 
+  	theme_classic() +
+  	scale_x_log10() + 
+  	geom_vline(xintercept = 300)+
+    ggplot2::ggtitle("Slota distribution of genes per cell", subtitle="nGene>1000, nUMI>0<35,000, % mito< 20, % rp>1, % hb <20")
+
+p17a;p17b
+
+#rm(metadata_test, metadata_filtered,filtered_counts, nonzero,counts, keep_genes,Slota_raw_obj_clean)
 gc()
 ```
 
@@ -490,8 +514,8 @@ save(Slota_filtered_clean, file="./Rdata/Slota_filtered_clean.RData")
 # Splitting the data by tissue
 
 ```{r}
-Slota_HP<-subset(Slota_filtered_clean, subset=sample=='PBS_HP' | treatment=='RML_HP')
-Slota_CX<-subset(Slota_filtered_clean, subset=sample=='PBS_CX' | treatment=='RML_CX')
+Slota_HP<-subset(Slota_filtered_clean, subset=treatment=='PBS_HP' | treatment=='RML_HP')
+Slota_CX<-subset(Slota_filtered_clean, subset=treatment=='PBS_CX' | treatment=='RML_CX')
 
 Slota_tissues<-list(Slota_HP,Slota_CX)
 
@@ -500,8 +524,7 @@ rm(Slota_HP,Slota_CX)
 
 
 
-
-# Doublet finder for all samples
+# Doublet finder for tissue groups separately
 
 ```{r}
 
@@ -558,11 +581,11 @@ Slota_tissues <- lapply(Slota_tissues, function(tissue_group) {
   })
 ```
 
-##Make singlet list
+##Make singlet lists
 
 ```{r}
 #Rename the columns
-Slota_list_clean <- lapply(Slota_list_clean, function(sample) {
+Slota_tissues <- lapply(Slota_tissues, function(sample) {
   doublet_col_index <- which(grepl("DF.classifications_", colnames(sample@meta.data)))
   sample$doublet_finder <- sample@meta.data[doublet_col_index]
   sample@meta.data[doublet_col_index]<-NULL
@@ -571,6 +594,19 @@ Slota_list_clean <- lapply(Slota_list_clean, function(sample) {
 
 
 ```
+
+
+# Terminal Hippocampal cells
+
+```{r}
+
+```
+
+
+
+
+#Previous version
+
 
 ###Merge and save the object
 
