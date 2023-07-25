@@ -54,6 +54,21 @@ library(org.Mm.eg.db)
 library(clusterProfiler)
 ```
 
+Make folder for plots
+
+```{r}
+#Specify the plotting folder to be made in the current working directory EDIT THIS ON EACH RUN TO AVOID OVERWRITING PLOTS
+dir_name <- "Verity_plots"
+
+# create folder:
+system(paste0("mkdir ", dir_name))
+
+#save folder path for plot saving
+plotting_path<-paste0("./", dir_name,"/")
+
+rm(dir_name)
+```
+
 #Verity workflow
 
 This workflow loads samples for the control and prion-treated data from Mabbott group's hippocampal prion work. The samples (not including the ageing samples sample9 and 11) are QC assessed, filtered and plotted with clustering by gene expression profiles.
@@ -119,15 +134,22 @@ metadata_to_remove<-c("bc_wells","species","gene_count","tscp_count", "mread_cou
 for (var in metadata_to_remove){
   Verity_total_clean[[var]]<-NULL
 }
+
 ```
 
+# Load the data and format files for processing
+```{bash}
+#FIXME for later addition
+```
 
-##treatment annotation
+# Tailor metadata
+
+## treatment annotation
+
+adapted from <https://youtu.be/p49seH2_i8Y?t=312>
 
 ```{r}
 sampleLabs<-names(Verity_total_clean@active.ident)
-
-
 
 #Assigning names to the samples to keep identity
 #From Chat GPT
@@ -150,6 +172,7 @@ rm(sampleLabs, treat_detect)
 #ID mitochondrial dominant cells 
 Verity_total_clean[["percent.mt"]]<- PercentageFeatureSet(Verity_total_clean, pattern = "^mt")
 Verity_total_clean[["percent.rp"]]<- PercentageFeatureSet(Verity_total_clean, pattern = "^Rp")
+Verity_total_clean[["percent.hb"]]<-PercentageFeatureSet(Verity_total_clean, "^Hb[^(p)]")
 
 #Generate genes per umi counts, from https://github.com/hbctraining/scRNA-seq/blob/master/lessons/04_SC_quality_control.md
 Verity_total_clean$log10GenesPerUMI <- log10(Verity_total_clean$nFeature_RNA) / log10(Verity_total_clean$nCount_RNA)
@@ -163,24 +186,42 @@ View(Verity_total_clean@meta.data)
 ##Initial data assessment
 
 ```{r}
-VlnPlot(Verity_total_clean, features=c("nFeature_RNA","nCount_RNA","percent.mt", "percent.rp"), ncol=4, pt.size = 0.0)+ ggtitle("Preliminary Data assessment", subtitle= "Verity, unfiltered")
-
+p1<-VlnPlot(Verity_total_clean, features=c("nFeature_RNA","nCount_RNA","percent.mt", "percent.rp","percent.hb"), ncol=5, pt.size = 0.0)#+ggtitle("Preliminary Data assessment", subtitle= "Verity, unfiltered")
 
 # Plot each of these respectively, showing trends in cell health
 
 #show mitochondrial proportion in reads
-FeatureScatter(Verity_total_clean, feature1 = "nCount_RNA", feature2 = "percent.mt", pt.size = 0)+ggtitle("Verity_UMIs per cell vs.mitochondrial genes detected", subtitle="UMIs per cell vs. % mitochondrial genes detected")
+p2<-FeatureScatter(Verity_total_clean, feature1 = "nCount_RNA", feature2 = "percent.mt", pt.size = 0)+ggtitle("Verity_UMIs per cell vs.mitochondrial genes detected", subtitle="UMIs per cell vs. % mitochondrial genes detected")
 
 
 #show ribosomal proportion in reads
-FeatureScatter(Verity_total_clean, feature1 = "nCount_RNA", feature2 = "percent.rp")+ggplot2::ggtitle("Verity_UMIs_per_cell_vsribosomal_protein_genes_detected", subtitle = "UMIs per cell vs. % ribosomal protein  genes detected")
+p3<-FeatureScatter(Verity_total_clean, feature1 = "nCount_RNA", feature2 = "percent.rp")+ggplot2::ggtitle("Verity_UMIs_per_cell_vsribosomal_protein_genes_detected", subtitle = "UMIs per cell vs. % ribosomal protein  genes detected")
 
 
 #Ribosomal vs mitochondrial 
-FeatureScatter(Verity_total_clean, feature1 = "percent.rp", feature2 = "percent.mt")+ggplot2::ggtitle("Verity_ribosomal_protein_genes_detected_vsmitochondrial_genes_detected",subtitle="% ribosomal protein  genes detected vs. % mitochondrial genes detected")
+p4<-FeatureScatter(Verity_total_clean, feature1 = "percent.rp", feature2 = "percent.mt")+ggplot2::ggtitle("Verity_ribosomal_protein_genes_detected_vsmitochondrial_genes_detected",subtitle="% ribosomal protein  genes detected vs. % mitochondrial genes detected")
 
 #Show overall reads and gene counts for unfiltered data.
-FeatureScatter(Verity_total_clean, feature1 = "nCount_RNA", feature2="nFeature_RNA",raster=F, pt.size = 0.5)+ geom_smooth(method="lm")+ ggtitle("Verity_UMIs_per_cell_vs_number_of_genes",subtitle="UMIs per cell vs. number of genes ")
+p5<-FeatureScatter(Verity_total_clean, feature1 = "nCount_RNA", feature2="nFeature_RNA",raster=F, pt.size = 0.5)+ geom_smooth(method="lm")+ ggtitle("Verity_UMIs_per_cell_vs_number_of_genes",subtitle="UMIs per cell vs. number of genes ")
+
+p1;p2;p3;p4;p5
+
+#Save plots
+png(paste0(plotting_path,"Verity_EDA.png"), width = 3000,height = 1000)
+p1
+dev.off()
+png(paste0(plotting_path,"Verity_UMI_MT.png"), width = 1750,height = 1500)
+p2
+dev.off()
+png(paste0(plotting_path,"Verity_UMI_RP.png"),width = 1750,height = 1500)
+p3
+dev.off()
+png(paste0(plotting_path,"Verity_RP_MT.png"),  width = 1750,height = 1500)
+p4
+dev.off()
+png(paste0(plotting_path,"Verity_UMI_nGene.png"), width = 1750,height = 1500)
+p5
+dev.off()
 ```
 
 ### Save the whole data
@@ -188,6 +229,8 @@ FeatureScatter(Verity_total_clean, feature1 = "nCount_RNA", feature2="nFeature_R
 ```{r}
 #Save the data object
 save(Verity_total_clean, file="./Rdata/Verity_total_clean.RData")
+
+gc()
 ```
 
 #QC
@@ -205,12 +248,14 @@ metadata_test<-Verity_total_clean@meta.data
 #Saving cell barcodes as metainfo
 metadata_test$cells<-rownames(metadata_test)
 
+#Setting minimum feature count to filter cells with no genes UMIs vs. genes detected, as these will be discarded anyway
+metadata_test <- subset(Verity_total_clean, subset= nFeature_RNA > 20)@meta.data
+
 metadata_test <- metadata_test %>%
     dplyr::rename(nUMI = nCount_RNA,
                   nGene = nFeature_RNA)
 
-#Setting minimum feature count to filter cells with no genes UMIs vs. genes detected, as these will be discarded anyway
-metadata_test <- subset(Verity_total_clean, subset= nFeature_RNA > 20)@meta.data
+
 
 ```
 
@@ -220,7 +265,7 @@ metadata_test <- subset(Verity_total_clean, subset= nFeature_RNA > 20)@meta.data
 
 ```{r}
 # Visualize the number of cell counts per sample with no filtering at all
-metadata_test %>% 
+p6<-metadata_test %>% 
   	ggplot2::ggplot(aes(x=sample, fill=sample)) + 
   	geom_bar() +
   	theme_classic() +
@@ -228,21 +273,9 @@ metadata_test %>%
   	theme(plot.title = element_text(hjust=0.5, face="bold")) +
   	ggplot2::ggtitle("Verity_Cell_counts_per_sample", subtitle="Filtered to minimum 20 genes")
 
-#Visualise the cutoff when setting nUMI to 35k, potential loss of biological information
-metadata_test %>%
-    filter(nUMI > 500, nGene >1100, nUMI <50000, percent.mt <20) %>%
-  	ggplot(aes(color=sample, x=nUMI, fill= sample)) + 
-  	geom_density(alpha = 0.2) + 
-  	scale_x_log10() + 
-  	theme_classic() +
-  	ylab("Cell density") +
-  	geom_vline(xintercept = 500)+
-    ggplot2::ggtitle("Verity/UMI_transcripts_per_cell", subtitle="Filtered to maximum of 50000 UMIs")
-
-#This shows over 300k cells for some samples, indicating that minimum metrics must be set to remove junk.
 
 # Visualize the number UMIs/transcripts per cell
-metadata_test %>% 
+p7<-metadata_test %>% 
   	ggplot(aes(color=sample, x=nUMI, fill= sample)) + 
   	geom_density(alpha = 0.2) + 
   	scale_x_log10() + 
@@ -253,7 +286,7 @@ metadata_test %>%
 
 
 # Visualize the distribution of genes detected per cell via histogram
-metadata_test %>% 
+p8<-metadata_test %>% 
   	ggplot(aes(color=sample, x=nGene, fill= sample)) + 
   	geom_density(alpha = 0.2) + 
   	theme_classic() +
@@ -263,7 +296,7 @@ metadata_test %>%
 
 
 # Visualize the distribution of genes detected per cell via boxplot
-metadata_test %>% 
+p9<-metadata_test %>% 
   	ggplot(aes(x=sample, y=log10(nGene), fill=sample)) + 
   	geom_boxplot() + 
   	theme_classic() +
@@ -272,7 +305,7 @@ metadata_test %>%
   	ggplot2::ggtitle("Verity distribution of genes per cell", subtitle="Filtered to minimum 20 genes")
 
 # Visualize the correlation between genes detected and number of UMIs and determine whether strong presence of cells with low numbers of genes/UMIs
-metadata_test %>% 
+p10<-metadata_test %>% 
   	ggplot(aes(x=nUMI, y=nGene, color=mitoRatio)) + 
   	geom_point() + 
 	scale_colour_gradient(low = "gray90", high = "black") +
@@ -285,67 +318,89 @@ metadata_test %>%
     ggplot2::ggtitle("Verity UMIs vs. genes detected. Highlighting mitochondrial ratio in genes", subtitle = "Filtered to minimum 20 genes")
 
 # Visualize the distribution of mitochondrial gene expression detected per cell
-metadata_test %>% 
+p11<-metadata_test %>% 
   	ggplot(aes(color=sample, x=mitoRatio, fill=sample)) + 
   	geom_density(alpha = 0.2) + 
   	scale_x_log10() + 
   	theme_classic() +
   	geom_vline(xintercept = 0.2)+
     ggplot2::ggtitle("Verity distribution of mitochondrial gene expression per cell", subtitle = "Filtered to minimum 20 genes")
+
+p6;p7;p8;p9;p10;p11
+
+#Save plots
+png(paste0(plotting_path,"Verity_PreF_Counts_sample.png"), width = 2000,height = 1500)
+p6
+dev.off()
+png(paste0(plotting_path,"Verity_PreF_UMI_cell.png"),width = 2000,height = 1500)
+p7
+dev.off()
+png(paste0(plotting_path,"Verity_PreF_nGene_hist_sample.png"),width = 2000,height = 1500)
+p8
+dev.off()
+png(paste0(plotting_path,"Verity_PreF_nGene_hist_sample.png"),width = 2000,height = 1500)
+p9
+dev.off()
+png(paste0(plotting_path,"Verity_PreF_nGene_UMI_sample.png"),width = 2000,height = 1500)
+p10
+dev.off()
+png(paste0(plotting_path,"Verity_PreF_MT_cell.png"),width = 2000,height = 1500)
+p11
+dev.off()
 ```
 
 ## Filtering metadata
 
 ```{r}
 metadata_filtered<- metadata_test %>%
-    filter(nUMI > 500, nGene >1100, nUMI <35000, percent.mt <20) 
+    filter(nUMI > 500, nGene >1100, nUMI <35000, percent.mt <20, percent.hb < 20) 
 ```
 
 ##Repeat QC plotting
 
 ```{r}
 # Visualize the number of cell counts per sample with no filtering at all
-metadata_filtered %>% 
+p12<-metadata_filtered %>% 
   	ggplot2::ggplot(aes(x=sample, fill=sample)) + 
   	geom_bar() +
   	theme_classic() +
   	theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
   	theme(plot.title = element_text(hjust=0.5, face="bold")) +
-  	ggplot2::ggtitle("Verity_Cell_counts_per_sample", subtitle="nGene>1100, nUMI>500, % mito< 20")
+  	ggplot2::ggtitle("Verity_Cell_counts_per_sample", subtitle="nGene>1100, 35000>nUMI>500, % mito< 20, % hb< 20")
 
 
 # Visualize the number UMIs/transcripts per cell
-metadata_filtered %>% 
+p13<-metadata_filtered %>% 
   	ggplot(aes(color=sample, x=nUMI, fill= sample)) + 
   	geom_density(alpha = 0.2) + 
   	scale_x_log10() + 
   	theme_classic() +
   	ylab("Cell density") +
   	geom_vline(xintercept = 500)+
-    ggplot2::ggtitle("Verity_UMI_transcripts_per_cell", subtitle="nGene>1100, nUMI>500, % mito< 20")
+    ggplot2::ggtitle("Verity_UMI_transcripts_per_cell", subtitle="nGene>1100, 35000>nUMI>500, % mito< 20, % hb< 20")
 
 
 # Visualize the distribution of genes detected per cell via histogram
-metadata_filtered %>% 
+p14<-metadata_filtered %>% 
   	ggplot(aes(color=sample, x=nGene, fill= sample)) + 
   	geom_density(alpha = 0.2) + 
   	theme_classic() +
   	scale_x_log10() + 
   	geom_vline(xintercept = 300)+
-    ggplot2::ggtitle("Verity distribution of genes per cell", subtitle="nGene>1100, nUMI>500, % mito< 20")
+    ggplot2::ggtitle("Verity distribution of genes per cell", subtitle="nGene>1100, 35000>nUMI>500, % mito< 20, % hb< 20")
 
 
 # Visualize the distribution of genes detected per cell via boxplot
-metadata_filtered %>% 
+p15<-metadata_filtered %>% 
   	ggplot(aes(x=sample, y=log10(nGene), fill=sample)) + 
   	geom_boxplot() + 
   	theme_classic() +
   	theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
   	theme(plot.title = element_text(hjust=0.5, face="bold")) +
-  	ggplot2::ggtitle("Verity distribution of genes per cell", subtitle="nGene>1100, nUMI>500, % mito< 20")
+  	ggplot2::ggtitle("Verity distribution of genes per cell", subtitle="nGene>1100, 35000>nUMI>500, % mito< 20, % hb< 20")
 
 # Visualize the correlation between genes detected and number of UMIs and determine whether strong presence of cells with low numbers of genes/UMIs
-metadata_filtered %>% 
+p16<-metadata_filtered %>% 
   	ggplot(aes(x=nUMI, y=nGene, color=mitoRatio)) + 
   	geom_point() + 
 	scale_colour_gradient(low = "gray90", high = "black") +
@@ -355,16 +410,38 @@ metadata_filtered %>%
   	geom_vline(xintercept = 500) +
   	geom_hline(yintercept = 250) +
   	facet_wrap(~sample) +
-    ggplot2::ggtitle("Verity UMIs vs. genes detected. Highlighting mitochondrial ratio in genes", subtitle="nGene>1100, nUMI>500, % mito< 20")
+    ggplot2::ggtitle("Verity UMIs vs. genes detected. Highlighting mitochondrial ratio in genes", subtitle="nGene>1100, 35000>nUMI>500, % mito< 20, % hb< 20")
 
 # Visualize the distribution of mitochondrial gene expression detected per cell
-metadata_filtered %>% 
+p17<-metadata_filtered %>% 
   	ggplot(aes(color=sample, x=mitoRatio, fill=sample)) + 
   	geom_density(alpha = 0.2) + 
   	scale_x_log10() + 
   	theme_classic() +
   	geom_vline(xintercept = 0.2)+
-    ggplot2::ggtitle("Verity distribution of mitochondrial gene expression per cell", subtitle="nGene>1100, nUMI>500, % mito< 20")
+    ggplot2::ggtitle("Verity distribution of mitochondrial gene expression per cell", subtitle="nGene>1100, 35000>nUMI>500, % mito< 20, % hb< 20")
+
+p12;p13;p14;p15;p16;p17
+
+#Save plots
+png(paste0(plotting_path,"Verity_PostF_Counts_sample.png"), width = 2000,height = 1500)
+p12
+dev.off()
+png(paste0(plotting_path,"Verity_PostF_UMI_cell.png"),width = 2000,height = 1500)
+p13
+dev.off()
+png(paste0(plotting_path,"Verity_PostF_nGene_hist_sample.png"),width = 2000,height = 1500)
+p14
+dev.off()
+png(paste0(plotting_path,"Verity_PostF_nGene_hist_sample.png"),width = 2000,height = 1500)
+p15
+dev.off()
+png(paste0(plotting_path,"Verity_PostF_nGene_UMI_sample.png"),width = 2000,height = 1500)
+p16
+dev.off()
+png(paste0(plotting_path,"Verity_PostF_MT_cell.png"),width = 2000,height = 1500)
+p17
+dev.off()
 ```
 
 ## Assign filters to data
@@ -377,7 +454,8 @@ Verity_filtered_clean<- subset(Verity_total_clean,subset=
                               percent.mt <20 &
                               nUMI > 500 &
                               nUMI < 35000 &
-                              nGene >1100
+                              nGene >1100 & 
+                              percent.hb < 20
                             )
 
 
@@ -399,6 +477,24 @@ filtered_counts <- counts[keep_genes, ]
 
 # Reassign to filtered Seurat object
 Verity_filtered_clean <- CreateSeuratObject(filtered_counts, meta.data = Verity_filtered_clean@meta.data)
+
+p17a<-Verity_filtered_clean@meta.data %>% 
+  	ggplot2::ggplot(aes(x=sample, fill=sample)) + 
+  	geom_bar() +
+  	theme_classic() +
+  	theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
+  	theme(plot.title = element_text(hjust=0.5, face="bold")) +
+  	ggplot2::ggtitle("Verity_Cell_counts_per_sample", subtitle="nGene>1100, 35000>nUMI>500, % mito< 20, % hb< 20")
+
+p17b<-Verity_filtered_clean@meta.data %>% 
+  	ggplot(aes(color=sample, x=nGene, fill= sample)) + 
+  	geom_density(alpha = 0.2) + 
+  	theme_classic() +
+  	scale_x_log10() + 
+  	geom_vline(xintercept = 300)+
+    ggplot2::ggtitle("Verity distribution of genes per cell", subtitle="nGene>1100, 35000>nUMI>500, % mito< 20, % hb< 20")
+
+p17a;p17b
 
 rm(metadata_test, metadata_filtered,filtered_counts, nonzero,counts, keep_genes,folder_name,folder_names,folder_path,metadata_to_remove,var)
 gc()
@@ -632,7 +728,7 @@ Ver_astrocytes<-subset(Ver_singlets_merged_clean, idents=c('3', '26'))
 #DEG work
 
 ```{r}
-#subset, then cluster? Or add Slota first then do this analysis?
+#subset, then cluster? Or add Verity first then do this analysis?
 DefaultAssay(Ver_astrocytes)<-"RNA"
 
 # Run the standard workflow for visualization and clustering
