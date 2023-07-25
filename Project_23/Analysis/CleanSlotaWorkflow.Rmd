@@ -494,6 +494,8 @@ Slota_HP<-subset(Slota_filtered_clean, subset=sample=='PBS_HP' | treatment=='RML
 Slota_CX<-subset(Slota_filtered_clean, subset=sample=='PBS_CX' | treatment=='RML_CX')
 
 Slota_tissues<-list(Slota_HP,Slota_CX)
+
+rm(Slota_HP,Slota_CX)
 ```
 
 
@@ -508,19 +510,15 @@ Slota_tissues<-list(Slota_HP,Slota_CX)
 
 #adapted from https://youtu.be/p49seH2_i8Y , https://github.com/kpatel427/YouTubeTutorials/blob/5b3c795cecafb22f0e992da069eae2efd6b5cb95/singleCell_doublets.R , https://rpubs.com/kenneditodd/doublet_finder_example 
 
-
-Slota_list_clean <- SplitObject(Slota_filtered_clean, split.by = "sample")
-
-# Perform doublet detection on each sample using lapply
-Slota_list_clean <- lapply(Slota_list_clean, function(sample) {
-  print(paste0("Sample ",sample@meta.data$sample[1]))
-  # Pre-process seurat object with standard seurat workflow
-  sample <- SCTransform(sample)
-  sample <- RunPCA(sample)
+#DoubletFinder, keep singlets
+Slota_tissues <- lapply(Slota_tissues, function(tissue_group) {
+  #Normalise+Scale with SCTransform?
+  tissue_group <- SCTransform(tissue_group)
+  tissue_group <- RunPCA(tissue_group)
   
   # Find significant PCs
-  stdv <- sample[["pca"]]@stdev
-  sum.stdv <- sum(sample[["pca"]]@stdev)
+  stdv <- tissue_group[["pca"]]@stdev
+  sum.stdv <- sum(tissue_group[["pca"]]@stdev)
   percent.stdv <- (stdv / sum.stdv) * 100
   cumulative <- cumsum(percent.stdv)
   co1 <- which(cumulative > 90 & percent.stdv < 5)[1]
@@ -530,12 +528,12 @@ Slota_list_clean <- lapply(Slota_list_clean, function(sample) {
   min.pc <- min(co1, co2)
   
   # Finish pre-processing
-  sample <- RunUMAP(sample, dims = 1:min.pc)
-  sample <- FindNeighbors(object = sample, dims = 1:min.pc)              
-  sample <- FindClusters(object = sample, resolution = 0.1)
+  tissue_group <- RunUMAP(tissue_group, dims = 1:min.pc)
+  tissue_group <- FindNeighbors(object = tissue_group, dims = 1:min.pc)              
+  tissue_group <- FindClusters(object = tissue_group, resolution = 0.1)
   
   # pK identification (no ground-truth)
-  sweep.list <- paramSweep_v3(sample, PCs = 1:min.pc, sct = TRUE)
+  sweep.list <- paramSweep_v3(tissue_group, PCs = 1:min.pc, sct = TRUE)
   sweep.stats <- summarizeSweep(sweep.list)
   bcmvn <- find.pK(sweep.stats)
   
@@ -544,21 +542,20 @@ Slota_list_clean <- lapply(Slota_list_clean, function(sample) {
   optimal.pk <- as.numeric(bcmvn.max$pK)
 
   # Homotypic doublet proportion estimate
-  annotations <- sample@meta.data$seurat_clusters
+  annotations <- tissue_group@meta.data$seurat_clusters
   homotypic.prop <- modelHomotypic(annotations) 
-  nExp.poi <- round(0.087 * nrow(sample@meta.data)) #expected doublets based on values from 10X resources
+  nExp.poi <- round(0.087 * nrow(tissue_group@meta.data)) #expected doublets based on values from 10X resources
   nExp.poi.adj <- round(nExp.poi * (1 - homotypic.prop))
   
   # Run DoubletFinder
-  sample <- doubletFinder_v3(seu = sample, 
+  tissue_group <- doubletFinder_v3(seu = tissue_group, 
                              PCs = 1:min.pc, 
                              pK = optimal.pk,
                              nExp = nExp.poi.adj, 
                              sct = TRUE, 
                              pN=0.25)
-  
-  return(sample)
-})
+  return(tissue_group)
+  })
 ```
 
 ##Make singlet list
