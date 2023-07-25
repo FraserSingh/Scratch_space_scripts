@@ -505,6 +505,11 @@ gc()
 Quite low nGenes for Doublts, try plotting the doublet info on the UMAP of the whole dataset
 
 
+```{r}
+rm(Slota_list_clean,Slota_raw_obj_clean,Slota_filtered_clean)
+```
+
+
 # Dimensionality Reduction 
 
 Is integration of our data justified on the basis of treatment? Showing where our data lies in the featurespace of genes to assess overlap of treatments
