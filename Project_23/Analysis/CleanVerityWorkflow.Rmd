@@ -54,7 +54,7 @@ library(org.Mm.eg.db)
 library(clusterProfiler)
 ```
 
-Make folder for plots
+Make folder for plots and set seed
 
 ```{r}
 #Specify the plotting folder to be made in the current working directory EDIT THIS ON EACH RUN TO AVOID OVERWRITING PLOTS
@@ -65,6 +65,10 @@ system(paste0("mkdir ", dir_name))
 
 #save folder path for plot saving
 plotting_path<-paste0("./", dir_name,"/")
+
+
+#set seed for reproducibility
+set.seed(42)
 
 rm(dir_name)
 ```
@@ -121,7 +125,7 @@ for (folder_name in folder_names) {
 
 
 #merge the samples into one object
-Verity_total_clean <- merge(sample1_obj, y=c(sample2_obj, sample5_obj, sample6_obj), add.cell.ids=c("sample1", "sample2", "sample5", "sample6", "sample9", "sample11"), project="Verity")
+Verity_total_clean <- merge(sample1_obj, y=c(sample2_obj, sample5_obj, sample6_obj,sample9_obj, sample11_obj), add.cell.ids=c("sample1", "sample2", "sample5", "sample6", "sample9", "sample11"), project="Verity")
 
 #cleaning up memory
 rm("sample1_obj","sample2_obj", "sample5_obj", "sample6_obj", "sample9_obj", "sample11_obj",current_metadata, current_parse_interpreted, current_parse)
@@ -503,15 +507,17 @@ gc()
 ```
 
 
-### Saving object
+### Saving object and tidying up
 
 ```{r}
 # Create .RData object to load at any time
 save(Verity_filtered_clean, file="./Rdata/Verity_filtered_clean.RData")
+
+rm(p1, p2,p3,p4,p5,p6,p7,p8,p9,p10,p11,p12,p13, p14,p15,p16,p17,p17a,p17b)
 ```
 
 
-# Splitting the data by treatment
+# Splitting the data by treatment 
 
 ```{r}
 Verity_Prion_comp<-subset(Verity_filtered_clean, subset=treatment=='NBH' | treatment=='ME7')
@@ -519,7 +525,8 @@ Verity_Ageing_comp<-subset(Verity_filtered_clean, subset=treatment=='NBH' | trea
 
 Verity_comparisons<-list(Verity_Prion_comp,Verity_Ageing_comp)
 
-rm(Verity_Prion_comp,Verity_Ageing_comp)
+rm(Verity_Prion_comp,Verity_Ageing_comp, Verity_filtered_clean, Verity_total_clean)
+gc()
 ```
 
 
@@ -551,7 +558,7 @@ Verity_comparisons <- lapply(Verity_comparisons, function(comp_pair) {
   min.pc <- min(co1, co2)
   
   # Finish pre-processing
-  comp_pair <- RunUMAP(comp_pair, dims = 1:min.pc)
+  comp_pair <- RunUMAP(comp_pair, dims = 1:min.pc, seed.use=42)
   comp_pair <- FindNeighbors(object = comp_pair, dims = 1:min.pc)              
   comp_pair <- FindClusters(object = comp_pair, resolution = 0.1)
   
@@ -652,7 +659,7 @@ Verity_Prion_comp <- RunPCA(Verity_Prion_comp)
 ElbowPlot(Verity_Prion_comp, ndims=30)+ggtitle("Elbowplot of Verity data", subtitle = "NBH and ME7")
 DimHeatmap(Verity_Prion_comp, dims=1:9, cells=500, balanced=T)
 #Finish dimensinoality reduction steps
-Verity_Prion_comp <- RunUMAP(Verity_Prion_comp, reduction = "pca", dims = 1:30)
+Verity_Prion_comp <- RunUMAP(Verity_Prion_comp, reduction = "pca", dims = 1:30, seed.use=42)
 Verity_Prion_comp <- FindNeighbors(Verity_Prion_comp, reduction = "pca", dims = 1:30)
 Verity_Prion_comp <- FindClusters(Verity_Prion_comp, resolution = c(0.2,0.3,0.5,0.7,1))
 #Save the object
@@ -668,11 +675,11 @@ metrics <-  c("nUMI", "nGene", "mitoRatio")
 DimPlot(Verity_Prion_comp , reduction = "umap", group.by = "treatment", raster=FALSE)+ ggtitle("Verity Hippocampal cells labelled by treatment")
 
 #cyclechange resolution number in group.by to see difference in clusters
-DimPlot(Verity_Prion_comp, group.by = 'RNA_snn_res.0.3', reduction = 'umap', label = TRUE, repel = TRUE, raster=F)+ggtitle("Verity Hippocampal cells labelled by cluster numbers")
+DimPlot(Verity_Prion_comp, group.by = 'RNA_snn_res.0.2', reduction = 'umap', label = TRUE, repel = TRUE, raster=F)+ggtitle("Verity Hippocampal cells labelled by cluster numbers", subtitle = "Cluster resolution 0.2")
 
 #adapted from https://github.com/hbctraining/scRNA-seq_online/blob/master/lessons/08_SC_clustering_quality_control.md#segregation-of-clusters-by-various-sources-of-uninteresting-variation
 
-#Explore any clustering mishaps by lookin for localisation of any of these traits in a given cluster
+#Explore any clustering mishaps by looking for localisation of any of these traits in a given cluster
 FeaturePlot(Verity_Prion_comp, 
             reduction = "umap", 
             features = metrics,
@@ -684,15 +691,14 @@ FeaturePlot(Verity_Prion_comp,
 
 ## Save the singlets with a cluster resolution?
 #FIXME might not be required
- #set the idents to _____
-Verity_Prion_comp@active.ident<-comp_pair@meta.data$RNA_snn_res.0.3
+ #set the idents to cluster resolution 0.2
+Verity_Prion_comp@active.ident<-Verity_Prion_comp@meta.data$RNA_snn_res.0.2
 levels(Verity_Prion_comp)
 
 rm(metrics)
 ```
 
 ```{r}
-#load("Rdata/Slo_singlets_merged_clean.Rdata")
 
 DefaultAssay(Verity_Prion_comp)<-"RNA"
 
@@ -707,10 +713,10 @@ astrocyte_genes<-c("Aldh1l1","Gfap","Slc1a2", "Slc1a3", "Glul", "Cd44")
 FeaturePlot(Verity_Prion_comp,features=astrocyte_genes, raster=F)#+ggtitle("Verity data, labelled with astrocyte gene markers from ABCAM", subtitle="Clustering resolution 0.3, 20 PCs used")
 
 #As a reminder...
-DimPlot(Verity_Prion_comp, group.by = 'RNA_snn_res.0.3', reduction = 'umap', label = TRUE, repel = TRUE, raster=F)+ggtitle("Integrated Verity data, labelled by cluster numbers", subtitle="RPCA,Clustering resolution 0.3, 20 PCs used")
+DimPlot(Verity_Prion_comp, group.by = 'RNA_snn_res.0.2', reduction = 'umap', label = TRUE, repel = TRUE, raster=F)+ggtitle("Integrated Verity data, labelled by cluster numbers", subtitle="RPCA,Clustering resolution 0.3, 20 PCs used")
 
 #No compare to the plots of astrocyte genes
-VlnPlot(Verity_Prion_comp, features = astrocyte_genes, group.by = 'RNA_snn_res.0.3', pt.size = 0.0)
+VlnPlot(Verity_Prion_comp, features = astrocyte_genes, group.by = 'RNA_snn_res.0.2', pt.size = 0.0)
 
 #Glul is maybe a good indicator?
 ```
@@ -729,10 +735,10 @@ Analysis/ABCAM_markers.xlsx then bubble plot
 
 ```{r}
 # Convert cluster names to character
-Idents(Verity_Prion_comp) <- Verity_Prion_comp$RNA_snn_res.0.3
+Verity_Prion_comp@active.ident <- as.factor(Verity_Prion_comp$RNA_snn_res.0.2)
 
 #Subset out astrocytes
-Verity_Prion_comp_astrocytes<-subset(Verity_Prion_comp, idents='4')
+Verity_Prion_comp_astrocytes<-subset(Verity_Prion_comp, idents=c('3','20','24'))
 ```
 
 #DEG work
@@ -758,7 +764,7 @@ ElbowPlot(Verity_Prion_comp_astrocytes, ndims=30)+ggtitle("Elbowplot of subset V
 #15 PCs sems ok, so use 20 from now
 
 #20 PCs seem to cover the variability
-Verity_Prion_comp_astrocytes <- RunUMAP(Verity_Prion_comp_astrocytes, reduction = "pca", dims = 1:20)
+Verity_Prion_comp_astrocytes <- RunUMAP(Verity_Prion_comp_astrocytes, reduction = "pca", dims = 1:20, seed.use=42)
 Verity_Prion_comp_astrocytes <- FindNeighbors(Verity_Prion_comp_astrocytes, reduction = "pca", dims = 1:20)
 Verity_Prion_comp_astrocytes <- FindClusters(Verity_Prion_comp_astrocytes, resolution = c(0.2,0.3,0.5,0.7,1))
 
@@ -833,7 +839,7 @@ Verity_Ageing_comp <- RunPCA(Verity_Ageing_comp)
 ElbowPlot(Verity_Ageing_comp, ndims=30)+ggtitle("Elbowplot of Verity data", subtitle = "NBH and ME7")
 DimHeatmap(Verity_Ageing_comp, dims=1:9, cells=500, balanced=T)
 #Finish dimensinoality reduction steps
-Verity_Ageing_comp <- RunUMAP(Verity_Ageing_comp, reduction = "pca", dims = 1:30)
+Verity_Ageing_comp <- RunUMAP(Verity_Ageing_comp, reduction = "pca", dims = 1:30, seed.use=42)
 Verity_Ageing_comp <- FindNeighbors(Verity_Ageing_comp, reduction = "pca", dims = 1:30)
 Verity_Ageing_comp <- FindClusters(Verity_Ageing_comp, resolution = c(0.2,0.3,0.5,0.7,1))
 #Save the object
@@ -928,7 +934,7 @@ ElbowPlot(Verity_Ageing_comp_astrocytes, ndims=30)+ggtitle("Elbowplot of subset 
 #15 PCs sems ok, so use 20 from now
 
 #20 PCs seem to cover the variability
-Verity_Ageing_comp_astrocytes <- RunUMAP(Verity_Ageing_comp_astrocytes, reduction = "pca", dims = 1:20)
+Verity_Ageing_comp_astrocytes <- RunUMAP(Verity_Ageing_comp_astrocytes, reduction = "pca", dims = 1:20, seed.use=42)
 Verity_Ageing_comp_astrocytes <- FindNeighbors(Verity_Ageing_comp_astrocytes, reduction = "pca", dims = 1:20)
 Verity_Ageing_comp_astrocytes <- FindClusters(Verity_Ageing_comp_astrocytes, resolution = c(0.2,0.3,0.5,0.7,1))
 
@@ -939,7 +945,7 @@ save(Verity_Ageing_comp_astrocytes, file="Rdata/Verity_Ageing_comp_astrocytes.Rd
 DimPlot(Verity_Ageing_comp_astrocytes, reduction = 'umap',  raster=F, group.by='treatment')+ggtitle("Verity data's CX astrocytes", subtitle="Labelled by treatment")
 
 #Show the clustering of subset astrocytes
-DimPlot(Verity_Ageing_comp_astrocytes, group.by = 'RNA_snn_res.0.2', reduction = 'umap', repel = TRUE, raster=F)
+DimPlot(Verity_Ageing_comp_astrocytes, group.by = 'RNA_snn_res.0.2', reduction = 'umap', repel = TRUE, raster=F, seed.use=42)
 
 #Show sample disctribution in clusters of astrocytes
 DimPlot(Verity_Ageing_comp_astrocytes, group.by = 'sample', reduction = 'umap', repel = TRUE, raster=F)
