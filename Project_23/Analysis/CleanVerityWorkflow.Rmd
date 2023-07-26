@@ -13,28 +13,28 @@ knitr::opts_chunk$set(echo = TRUE)
 
 
 ```{r}
-if (!require("BiocManager", quietly = TRUE))
-    install.packages("BiocManager", lib="/exports/cmvm/eddie/eb/groups/mabbott_grp/Fraser/Project_23/Rpackages")
-
-BiocManager::install("DropletUtils", lib="/exports/cmvm/eddie/eb/groups/mabbott_grp/Fraser/Project_23/Rpackages")
-BiocManager::install("Seurat", lib="/exports/cmvm/eddie/eb/groups/mabbott_grp/Fraser/Project_23/Rpackages")
-
-remotes::install_github('chris-mcginnis-ucsf/DoubletFinder', lib="/exports/cmvm/eddie/eb/groups/mabbott_grp/Fraser/Project_23/Rpackages")
-
-if (!require("SoupX", quietly = TRUE))
-    install.packages("SoupX", lib="/exports/cmvm/eddie/eb/groups/mabbott_grp/Fraser/Project_23/Rpackages")
-
-if (!require("scCustomize", quietly = TRUE))
-    install.packages("scCustomize", lib="/exports/cmvm/eddie/eb/groups/mabbott_grp/Fraser/Project_23/Rpackages")
-
-BiocManager::install("glmGamPoi", lib="/exports/cmvm/eddie/eb/groups/mabbott_grp/Fraser/Project_23/Rpackages")
-
-if (!require("DESeq2", quietly = TRUE))
-    install.packages("DESeq2", lib="/exports/cmvm/eddie/eb/groups/mabbott_grp/Fraser/Project_23/Rpackages")
-
-install.packages("Polychrome", lib="/exports/cmvm/eddie/eb/groups/mabbott_grp/Fraser/Project_23/Rpackages")
-BiocManager::install("org.Mm.eg.db", lib="/exports/cmvm/eddie/eb/groups/mabbott_grp/Fraser/Project_23/Rpackages")
-BiocManager::install("clusterProfiler", lib="/exports/cmvm/eddie/eb/groups/mabbott_grp/Fraser/Project_23/Rpackages")
+# if (!require("BiocManager", quietly = TRUE))
+#     install.packages("BiocManager", lib="/exports/cmvm/eddie/eb/groups/mabbott_grp/Fraser/Project_23/Rpackages")
+# 
+# BiocManager::install("DropletUtils", lib="/exports/cmvm/eddie/eb/groups/mabbott_grp/Fraser/Project_23/Rpackages")
+# BiocManager::install("Seurat", lib="/exports/cmvm/eddie/eb/groups/mabbott_grp/Fraser/Project_23/Rpackages")
+# 
+# remotes::install_github('chris-mcginnis-ucsf/DoubletFinder', lib="/exports/cmvm/eddie/eb/groups/mabbott_grp/Fraser/Project_23/Rpackages")
+# 
+# if (!require("SoupX", quietly = TRUE))
+#     install.packages("SoupX", lib="/exports/cmvm/eddie/eb/groups/mabbott_grp/Fraser/Project_23/Rpackages")
+# 
+# if (!require("scCustomize", quietly = TRUE))
+#     install.packages("scCustomize", lib="/exports/cmvm/eddie/eb/groups/mabbott_grp/Fraser/Project_23/Rpackages")
+# 
+# BiocManager::install("glmGamPoi", lib="/exports/cmvm/eddie/eb/groups/mabbott_grp/Fraser/Project_23/Rpackages")
+# 
+# if (!require("DESeq2", quietly = TRUE))
+#     install.packages("DESeq2", lib="/exports/cmvm/eddie/eb/groups/mabbott_grp/Fraser/Project_23/Rpackages")
+# 
+# install.packages("Polychrome", lib="/exports/cmvm/eddie/eb/groups/mabbott_grp/Fraser/Project_23/Rpackages")
+# BiocManager::install("org.Mm.eg.db", lib="/exports/cmvm/eddie/eb/groups/mabbott_grp/Fraser/Project_23/Rpackages")
+# BiocManager::install("clusterProfiler", lib="/exports/cmvm/eddie/eb/groups/mabbott_grp/Fraser/Project_23/Rpackages")
 
 ```
 
@@ -823,40 +823,57 @@ table(Verity_Prion_comp_astrocytes$treatment)
 ```{r}
 
 # Upregulated genes
-Verity_astrocyte_prion_markers_up<-subset(Verity_astrocyte_prion_markers, subset=avg_log2FC>0.25)
+Verity_astrocyte_prion_markers_up<-subset(Verity_astrocyte_prion_markers, subset=avg_log2FC>0.25&p_val_adj<0.05) #Added p value filter here
 
 #Create a list of just the genes: 
-Verity_Prion_DEGs_up = rownames(Verity_astrocyte_prion_markers_up$gene)
+Verity_Prion_DEGs_up = (Verity_astrocyte_prion_markers_up$gene)
 #Convert this gene SYMBOL list into Entrez ID:
-Verity_DEGs_PrionUp__entrez = bitr(Verity_Prion_DEGs_up, fromType = "SYMBOL", toType = "ENTREZID", OrgDb = org.Mm.eg.db)
+Verity_DEGs_AgeingUp__entrez = bitr(Verity_Prion_DEGs_up, fromType = "SYMBOL", toType = "ENTREZID", OrgDb = org.Mm.eg.db)
+#Remove NAs
+Verity_DEGs_AgeingUp__entrez <-na.omit(Verity_DEGs_AgeingUp__entrez)
 
 #GO over-representation
-VerityPrion_up_GO_OvR = enrichGO(gene = Verity_DEGs_PrionUp__entrez$ENTREZID, OrgDb = org.Mm.eg.db, readable = T, ont= "BP", pvalueCutoff = 0.05, qvalueCutoff = 0.10)
+VerityAgeing_up_GO_OvR = enrichGO(gene = Verity_DEGs_AgeingUp__entrez$ENTREZID, OrgDb = org.Mm.eg.db, readable = T, ont= "BP", pvalueCutoff = 0.05, qvalueCutoff = 0.10)
 
-ggp = barplot(VerityPrion_up_GO_OvR , showCategory=20)
-ggp2 = dotplot(VerityPrion_up_GO_OvR, showCategory=10)
-ggp3 = goplot(VerityPrion_up_GO_OvR, showCategory = 10)
-ggp4 = cnetplot(VerityPrion_up_GO_OvR, categorySize=p.adjust)
+ggp = barplot(VerityAgeing_up_GO_OvR , showCategory=20)
+ggp2 = dotplot(VerityAgeing_up_GO_OvR, showCategory=10)
+ggp3 = goplot(VerityAgeing_up_GO_OvR, showCategory = 10)
+ggp4 = cnetplot(VerityAgeing_up_GO_OvR, categorySize=p.adjust)
+ggp5<- cnetplot(VerityAgeing_up_GO_OvR, categorySize="pvalue", foldChange=geneList)
+ggp6<-heatplot(VerityAgeing_up_GO_OvR, foldChange=geneList, showCategory=20)
+
 
 ggp
 ggp2
 ggp3
 ggp4
-
-# ggsave("SlotaUpbarplot.jpeg", plot = ggp, dpi = 300, width = 10, height = 10)
-# ggsave("SlotaUpdotplot.jpeg", plot = ggp2, dpi = 300, width = 10, height = 10)
-# ggsave("SlotaUpgoplot.jpeg", plot = ggp3, dpi = 300, width = 10, height = 10)
-# ggsave("SlotaUpcnetplot.jpeg", plot = ggp4, dpi = 300, width = 10, height = 10)
+ggp5
+ggp6
 
 
 #GO GSEA
-ego3 <- gseGO(geneList     = Verity_DEGs_PrionUp__entrez$ENTREZID,
+
+#returns none at the moment
+
+## feature 1: numeric vector
+geneList = Verity_astrocyte_prion_markers$avg_log2FC
+
+## feature 2: named vector of enembl IDs
+names(geneList) = as.character(
+  (bitr(Verity_astrocyte_prion_markers$gene, fromType = "SYMBOL", toType = "ENTREZID", OrgDb = org.Mm.eg.db))$ENTREZID
+)
+
+## feature 3: decreasing orde
+geneList = sort(geneList, decreasing = TRUE)
+
+ego3 <- gseGO(geneList     = geneList, #full list of DEGs
               OrgDb        = org.Mm.eg.db,
               ont          = "ALL",
               minGSSize    = 100,
               maxGSSize    = 500,
               pvalueCutoff = 0.05,
               verbose      = FALSE)
+ego3
 
 ```
 
@@ -1030,3 +1047,64 @@ save(Verity_astrocyte_ageing_markers, file=paste0(plotting_path,"Verity_astrocyt
 table(Verity_Ageing_comp_astrocytes$treatment)
 ```
 
+
+##Functional annotation
+
+Ageing is not giving many genes with logfc2 > 0.25, so functional annotation not working for upregulated genes. Could do down?
+
+```{r}
+
+# Upregulated genes
+Verity_astrocyte_ageing_markers_up<-subset(Verity_astrocyte_ageing_markers,subset=avg_log2FC>(0.25))#&p_val_adj<(0.05)) #Added p value filter here
+
+#Create a list of just the genes: 
+Verity_Ageing_DEGs_up = (Verity_astrocyte_ageing_markers_up$gene)
+#Convert this gene SYMBOL list into Entrez ID:
+Verity_DEGs_AgeingUp__entrez = bitr(Verity_Ageing_DEGs_up, fromType = "SYMBOL", toType = "ENTREZID", OrgDb = org.Mm.eg.db)
+#Remove NAs
+Verity_DEGs_AgeingUp__entrez <-na.omit(Verity_DEGs_AgeingUp__entrez)
+
+#GO over-representation
+VerityAgeing_up_GO_OvR = enrichGO(gene = Verity_DEGs_AgeingUp__entrez$ENTREZID, OrgDb = org.Mm.eg.db, readable = T, ont= "BP", pvalueCutoff = 0.05, qvalueCutoff = 0.10)
+
+ggp7 = barplot(VerityAgeing_up_GO_OvR , showCategory=20)
+ggp8 = dotplot(VerityAgeing_up_GO_OvR, showCategory=10)
+ggp9 = goplot(VerityAgeing_up_GO_OvR, showCategory = 10)
+ggp10 = cnetplot(VerityAgeing_up_GO_OvR, categorySize=p.adjust)
+ggp11<- cnetplot(VerityAgeing_up_GO_OvR, categorySize="pvalue", foldChange=geneList)
+ggp12<-heatplot(VerityAgeing_up_GO_OvR, foldChange=geneList, showCategory=20)
+
+
+ggp7 
+ggp8 
+ggp9 
+ggp10
+ggp11
+ggp12
+
+
+#GO GSEA
+
+#returns none at the moment
+
+## feature 1: numeric vector
+geneList = Verity_astrocyte_ageing_markers$avg_log2FC
+
+## feature 2: named vector of enembl IDs
+names(geneList) = as.character(
+  (bitr(Verity_astrocyte_ageing_markers$gene, fromType = "SYMBOL", toType = "ENTREZID", OrgDb = org.Mm.eg.db))$ENTREZID
+)
+
+## feature 3: decreasing orde
+geneList = sort(geneList, decreasing = TRUE)
+
+ego4 <- gseGO(geneList     = geneList, #full list of DEGs
+              OrgDb        = org.Mm.eg.db,
+              ont          = "ALL",
+              minGSSize    = 100,
+              maxGSSize    = 500,
+              pvalueCutoff = 0.05,
+              verbose      = FALSE)
+ego4
+
+```
