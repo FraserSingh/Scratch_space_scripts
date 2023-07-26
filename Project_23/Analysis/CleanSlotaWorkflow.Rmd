@@ -723,7 +723,7 @@ Could go here, could be followed by bubbleplot
 Alternatively, load information from the spreadsheet at
 Analysis/ABCAM_markers.xlsx then bubble plot
 
-#Investigate astrocytes, ensure identification
+##Investigate astrocytes, ensure identification
 
 ```{r}
 # Convert cluster names to character
@@ -733,7 +733,7 @@ Idents(Slota_HP_comp) <- Slota_HP_comp$RNA_snn_res.0.3
 Slota_HP_comp_astrocytes<-subset(Slota_HP_comp, idents='4')
 ```
 
-#DEG work
+##DEG work
 
 Prepare the biomart info
 
@@ -744,7 +744,7 @@ library("biomaRt")
 m <- useMart("ensembl", dataset="mmusculus_gene_ensembl")
 ```
 
-##HP
+
 
 ```{r}
 
@@ -782,7 +782,7 @@ levels(Slota_HP_comp_astrocytes)
 
 DefaultAssay(Slota_HP_comp_astrocytes)<-'RNA'
 
-#by treatment, show the genes DE in Prion condition. LogFC set to a *1 increase in fold change
+#by treatment, show the genes DE in Prion condition.
 Slota_HP_comp_astrocytes@active.ident<-as.factor(Slota_HP_comp_astrocytes$treatment)
 Slota_astrocyte_prion_markers_HP<-FindMarkers(Slota_HP_comp_astrocytes, ident.1 = 'RML_HP', ident.2 = 'PBS_HP',min.pct = 0.10, verbose = TRUE, test.use = "DESeq2")
 
@@ -799,7 +799,7 @@ gene_ids <- unique(Slota_astrocyte_prion_markers_clean_HP$gene)
 gene_info <- getBM(attributes = c("external_gene_name", "description","chromosome_name"), filters = "external_gene_name", values = gene_ids, mart = m)
   
 #apply the info to the gene list
-  Slota_astrocyte_prion_markers_clean_HP <- merge(Slota_astrocyte_prion_markers_clean_HP, gene_info, by.x = "gene", by.y = "external_gene_name", all.x = TRUE)
+Slota_astrocyte_prion_markers_clean_HP <- merge(Slota_astrocyte_prion_markers_clean_HP, gene_info, by.x = "gene", by.y = "external_gene_name", all.x = TRUE)
   
 
 #Save the file
@@ -811,7 +811,50 @@ table(Slota_HP_comp_astrocytes$treatment)
 ```
 
 
-## CX
+##Functional annotation
+
+```{r}
+
+# Upregulated genes
+Slota_astrocyte_prion_markers_clean_HP_up<-subset(Slota_astrocyte_prion_markers_clean_HP, subset=avg_log2FC>0.25)
+
+#Create a list of just the genes: 
+Slota_HP_DEGs_up = rownames(Slota_astrocyte_prion_markers_clean_HP_up)
+#Convert this gene SYMBOL list into Entrez ID:
+Slota_DEGs_HPup__entrez = bitr(Slota_HP_DEGs_up, fromType = "SYMBOL", toType = "ENTREZID", OrgDb = org.Mm.eg.db)
+
+#GO over-representation
+Slota_HPup_GO_OvR = enrichGO(gene = Slota_DEGs_HPup__entrez$ENTREZID, OrgDb = org.Mm.eg.db, readable = T, ont= "BP", pvalueCutoff = 0.05, qvalueCutoff = 0.10)
+
+ggp = barplot(Slota_HPup_GO_OvR , showCategory=20)
+ggp2 = dotplot(Slota_HPup_GO_OvR, showCategory=10)
+ggp3 = goplot(Slota_HPup_GO_OvR, showCategory = 10)
+ggp4 = cnetplot(Slota_HPup_GO_OvR, categorySize=p.adjust)
+
+ggp
+ggp2
+ggp3
+ggp4
+
+# ggsave("SlotaUpbarplot.jpeg", plot = ggp, dpi = 300, width = 10, height = 10)
+# ggsave("SlotaUpdotplot.jpeg", plot = ggp2, dpi = 300, width = 10, height = 10)
+# ggsave("SlotaUpgoplot.jpeg", plot = ggp3, dpi = 300, width = 10, height = 10)
+# ggsave("SlotaUpcnetplot.jpeg", plot = ggp4, dpi = 300, width = 10, height = 10)
+
+
+#GO GSEA
+ego3 <- gseGO(geneList     = Slota_DEGs_HPup__entrez$ENTREZID,
+              OrgDb        = org.Mm.eg.db,
+              ont          = "ALL",
+              minGSSize    = 100,
+              maxGSSize    = 500,
+              pvalueCutoff = 0.05,
+              verbose      = FALSE)
+
+```
+
+
+# CX
 ```{r}
 #active assay RNA
 DefaultAssay(Slota_CX_comp)<-"RNA"
@@ -904,7 +947,7 @@ Could go here, could be followed by bubbleplot
 Alternatively, load information from the spreadsheet at
 Analysis/ABCAM_markers.xlsx then bubble plot
 
-#Investigate astrocytes, ensure identification
+##Investigate astrocytes, ensure identification
 
 ```{r}
 # Convert cluster names to character
@@ -914,7 +957,7 @@ Idents(Slota_CX_comp) <- Slota_CX_comp$RNA_snn_res.0.3
 Slota_CX_comp_astrocytes<-subset(Slota_CX_comp, idents=c('5','10','22'))
 ```
 
-#DEG work
+##DEG work
 
 ```{r}
 
@@ -979,28 +1022,25 @@ save(Slota_astrocyte_prion_markers_clean_CX, file=paste0(plotting_path,"Slota_as
 
 table(Slota_CX_comp_astrocytes$treatment)
 ```
-
-#Previous version
-
-
-#Functional annotation
+##Functional annotation
 
 ```{r}
 
 # Upregulated genes
-Slota_astrocyte_prion_markers_clean_UP<-subset(Slota_astrocyte_prion_markers_clean, subset=avg_log2FC>0.25)
+Slota_astrocyte_prion_markers_clean_CX_up<-subset(Slota_astrocyte_prion_markers_clean_CX, subset=avg_log2FC>0.25)
 
 #Create a list of just the genes: 
-Slota_DEGs = rownames(Slota_astrocyte_prion_markers_clean_UP)
+Slota_CX_DEGs_up = rownames(Slota_astrocyte_prion_markers_clean_CX_up)
 #Convert this gene SYMBOL list into Entrez ID:
-Slota_DEGs_entrez = bitr(Slota_DEGs, fromType = "SYMBOL", toType = "ENTREZID", OrgDb = org.Mm.eg.db)
+Slota_DEGs_CXup__entrez = bitr(Slota_CX_DEGs_up, fromType = "SYMBOL", toType = "ENTREZID", OrgDb = org.Mm.eg.db)
 
-pathway_results_Slota_DEGs = enrichGO(gene = Slota_DEGs_entrez$ENTREZID, OrgDb = org.Mm.eg.db, readable = T, ont= "BP", pvalueCutoff = 0.05, qvalueCutoff = 0.10)
+#GO over-representation
+Slota_CXup_GO_OvR = enrichGO(gene = Slota_DEGs_CXup__entrez$ENTREZID, OrgDb = org.Mm.eg.db, readable = T, ont= "BP", pvalueCutoff = 0.05, qvalueCutoff = 0.10)
 
-ggp = barplot(pathway_results_Slota_DEGs , showCategory=20)
-ggp2 = dotplot(pathway_results_Slota_DEGs, showCategory=10)
-ggp3 = goplot(pathway_results_Slota_DEGs, showCategory = 10)
-ggp4 = cnetplot(pathway_results_Slota_DEGs, categorySize=p.adjust)
+ggp = barplot(Slota_CXup_GO_OvR , showCategory=20)
+ggp2 = dotplot(Slota_CXup_GO_OvR, showCategory=10)
+ggp3 = goplot(Slota_CXup_GO_OvR, showCategory = 10)
+ggp4 = cnetplot(Slota_CXup_GO_OvR, categorySize=p.adjust)
 
 ggp
 ggp2
@@ -1012,35 +1052,14 @@ ggp4
 # ggsave("SlotaUpgoplot.jpeg", plot = ggp3, dpi = 300, width = 10, height = 10)
 # ggsave("SlotaUpcnetplot.jpeg", plot = ggp4, dpi = 300, width = 10, height = 10)
 
-```
 
-# Downregulated DEGS doesn't seem to work yet, too few DEGs?
-
-```{r}
-
-# Donwregulated genes
-Slota_astrocyte_prion_markers_clean_DOWN<-subset(Slota_astrocyte_prion_markers_clean, subset=avg_log2FC<(-0.25))
-
-#Create a list of just the genes: 
-Slota_DEGs_DOWN = rownames(Slota_astrocyte_prion_markers_clean_DOWN)
-#Convert this gene SYMBOL list into Entrez ID:
-Slota_DEGs_entrez_DOWN = bitr(Slota_DEGs_DOWN, fromType = "SYMBOL", toType = "ENTREZID", OrgDb = org.Mm.eg.db)
-
-pathway_results_Slota_DEGs_DOWN = enrichGO(gene = Slota_DEGs_entrez_DOWN$ENTREZID, OrgDb = org.Mm.eg.db, readable = T, ont= "BP", pvalueCutoff = 0.05, qvalueCutoff = 0.10)
-
-ggp5 = barplot(pathway_results_Slota_DEGs_DOWN , showCategory=20)
-ggp6 = dotplot(pathway_results_Slota_DEGs_DOWN, showCategory=10)
-ggp7 = goplot(pathway_results_Slota_DEGs_DOWN, showCategory = 10)
-ggp8 = cnetplot(pathway_results_Slota_DEGs_DOWN, categorySize=p.adjust)
-
-ggp5
-ggp6
-ggp7
-ggp8
-
-# ggsave("SlotaDownbarplot.jpeg", plot = ggp5, dpi = 300, width = 10, height = 10)
-# ggsave("SlotaDowndotplot.jpeg", plot = ggp6, dpi = 300, width = 10, height = 10)
-# ggsave("SlotaDowngoplot.jpeg", plot = ggp7, dpi = 300, width = 10, height = 10)
-# ggsave("SlotaDowncnetplot.jpeg", plot = ggp8, dpi = 300, width = 10, height = 10)
+#GO GSEA
+ego3 <- gseGO(geneList     = Slota_DEGs_CXup__entrez$ENTREZID,
+              OrgDb        = org.Mm.eg.db,
+              ont          = "ALL",
+              minGSSize    = 100,
+              maxGSSize    = 500,
+              pvalueCutoff = 0.05,
+              verbose      = FALSE)
 
 ```

@@ -158,12 +158,12 @@ sampleLabs<-names(Verity_total_clean@active.ident)
 #Assigning names to the samples to keep identity
 #From Chat GPT
 treat_detect <- case_when(
+  str_detect(sampleLabs, "sample11") ~ "AGEING", #assign this treatment condition first to avoid mis-labelling with sample1's label via str_detect
   str_detect(sampleLabs, "sample1") ~ "NBH",
   str_detect(sampleLabs, "sample2") ~ "NBH",
   str_detect(sampleLabs, "sample5") ~ "ME7",
   str_detect(sampleLabs, "sample6") ~ "ME7",
   str_detect(sampleLabs, "sample9") ~ "AGEING",
-  str_detect(sampleLabs, "sample11") ~ "AGEING",
   TRUE ~ NA_character_
 )
 
@@ -520,8 +520,8 @@ rm(p1, p2,p3,p4,p5,p6,p7,p8,p9,p10,p11,p12,p13, p14,p15,p16,p17,p17a,p17b)
 # Splitting the data by treatment 
 
 ```{r}
-Verity_Prion_comp<-subset(Verity_filtered_clean, subset=treatment=='NBH' | treatment=='ME7')
-Verity_Ageing_comp<-subset(Verity_filtered_clean, subset=treatment=='NBH' | treatment=='AGEING')
+Verity_Prion_comp<-subset(Verity_filtered_clean, subset=treatment==c('NBH','ME7'))
+Verity_Ageing_comp<-subset(Verity_filtered_clean, subset=treatment==c('NBH','AGEING'))
 
 Verity_comparisons<-list(Verity_Prion_comp,Verity_Ageing_comp)
 
@@ -605,6 +605,8 @@ Verity_comparisons <- lapply(Verity_comparisons, function(comp_pair) {
   
   return(comp_pair)
 })
+
+Verity_Prion_comp<-subset(Verity_comparisons[[1]], subset=sample !="sample11")
 
 #Split the data
 Verity_Prion_comp<-Verity_comparisons[[1]]
@@ -721,7 +723,6 @@ VlnPlot(Verity_Prion_comp, features = astrocyte_genes, group.by = 'RNA_snn_res.0
 #Glul is maybe a good indicator?
 ```
 
-#FIXME UP TO HERE
 
 ## (SingleR annotation)
 
@@ -731,17 +732,17 @@ Could go here, could be followed by bubbleplot
 Alternatively, load information from the spreadsheet at
 Analysis/ABCAM_markers.xlsx then bubble plot
 
-#Investigate astrocytes, ensure identification
+##Investigate astrocytes, ensure identification
 
 ```{r}
 # Convert cluster names to character
 Verity_Prion_comp@active.ident <- as.factor(Verity_Prion_comp$RNA_snn_res.0.2)
 
 #Subset out astrocytes
-Verity_Prion_comp_astrocytes<-subset(Verity_Prion_comp, idents=c('3','20','24'))
+Verity_Prion_comp_astrocytes<-subset(Verity_Prion_comp, idents=c('3','21','18'))
 ```
 
-#DEG work
+##DEG work
 
 Prepare the biomart info
 
@@ -817,8 +818,50 @@ save(Verity_astrocyte_prion_markers, file=paste0(plotting_path,"Verity_astrocyte
 table(Verity_Prion_comp_astrocytes$treatment)
 ```
 
+##Functional annotation
 
-## Ageing
+```{r}
+
+# Upregulated genes
+Verity_astrocyte_prion_markers_up<-subset(Verity_astrocyte_prion_markers, subset=avg_log2FC>0.25)
+
+#Create a list of just the genes: 
+Verity_Prion_DEGs_up = rownames(Verity_astrocyte_prion_markers_up$gene)
+#Convert this gene SYMBOL list into Entrez ID:
+Verity_DEGs_PrionUp__entrez = bitr(Verity_Prion_DEGs_up, fromType = "SYMBOL", toType = "ENTREZID", OrgDb = org.Mm.eg.db)
+
+#GO over-representation
+VerityPrion_up_GO_OvR = enrichGO(gene = Verity_DEGs_PrionUp__entrez$ENTREZID, OrgDb = org.Mm.eg.db, readable = T, ont= "BP", pvalueCutoff = 0.05, qvalueCutoff = 0.10)
+
+ggp = barplot(VerityPrion_up_GO_OvR , showCategory=20)
+ggp2 = dotplot(VerityPrion_up_GO_OvR, showCategory=10)
+ggp3 = goplot(VerityPrion_up_GO_OvR, showCategory = 10)
+ggp4 = cnetplot(VerityPrion_up_GO_OvR, categorySize=p.adjust)
+
+ggp
+ggp2
+ggp3
+ggp4
+
+# ggsave("SlotaUpbarplot.jpeg", plot = ggp, dpi = 300, width = 10, height = 10)
+# ggsave("SlotaUpdotplot.jpeg", plot = ggp2, dpi = 300, width = 10, height = 10)
+# ggsave("SlotaUpgoplot.jpeg", plot = ggp3, dpi = 300, width = 10, height = 10)
+# ggsave("SlotaUpcnetplot.jpeg", plot = ggp4, dpi = 300, width = 10, height = 10)
+
+
+#GO GSEA
+ego3 <- gseGO(geneList     = Verity_DEGs_PrionUp__entrez$ENTREZID,
+              OrgDb        = org.Mm.eg.db,
+              ont          = "ALL",
+              minGSSize    = 100,
+              maxGSSize    = 500,
+              pvalueCutoff = 0.05,
+              verbose      = FALSE)
+
+```
+
+
+# Ageing
 ```{r}
 #active assay RNA
 DefaultAssay(Verity_Ageing_comp)<-"RNA"
@@ -855,7 +898,7 @@ metrics <-  c("nUMI", "nGene", "mitoRatio")
 DimPlot(Verity_Ageing_comp , reduction = "umap", group.by = "treatment", raster=FALSE)+ ggtitle("Verity Hippocampal cells labelled by treatment")
 
 #cyclechange resolution number in group.by to see difference in clusters
-DimPlot(Verity_Ageing_comp, group.by = 'RNA_snn_res.0.3', reduction = 'umap', label = TRUE, repel = TRUE, raster=F)+ggtitle("Verity Hippocampal cells labelled by cluster numbers")
+DimPlot(Verity_Ageing_comp, group.by = 'RNA_snn_res.0.2', reduction = 'umap', label = TRUE, repel = TRUE, raster=F)+ggtitle("Verity Hippocampal cells labelled by cluster numbers", subtitle = "Clustering resolution 0.2")
 
 #adapted from https://github.com/hbctraining/scRNA-seq_online/blob/master/lessons/08_SC_clustering_quality_control.md#segregation-of-clusters-by-various-sources-of-uninteresting-variation
 
@@ -872,7 +915,7 @@ FeaturePlot(Verity_Ageing_comp,
 ## Save the singlets with a cluster resolution?
 #FIXME might not be required
  #set the idents to _____
-Verity_Ageing_comp@active.ident<-Verity_Ageing_comp@meta.data$RNA_snn_res.0.3
+Verity_Ageing_comp@active.ident<-Verity_Ageing_comp@meta.data$RNA_snn_res.0.2
 levels(Verity_Ageing_comp)
 
 rm(metrics)
@@ -893,10 +936,10 @@ astrocyte_genes<-c("Aldh1l1","Gfap","Slc1a2", "Slc1a3", "Glul", "Cd44")
 FeaturePlot(Verity_Ageing_comp,features=astrocyte_genes, raster=F)#+ggtitle("Verity data, labelled with astrocyte gene markers from ABCAM", subtitle="Clustering resolution 0.3, 20 PCs used")
 
 #As a reminder...
-DimPlot(Verity_Ageing_comp, group.by = 'RNA_snn_res.0.3', reduction = 'umap', label = TRUE, repel = TRUE, raster=F)+ggtitle("Integrated Verity data, labelled by cluster numbers", subtitle="RPCA,Clustering resolution 0.3, 20 PCs used")
+DimPlot(Verity_Ageing_comp, group.by = 'RNA_snn_res.0.2', reduction = 'umap', label = TRUE, repel = TRUE, raster=F)+ggtitle("Integrated Verity data, labelled by cluster numbers", subtitle="Clustering resolution 0.2")
 
 #No compare to the plots of astrocyte genes
-VlnPlot(Verity_Ageing_comp, features = astrocyte_genes, group.by = 'RNA_snn_res.0.3', pt.size = 0.0)
+VlnPlot(Verity_Ageing_comp, features = astrocyte_genes, group.by = 'RNA_snn_res.0.2', pt.size = 0.0)
 
 #Glul is maybe a good indicator?
 ```
@@ -911,17 +954,17 @@ Could go here, could be followed by bubbleplot
 Alternatively, load information from the spreadsheet at
 Analysis/ABCAM_markers.xlsx then bubble plot
 
-#Investigate astrocytes, ensure identification
+##Investigate astrocytes
 
 ```{r}
 # Convert cluster names to character
-Idents(Verity_Ageing_comp) <- Verity_Ageing_comp$RNA_snn_res.0.3
+Idents(Verity_Ageing_comp) <- Verity_Ageing_comp$RNA_snn_res.0.2
 
 #Subset out astrocytes
-Verity_Ageing_comp_astrocytes<-subset(Verity_Ageing_comp, idents=c('5','10','22'))
+Verity_Ageing_comp_astrocytes<-subset(Verity_Ageing_comp, idents=c('4','19'))
 ```
 
-#DEG work
+##DEG work
 
 ```{r}
 
@@ -945,7 +988,7 @@ save(Verity_Ageing_comp_astrocytes, file="Rdata/Verity_Ageing_comp_astrocytes.Rd
 DimPlot(Verity_Ageing_comp_astrocytes, reduction = 'umap',  raster=F, group.by='treatment')+ggtitle("Verity data's CX astrocytes", subtitle="Labelled by treatment")
 
 #Show the clustering of subset astrocytes
-DimPlot(Verity_Ageing_comp_astrocytes, group.by = 'RNA_snn_res.0.2', reduction = 'umap', repel = TRUE, raster=F, seed.use=42)
+DimPlot(Verity_Ageing_comp_astrocytes, group.by = 'RNA_snn_res.0.2', reduction = 'umap', repel = TRUE, raster=F)
 
 #Show sample disctribution in clusters of astrocytes
 DimPlot(Verity_Ageing_comp_astrocytes, group.by = 'sample', reduction = 'umap', repel = TRUE, raster=F)
@@ -987,72 +1030,3 @@ save(Verity_astrocyte_ageing_markers, file=paste0(plotting_path,"Verity_astrocyt
 table(Verity_Ageing_comp_astrocytes$treatment)
 ```
 
-
-
-# Previous work 
-
-
-
-#Functional annotation 
-
-```{r}
-
-#load("Rdata/Verity_astrocyte_prion_markers_clean.RData")
-
-# Upregulated genes
-Verity_astrocyte_prion_markers_clean_UP<-subset(Verity_astrocyte_prion_markers_clean, subset=avg_log2FC>0.25)
-
-#Create a list of just the genes: 
-Verity_DEGs = rownames(Verity_astrocyte_prion_markers_clean_UP)
-#Convert this gene SYMBOL list into Entrez ID:
-Verity_DEGs_entrez = bitr(Verity_DEGs, fromType = "SYMBOL", toType = "ENTREZID", OrgDb = org.Mm.eg.db)
-
-pathway_results_Verity_DEGs = enrichGO(gene = Verity_DEGs_entrez$ENTREZID, OrgDb = org.Mm.eg.db, readable = T, ont= "BP", pvalueCutoff = 0.05, qvalueCutoff = 0.10)
-
-ggp = barplot(pathway_results_Verity_DEGs , showCategory=20)
-ggp2 = dotplot(pathway_results_Verity_DEGs, showCategory=10)
-ggp3 = goplot(pathway_results_Verity_DEGs, showCategory = 10)
-ggp4 = cnetplot(pathway_results_Verity_DEGs, categorySize=p.adjust)
-
-ggp
-ggp2
-ggp3
-ggp4
-
-# ggsave("VerityUpbarplot.jpeg", plot = ggp, dpi = 300, width = 10, height = 10)
-# ggsave("VerityUpdotplot.jpeg", plot = ggp2, dpi = 300, width = 10, height = 10)
-# ggsave("VerityUpgoplot.jpeg", plot = ggp3, dpi = 300, width = 10, height = 10)
-# ggsave("VerityUpcnetplot.jpeg", plot = ggp4, dpi = 300, width = 10, height = 10)
-
-```
-
-# Downregulated DEGS doesn't seem to work yet, too few DEGs?
-
-```{r}
-
-# Donwregulated genes
-Verity_astrocyte_prion_markers_clean_DOWN<-subset(Verity_astrocyte_prion_markers_clean, subset=avg_log2FC<(-0.25))
-
-#Create a list of just the genes: 
-Verity_DEGs_DOWN = rownames(Verity_astrocyte_prion_markers_clean_DOWN)
-#Convert this gene SYMBOL list into Entrez ID:
-Verity_DEGs_entrez_DOWN = bitr(Verity_DEGs_DOWN, fromType = "SYMBOL", toType = "ENTREZID", OrgDb = org.Mm.eg.db)
-
-pathway_results_Verity_DEGs_DOWN = enrichGO(gene = Verity_DEGs_entrez_DOWN$ENTREZID, OrgDb = org.Mm.eg.db, readable = T, ont= "BP", pvalueCutoff = 0.05, qvalueCutoff = 0.10)
-
-ggp5 = barplot(pathway_results_Verity_DEGs_DOWN , showCategory=20)
-ggp6 = dotplot(pathway_results_Verity_DEGs_DOWN, showCategory=10)
-ggp7 = goplot(pathway_results_Verity_DEGs_DOWN, showCategory = 10)
-ggp8 = cnetplot(pathway_results_Verity_DEGs_DOWN, categorySize=p.adjust)
-
-ggp5
-ggp6
-ggp7
-ggp8
-
-# ggsave("VerityDownbarplot.jpeg", plot = ggp5, dpi = 300, width = 10, height = 10)
-# ggsave("VerityDowndotplot.jpeg", plot = ggp6, dpi = 300, width = 10, height = 10)
-# ggsave("VerityDowngoplot.jpeg", plot = ggp7, dpi = 300, width = 10, height = 10)
-# ggsave("VerityDowncnetplot.jpeg", plot = ggp8, dpi = 300, width = 10, height = 10)
-
-```
