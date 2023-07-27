@@ -234,8 +234,7 @@ dev.off()
 
 ```{r}
 #Save the data object
-save(Verity_total_clean, file="./Rdata/Verity_total_clean.RData")
-
+save(Verity_total_clean, file=paste0(plotting_path,"Verity_total_clean.RData"))
 gc()
 ```
 
@@ -511,13 +510,14 @@ gc()
 
 ```{r}
 # Create .RData object to load at any time
-save(Verity_filtered_clean, file="./Rdata/Verity_filtered_clean.RData")
+save(Verity_filtered_clean, file=paste0(plotting_path,"Verity_filtered_clean.RData"))
 
 rm(p1, p2,p3,p4,p5,p6,p7,p8,p9,p10,p11,p12,p13, p14,p15,p16,p17,p17a,p17b)
 ```
 
 
-# Splitting the data by treatment 
+# DoubletFinder 
+##Splitting the data by treatment 
 
 ```{r}
 Verity_Prion_comp<-subset(Verity_filtered_clean, subset=treatment==c('NBH','ME7'))
@@ -530,12 +530,12 @@ gc()
 ```
 
 
-# Doublet finder for treatment comparisons separately
+## Doublet finder for treatment comparisons separately
 
 ```{r}
 
 #load in the filtered Verity object
-#load("./Rdata/Verity_filtered_clean.RData")
+#load(paste0(plotting_path,"Verity_filtered_clean.RData")
 
 #adapted from https://youtu.be/p49seH2_i8Y , https://github.com/kpatel427/YouTubeTutorials/blob/5b3c795cecafb22f0e992da069eae2efd6b5cb95/singleCell_doublets.R , https://rpubs.com/kenneditodd/doublet_finder_example 
 
@@ -589,7 +589,7 @@ Verity_comparisons <- lapply(Verity_comparisons, function(comp_pair) {
 })
 ```
 
-## Split the data, rename doubletfinder metadata and Show Doublets for each comparison group witihn Verity data. Retain singlets
+# Split the data, rename doubletfinder metadata and Show Doublets for each comparison group witihn Verity data. Retain singlets
 
 ```{r}
 
@@ -628,7 +628,7 @@ dev.off()
 
 
 #Save the data with Doublets retained too
-save(Verity_comparisons, file="Rdata/Verity_comparisons.RData")
+save(Verity_comparisons, file=paste0(plotting_path,"Verity_comparisons.RData"))
 
 #subset data by singlet status and save list of singlets to continue with
 #FIXME might need to be in loop or explicit if subsetting doesn't work
@@ -643,7 +643,6 @@ gc()
 ```{r}
 #active assay RNA
 DefaultAssay(Verity_Prion_comp)<-"RNA"
-
 
 #DimReduc again
 #https://github.com/hbctraining/scRNA-seq_online/blob/master/lessons/06_SC_SCT_normalization.md
@@ -665,7 +664,7 @@ Verity_Prion_comp <- RunUMAP(Verity_Prion_comp, reduction = "pca", dims = 1:30, 
 Verity_Prion_comp <- FindNeighbors(Verity_Prion_comp, reduction = "pca", dims = 1:30)
 Verity_Prion_comp <- FindClusters(Verity_Prion_comp, resolution = c(0.2,0.3,0.5,0.7,1))
 #Save the object
-save(Verity_Prion_comp,file="Rdata/Verity_Prion_comp.Rdata")
+save(Verity_Prion_comp,file=paste0(plotting_path,"Verity_Prion_comp.Rdata"))
 
 
 # Visualise the clustering resolutions for cluster number
@@ -739,7 +738,10 @@ Analysis/ABCAM_markers.xlsx then bubble plot
 Verity_Prion_comp@active.ident <- as.factor(Verity_Prion_comp$RNA_snn_res.0.2)
 
 #Subset out astrocytes
-Verity_Prion_comp_astrocytes<-subset(Verity_Prion_comp, idents=c('3','21','18'))
+Verity_Prion_comp_astrocytes<-subset(Verity_Prion_comp, idents=c('6','11'))
+
+save(Verity_Prion_comp,file=paste0(plotting_path,"Verity_Prion_comp.Rdata"))
+Verity_Prion_comp_astrocytes
 ```
 
 ##DEG work
@@ -770,13 +772,13 @@ Verity_Prion_comp_astrocytes <- FindNeighbors(Verity_Prion_comp_astrocytes, redu
 Verity_Prion_comp_astrocytes <- FindClusters(Verity_Prion_comp_astrocytes, resolution = c(0.2,0.3,0.5,0.7,1))
 
 #save for reloading
-save(Verity_Prion_comp_astrocytes, file="Rdata/Verity_Prion_comp_astrocytes.Rdata")
+save(Verity_Prion_comp_astrocytes, file=paste0(plotting_path,"Verity_Prion_comp_astrocytes.Rdata"))
 
 #cyclechange resolution number in group.by to see difference in clusters
 DimPlot(Verity_Prion_comp_astrocytes, reduction = 'umap',  raster=F, group.by='treatment')+ggtitle("Verity data's HP astrocytes", subtitle="Labelled by treatment")
 
 #Show the clustering of subset astrocytes
-DimPlot(Verity_Prion_comp_astrocytes, group.by = 'RNA_snn_res.0.2', reduction = 'umap', repel = TRUE, raster=F)
+DimPlot(Verity_Prion_comp_astrocytes, group.by = 'RNA_snn_res.0.3', reduction = 'umap', repel = TRUE, raster=F)
 
 #Show sample disctribution in clusters of astrocytes
 DimPlot(Verity_Prion_comp_astrocytes, group.by = 'sample', reduction = 'umap', repel = TRUE, raster=F)
@@ -784,8 +786,8 @@ DimPlot(Verity_Prion_comp_astrocytes, group.by = 'sample', reduction = 'umap', r
 #Show astrocyte markers in astrocyte subset
 FeaturePlot(Verity_Prion_comp_astrocytes,features=c('Gfap','Cd44'), raster=F)
 
-#set the idents to 0.2
-Verity_Prion_comp_astrocytes@active.ident<-(Verity_Prion_comp_astrocytes@meta.data$RNA_snn_res.0.2)
+#set the idents to 0.3
+Verity_Prion_comp_astrocytes@active.ident<-(Verity_Prion_comp_astrocytes@meta.data$RNA_snn_res.0.3)
 levels(Verity_Prion_comp_astrocytes)
 
 DefaultAssay(Verity_Prion_comp_astrocytes)<-'RNA'
@@ -801,13 +803,19 @@ Verity_astrocyte_prion_markers<-Verity_astrocyte_prion_markers[order(-Verity_ast
 #Use biomart info
 Verity_astrocyte_prion_markers$gene<-rownames(Verity_astrocyte_prion_markers)
 
+#check for duplicates
+Verity_astrocyte_prion_markers[duplicated(Verity_astrocyte_prion_markers$gene),]
+
+Verity_astrocyte_prion_markers<-Verity_astrocyte_prion_markers[!duplicated(Verity_astrocyte_prion_markers$gene),]
+
+#make list of genes
 gene_ids <- unique(Verity_astrocyte_prion_markers$gene)
   
 #get relevant info from the mart
 gene_info <- getBM(attributes = c("external_gene_name", "description","chromosome_name"), filters = "external_gene_name", values = gene_ids, mart = m)
   
 #apply the info to the gene list
-  Verity_astrocyte_prion_markers <- merge(Verity_astrocyte_prion_markers, gene_info, by.x = "gene", by.y = "external_gene_name", all.x = TRUE)
+Verity_astrocyte_prion_markers <- merge(Verity_astrocyte_prion_markers, gene_info, by.x = "gene", by.y = "external_gene_name", all.x = TRUE)
   
 
 #Save the file
@@ -823,37 +831,21 @@ table(Verity_Prion_comp_astrocytes$treatment)
 ```{r}
 
 # Upregulated genes
-Verity_astrocyte_prion_markers_up<-subset(Verity_astrocyte_prion_markers, subset=avg_log2FC>0.25&p_val_adj<0.05) #Added p value filter here
+Verity_astrocyte_prion_markers_up<-subset(Verity_astrocyte_prion_markers, subset=avg_log2FC>(0.25)&p_val_adj<0.05) #Added p value filter here
 
 #Create a list of just the genes: 
 Verity_Prion_DEGs_up = (Verity_astrocyte_prion_markers_up$gene)
 #Convert this gene SYMBOL list into Entrez ID:
-Verity_DEGs_AgeingUp__entrez = bitr(Verity_Prion_DEGs_up, fromType = "SYMBOL", toType = "ENTREZID", OrgDb = org.Mm.eg.db)
+Verity_DEGs_PrionUp__entrez = bitr(Verity_Prion_DEGs_up, fromType = "SYMBOL", toType = "ENTREZID", OrgDb = org.Mm.eg.db)#, drop=F) #uncomment end of line to see non mapping genes, which do not exist in the original list
+#Warning! some genes not mapping, see:
+# View(Verity_DEGs_PrionUp__entrez[is.na(Verity_DEGs_PrionUp__entrez$ENTREZID),])
+
 #Remove NAs
-Verity_DEGs_AgeingUp__entrez <-na.omit(Verity_DEGs_AgeingUp__entrez)
+Verity_DEGs_PrionUp__entrez <-na.omit(Verity_DEGs_PrionUp__entrez)
 
 #GO over-representation
-VerityAgeing_up_GO_OvR = enrichGO(gene = Verity_DEGs_AgeingUp__entrez$ENTREZID, OrgDb = org.Mm.eg.db, readable = T, ont= "BP", pvalueCutoff = 0.05, qvalueCutoff = 0.10)
+VerityPrion_up_GO_OvR = enrichGO(gene = Verity_DEGs_PrionUp__entrez$ENTREZID, OrgDb = org.Mm.eg.db, readable = T, ont= "BP", pvalueCutoff = 0.05, qvalueCutoff = 0.10)
 
-ggp = barplot(VerityAgeing_up_GO_OvR , showCategory=20)
-ggp2 = dotplot(VerityAgeing_up_GO_OvR, showCategory=10)
-ggp3 = goplot(VerityAgeing_up_GO_OvR, showCategory = 10)
-ggp4 = cnetplot(VerityAgeing_up_GO_OvR, categorySize=p.adjust)
-ggp5<- cnetplot(VerityAgeing_up_GO_OvR, categorySize="pvalue", foldChange=geneList)
-ggp6<-heatplot(VerityAgeing_up_GO_OvR, foldChange=geneList, showCategory=20)
-
-
-ggp
-ggp2
-ggp3
-ggp4
-ggp5
-ggp6
-
-
-#GO GSEA
-
-#returns none at the moment
 
 ## feature 1: numeric vector
 geneList = Verity_astrocyte_prion_markers$avg_log2FC
@@ -863,18 +855,93 @@ names(geneList) = as.character(
   (bitr(Verity_astrocyte_prion_markers$gene, fromType = "SYMBOL", toType = "ENTREZID", OrgDb = org.Mm.eg.db))$ENTREZID
 )
 
+#There are non mappings here, shouldn't just be Rik genes as they will be gone by now.....
+table(duplicated(names(geneList)))
+
 ## feature 3: decreasing orde
 geneList = sort(geneList, decreasing = TRUE)
 
-ego3 <- gseGO(geneList     = geneList, #full list of DEGs
-              OrgDb        = org.Mm.eg.db,
-              ont          = "ALL",
-              minGSSize    = 100,
-              maxGSSize    = 500,
-              pvalueCutoff = 0.05,
-              verbose      = FALSE)
-ego3
+ggp = barplot(VerityPrion_up_GO_OvR , showCategory=20)
+ggp2 = dotplot(VerityPrion_up_GO_OvR, showCategory=20)
+ggp3 = goplot(VerityPrion_up_GO_OvR, showCategory = 20)
+ggp4 = cnetplot(VerityPrion_up_GO_OvR, categorySize=p.adjust)
+ggp5<- cnetplot(VerityPrion_up_GO_OvR, categorySize="pvalue")#, foldChange=geneList)
+ggp6<-heatplot(VerityPrion_up_GO_OvR, showCategory=20)#,foldChange=geneList)
 
+
+ggp
+ggp2
+ggp3
+ggp4
+ggp5
+ggp6
+
+png(paste0(plotting_path,"Verity_Prion_GOR_barplot.png"), width = 1000,height = 750)
+ggp
+dev.off()
+png(paste0(plotting_path,"Verity_Prion_GOR_dotplot.png"), width = 1000,height = 750)
+ggp2
+dev.off()
+png(paste0(plotting_path,"Verity_Prion_GOR_goplot.png"), width = 1000,height = 750)
+ggp3
+dev.off()
+png(paste0(plotting_path,"Verity_Prion_GOR_cnetplot.png"), width = 1000,height = 750)
+ggp4
+dev.off()
+png(paste0(plotting_path,"Verity_Prion_GOR_cnetplot2.png"), width = 1000,height = 750)
+ggp5
+dev.off()
+png(paste0(plotting_path,"Verity_Prion_GOR_heatplot.png"), width = 1000,height = 750)
+ggp6
+dev.off()
+
+#GO GSEA
+
+#returns none at the moment
+
+
+
+
+#FIXME
+
+#create list of the original DEG list but with ranking? check guides
+#Verity_astrocyte_prion_markers
+
+# ego3 <- gseGO(geneList     = geneList, #This is the DEG list full list of DEGs
+#               OrgDb        = org.Mm.eg.db,
+#               ont          = "ALL",
+#               minGSSize    = 100,
+#               maxGSSize    = 500,
+#               pvalueCutoff = 0.05,
+#               verbose      = FALSE)
+# ego3
+
+```
+
+
+```{r}
+#BiocManager::install("ReactomePA")
+library(ReactomePA)
+
+#Reactome over-representation
+x <- enrichPathway(gene=Verity_DEGs_PrionUp__entrez$ENTREZID, pvalueCutoff = 0.05, readable=TRUE, organism = "mouse")
+head(x)
+
+#Reactome GSEA
+y <- gsePathway(geneList, 
+                pvalueCutoff = 0.05,
+                pAdjustMethod = "BH",
+                organism = "mouse",
+                verbose = FALSE)
+data.frame(y)
+
+
+ridgeplot(y)
+
+#Visualisation 
+viewPathway("activated TAK1 mediates p38 MAPK activation", #specify the pathway of interest
+            readable = TRUE, 
+            foldChange = geneList) #see fold change of present genes in our filtered DEG list
 ```
 
 
@@ -903,7 +970,7 @@ Verity_Ageing_comp <- RunUMAP(Verity_Ageing_comp, reduction = "pca", dims = 1:30
 Verity_Ageing_comp <- FindNeighbors(Verity_Ageing_comp, reduction = "pca", dims = 1:30)
 Verity_Ageing_comp <- FindClusters(Verity_Ageing_comp, resolution = c(0.2,0.3,0.5,0.7,1))
 #Save the object
-save(Verity_Ageing_comp,file="Rdata/Verity_Ageing_comp.Rdata")
+save(Verity_Ageing_comp,file=paste0(plotting_path,"Verity_Ageing_comp.Rdata"))
 
 
 # Visualise the clustering resolutions for cluster number
@@ -937,9 +1004,8 @@ levels(Verity_Ageing_comp)
 
 rm(metrics)
 ```
-```{r}
-#load("Rdata/Slo_singlets_merged_clean.Rdata")
 
+```{r}
 DefaultAssay(Verity_Ageing_comp)<-"RNA"
 
 #Check for a gene of interest in the data's geneset
@@ -978,7 +1044,7 @@ Analysis/ABCAM_markers.xlsx then bubble plot
 Idents(Verity_Ageing_comp) <- Verity_Ageing_comp$RNA_snn_res.0.2
 
 #Subset out astrocytes
-Verity_Ageing_comp_astrocytes<-subset(Verity_Ageing_comp, idents=c('4','19'))
+Verity_Ageing_comp_astrocytes<-subset(Verity_Ageing_comp, idents=c('4','18'))
 ```
 
 ##DEG work
@@ -999,7 +1065,7 @@ Verity_Ageing_comp_astrocytes <- FindNeighbors(Verity_Ageing_comp_astrocytes, re
 Verity_Ageing_comp_astrocytes <- FindClusters(Verity_Ageing_comp_astrocytes, resolution = c(0.2,0.3,0.5,0.7,1))
 
 #save for reloading
-save(Verity_Ageing_comp_astrocytes, file="Rdata/Verity_Ageing_comp_astrocytes.Rdata")
+save(Verity_Ageing_comp_astrocytes, file=paste0(plotting_path,"Verity_Ageing_comp_astrocytes.Rdata"))
 
 #cyclechange resolution number in group.by to see difference in clusters
 DimPlot(Verity_Ageing_comp_astrocytes, reduction = 'umap',  raster=F, group.by='treatment')+ggtitle("Verity data's CX astrocytes", subtitle="Labelled by treatment")
@@ -1055,7 +1121,7 @@ Ageing is not giving many genes with logfc2 > 0.25, so functional annotation not
 ```{r}
 
 # Upregulated genes
-Verity_astrocyte_ageing_markers_up<-subset(Verity_astrocyte_ageing_markers,subset=avg_log2FC>(0.25))#&p_val_adj<(0.05)) #Added p value filter here
+Verity_astrocyte_ageing_markers_up<-subset(Verity_astrocyte_ageing_markers,subset=avg_log2FC>(0.25)&p_val_adj<(0.05)) #Added p value filter here
 
 #Create a list of just the genes: 
 Verity_Ageing_DEGs_up = (Verity_astrocyte_ageing_markers_up$gene)
@@ -1067,25 +1133,6 @@ Verity_DEGs_AgeingUp__entrez <-na.omit(Verity_DEGs_AgeingUp__entrez)
 #GO over-representation
 VerityAgeing_up_GO_OvR = enrichGO(gene = Verity_DEGs_AgeingUp__entrez$ENTREZID, OrgDb = org.Mm.eg.db, readable = T, ont= "BP", pvalueCutoff = 0.05, qvalueCutoff = 0.10)
 
-ggp7 = barplot(VerityAgeing_up_GO_OvR , showCategory=20)
-ggp8 = dotplot(VerityAgeing_up_GO_OvR, showCategory=10)
-ggp9 = goplot(VerityAgeing_up_GO_OvR, showCategory = 10)
-ggp10 = cnetplot(VerityAgeing_up_GO_OvR, categorySize=p.adjust)
-ggp11<- cnetplot(VerityAgeing_up_GO_OvR, categorySize="pvalue", foldChange=geneList)
-ggp12<-heatplot(VerityAgeing_up_GO_OvR, foldChange=geneList, showCategory=20)
-
-
-ggp7 
-ggp8 
-ggp9 
-ggp10
-ggp11
-ggp12
-
-
-#GO GSEA
-
-#returns none at the moment
 
 ## feature 1: numeric vector
 geneList = Verity_astrocyte_ageing_markers$avg_log2FC
@@ -1098,13 +1145,54 @@ names(geneList) = as.character(
 ## feature 3: decreasing orde
 geneList = sort(geneList, decreasing = TRUE)
 
-ego4 <- gseGO(geneList     = geneList, #full list of DEGs
-              OrgDb        = org.Mm.eg.db,
-              ont          = "ALL",
-              minGSSize    = 100,
-              maxGSSize    = 500,
-              pvalueCutoff = 0.05,
-              verbose      = FALSE)
-ego4
+ggp7 = barplot(VerityAgeing_up_GO_OvR , showCategory=20)
+ggp8 = dotplot(VerityAgeing_up_GO_OvR, showCategory=20)
+ggp9 = goplot(VerityAgeing_up_GO_OvR, showCategory = 20)
+ggp10 = cnetplot(VerityAgeing_up_GO_OvR, categorySize=p.adjust)
+ggp11<- cnetplot(VerityAgeing_up_GO_OvR, categorySize="pvalue")#, foldChange=geneList)
+ggp12<-heatplot(VerityAgeing_up_GO_OvR, showCategory=20)#,foldChange=geneList)
+
+
+ggp7 
+ggp8 
+ggp9 
+ggp10
+ggp11
+ggp12
+
+
+png(paste0(plotting_path,"Verity_Ageing_GOR_barplot.png"), width = 1000,height = 750)
+ggp7
+dev.off()
+png(paste0(plotting_path,"Verity_Ageing_GOR_dotplot.png"), width = 1000,height = 750)
+ggp8
+dev.off()
+png(paste0(plotting_path,"Verity_Ageing_GOR_goplot.png"), width = 1000,height = 750)
+ggp9
+dev.off()
+png(paste0(plotting_path,"Verity_Ageing_GOR_cnetplot.png"), width = 1000,height = 750)
+ggp10
+dev.off()
+png(paste0(plotting_path,"Verity_Ageing_GOR_cnetplot2.png"), width = 1000,height = 750)
+ggp11
+dev.off()
+png(paste0(plotting_path,"Verity_Ageing_GOR_heatplot.png"), width = 1000,height = 750)
+ggp12
+dev.off()
+
+#GO GSEA
+
+#returns none at the moment
+
+
+# 
+# ego4 <- gseGO(geneList     = geneList, #full list of DEGs
+#               OrgDb        = org.Mm.eg.db,
+#               ont          = "ALL",
+#               minGSSize    = 100,
+#               maxGSSize    = 500,
+#               pvalueCutoff = 0.05,
+#               verbose      = FALSE)
+# ego4
 
 ```

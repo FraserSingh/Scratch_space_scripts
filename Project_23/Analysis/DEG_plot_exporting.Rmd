@@ -22,19 +22,42 @@ library(DESeq2)
 # install_github("immunogenomics/harmony")
 ```
 
-## Add annotation from ensembl for gene description, ensembl ID and chromosome location
+# Set env variables
+
+```{r}
+
+#For loading
+dir_name_ver <- "Verity_plots" #change depending on run to pull data from
+plotting_path_ver<-paste0("./", dir_name_ver,"/")
+
+
+dir_name_term <- "Terminal_sample_investigation"
+plotting_path_term<-paste0("./", dir_name_term,"/")
+
+#For saving #Change this for each run!
+dir_name_term <- "Venn_270723_1"
+# create folder:
+system(paste0("mkdir ", dir_name_term))
+plotting_path_DEG_comp<-paste0("./", dir_name_term,"/")
+
+```
+
+
+# Add annotation from ensembl for gene description, ensembl ID and chromosome location
 
 ```{r}
 # load the markers for Verity
-load("Rdata/Verity_astrocyte_prion_markers_clean.RData")
+load(paste0(plotting_path_ver,"Verity_astrocyte_prion_markers.RData"))
+load(paste0(plotting_path_ver,"Verity_astrocyte_ageing_markers.RData"))
 
 #load the markers for Slota Hippocampus
-load("Rdata/Slota_astrocyte_prion_markers_clean_HP.RData")
-load("Rdata/Slota_astrocyte_prion_markers_clean_CX.RData")
+load(paste0(plotting_path_term,"Slota_astrocyte_prion_markers_clean_HP.RData"))
+load(paste0(plotting_path_term,"Slota_astrocyte_prion_markers_clean_CX.RData"))
 
 
-#filter the data so that avg_log2FC > 0.5, p_val_adj<0.05
-DEG_data_Verity_Slota<-list(Slota_astrocyte_prion_markers_clean_CX,Slota_astrocyte_prion_markers_clean_HP,Verity_astrocyte_prion_markers_clean)
+#Make list from DEG lists
+DEG_data_Verity_Slota<-list(Slota_astrocyte_prion_markers_clean_CX,Slota_astrocyte_prion_markers_clean_HP,Verity_astrocyte_prion_markers,Verity_astrocyte_ageing_markers)
+
 ```
 
 #Remove duplicates based on emsembl IDs and make volcano plots
@@ -57,83 +80,88 @@ FCcutoff = 0.25)
 ```
 
 
-
-## VennDiagram prep
+# VennDiagram 
+##Prep
 
 ```{r}
 
 #Plot raw list
 
-DEG_names_SLota_CX_RAW<-(DEG_data_Verity_Slota[[1]]$gene)
-DEG_names_SLota_HP_RAW<-(DEG_data_Verity_Slota[[2]]$gene)
-DEG_names_Verity_RAW<-(DEG_data_Verity_Slota[[3]]$gene)
+DEG_names_Terminal_CX_RAW<-(DEG_data_Verity_Slota[[1]]$gene)
+DEG_names_Terminal_HP_RAW<-(DEG_data_Verity_Slota[[2]]$gene)
+DEG_names_Verity_PRION_RAW<-(DEG_data_Verity_Slota[[3]]$gene)
+DEG_names_Verity_AGEING_RAW<-(DEG_data_Verity_Slota[[4]]$gene)
 
 library(gplots)
 # Create a Venn-diagram given just the list of gene-names for both sets
-venn_diagram_RAW <- venn(list("Verity_HP" = DEG_names_Verity_RAW,
-                          "SlotA_HP" = DEG_names_SLota_HP_RAW,
-                          "Slota_CX" = DEG_names_SLota_CX_RAW))
+venn_diagram_RAW <- venn(list("Verity PRION" = DEG_names_Verity_PRION_RAW,
+                              "Verity AGEING" = DEG_names_Verity_AGEING_RAW,
+                              "Terminal HP" = DEG_names_Terminal_HP_RAW,
+                              "Terminal CX" = DEG_names_Terminal_CX_RAW))
 
 # Inspect the list of classifications
 interactions_RAW<-attr(venn_diagram_RAW,"intersections")
 interactions_RAW
 interactions_RAW<-(t(data.frame(t(sapply(interactions_RAW,c)))))
-write.csv(interactions_RAW, file= "venndiagramGenesRelaxed_RAW.csv ")
+write.csv(interactions_RAW, file=paste0(plotting_path_DEG_comp,"VennGenes_RAW.csv"))
 
 
 #Filter data
 DEG_data_Verity_Slota_UP <- lapply(DEG_data_Verity_Slota, function(DEG_part) {
-  DEG_part<-subset(DEG_part,subset=avg_log2FC > 0.25 & p_val_adj<0.05)
+  DEG_part<-subset(DEG_part,subset=avg_log2FC > (0.25) & p_val_adj<(0.05))
   return(DEG_part)
 })
 
 DEG_data_Verity_Slota_DOWN <- lapply(DEG_data_Verity_Slota, function(DEG_part) {
-  DEG_part<-subset(DEG_part,subset=avg_log2FC < -0.25 & p_val_adj<0.05)
+  DEG_part<-subset(DEG_part,subset=avg_log2FC < (-0.25) & p_val_adj<(0.05))
   return(DEG_part)
 })
 
 #Plot Up
 
 #make character vectors of names
-DEG_names_SLota_CX_UP<-(DEG_data_Verity_Slota_UP[[1]]$gene)
-DEG_names_SLota_HP_UP<-(DEG_data_Verity_Slota_UP[[2]]$gene)
-DEG_names_Verity_UP<-(DEG_data_Verity_Slota_UP[[3]]$gene)
-
+DEG_names_Terminal_CX_UP<-(DEG_data_Verity_Slota_UP[[1]]$gene)
+DEG_names_Terminal_HP_UP<-(DEG_data_Verity_Slota_UP[[2]]$gene)
+DEG_names_Verity_PRION_UP<-(DEG_data_Verity_Slota_UP[[3]]$gene)
+DEG_names_Verity_AGEING_UP<-(DEG_data_Verity_Slota_UP[[4]]$gene)
 
 
 # Create a Venn-diagram given just the list of gene-names for both sets
-venn_diagram_UP <- venn(list("Verity_HP" = DEG_names_Verity_UP,
-                          "SlotA_HP" = DEG_names_SLota_HP_UP,
-                          "Slota_CX" = DEG_names_SLota_CX_UP))
+venn_diagram_UP <- venn(list("Verity PRION UP" = DEG_names_Verity_PRION_UP,
+                              # "Verity AGEING UP" = DEG_names_Verity_AGEING_UP,
+                              "Terminal HP UP" = DEG_names_Terminal_HP_UP,
+                              "Terminal CX UP" = DEG_names_Terminal_CX_UP))
 
 # Inspect the list of classifications
 interactions_UP<-attr(venn_diagram_UP,"intersections")
 interactions_UP
 interactions_UP<-(t(data.frame(t(sapply(interactions_UP,c)))))
-write.csv(interactions_UP, file= "venndiagramGenesClean_UP.csv ")
+write.csv(interactions_UP, file=paste0(plotting_path_DEG_comp,"VennGenes_UP.csv"))
 
 #Plot Down
 
 #make character vectors of names
-DEG_names_SLota_CX_DOWN<-(DEG_data_Verity_Slota_DOWN[[1]]$gene)
-DEG_names_SLota_HP_DOWN<-(DEG_data_Verity_Slota_DOWN[[2]]$gene)
-DEG_names_Verity_DOWN<-(DEG_data_Verity_Slota_DOWN[[3]]$gene)
+DEG_names_Terminal_CX_DOWN<-(DEG_data_Verity_Slota_DOWN[[1]]$gene)
+DEG_names_Terminal_HP_DOWN<-(DEG_data_Verity_Slota_DOWN[[2]]$gene)
+DEG_names_Verity_PRION_DOWN<-(DEG_data_Verity_Slota_DOWN[[3]]$gene)
+DEG_names_Verity_AGEING_DOWN<-(DEG_data_Verity_Slota_DOWN[[4]]$gene)
 
 library(gplots)
 # Create a Venn-diagram given just the list of gene-names for both sets
-venn_diagram_DOWN <- venn(list("Verity_HP" = DEG_names_Verity_DOWN,
-                          "SlotA_HP" = DEG_names_SLota_HP_DOWN,
-                          "Slota_CX" = DEG_names_SLota_CX_DOWN))
+venn_diagram_DOWN <- venn(list("Verity PRION DOWN" = DEG_names_Verity_PRION_DOWN,
+                              # "Verity AGEING DOWN" = DEG_names_Verity_AGEING_DOWN,
+                              "Terminal HP DOWN" = DEG_names_Terminal_HP_DOWN,
+                              "Terminal CX DOWN" = DEG_names_Terminal_CX_DOWN))
 
 # Inspect the list of classifications
 interactions_DOWN<-attr(venn_diagram_DOWN,"intersections")
 interactions_DOWN
 interactions_DOWN<-(t(data.frame(t(sapply(interactions_DOWN,c)))))
-write.csv(interactions_DOWN, file= "venndiagramGenesClean_DOWN.csv ")
+write.csv(interactions_DOWN, file=paste0(plotting_path_DEG_comp,"VennGenes_DOWN.csv"))
 
 ```
 
-###Show number of DEGs in the comparison tables
+##Show number of DEGs in the comparison tables
 
 ```{r}
 interactions_UP
@@ -151,33 +179,35 @@ interactions_RAW
 #filter Verity by the genes which crossover with Slota to show the crossoverlist
 
 #Verity and both Slota all three categories' shared DGEs
-Verity_Slota_HP_shared_DEGs_RAW <- subset(DEG_data_Verity_Slota[[3]], gene %in% interactions_RAW[[4]]) #interactions 4 is the crossover between Verity_HP.SlotA_HP.Slota_CX
+Verity_Slota_HP_shared_DEGs_RAW <- subset(DEG_data_Verity_Slota[[3]], gene %in% interactions_RAW[[9]]) #interactions 9 is the crossover between Verity_HP.Slota_HP.Slota_CX
 Verity_Slota_HP_shared_DEGs_RAW<-Verity_Slota_HP_shared_DEGs_RAW[c('gene','description')]
 
-write.csv(Verity_Slota_HP_shared_DEGs_RAW, file= "Shared_DGEs_V_S_RAW.csv")
+write.csv(Verity_Slota_HP_shared_DEGs_RAW, file=paste0(plotting_path_DEG_comp,"Shared_DGEs_Vprion_S_RAW.csv"))
 
 #Verity and Slota HP upregulated DGEs
-Verity_Slota_HP_shared_DEGs_UP <- subset(DEG_data_Verity_Slota[[3]], gene %in% interactions_UP[[3]]) #interactions 3 is the crossover between Verity_HP.SlotA_HP
-write.csv(Verity_Slota_HP_shared_DEGs_UP, file= "Shared_DGEs_V_S_UP.csv")
+Verity_Slota_HP_shared_DEGs_UP <- subset(DEG_data_Verity_Slota[[3]], gene %in% interactions_UP[[6]]) #interactions 6 is the crossover between Verity_HP.SlotA_HP
+write.csv(Verity_Slota_HP_shared_DEGs_UP, file=paste0(plotting_path_DEG_comp,"Shared_DGEs_Vprion_Shp_UP.csv"))
 
 #Verity HP and Slota CX upregulated DGEs
-Verity_HP_Slota_CX_shared_DEGs_UP <- subset(DEG_data_Verity_Slota[[3]], gene %in% interactions_UP[[2]]) #interactions 2 is the crossover between Verity_HP.Slota_CX
-write.csv(Verity_HP_Slota_CX_shared_DEGs_UP, file= "Shared_DGEs_VHP_SCX_UP.csv")
+Verity_HP_Slota_CX_shared_DEGs_UP <- subset(DEG_data_Verity_Slota[[3]], gene %in% interactions_UP[[5]]) #interactions 5 is the crossover between Verity_HP.Slota_CX
+write.csv(Verity_HP_Slota_CX_shared_DEGs_UP, file=paste0(plotting_path_DEG_comp,"Shared_DGEs_VHP_SCX_UP.csv"))
 
+#Verity and both Slota downregulated DGEs
+Verity_Slota_shared_DEGs_DOWN <- subset(DEG_data_Verity_Slota[[3]], gene %in% interactions_DOWN[[6]]) #interactions 5 is the crossover between Verity_HP.SlotA_HP
+write.csv(Verity_Slota_shared_DEGs_DOWN, file=paste0(plotting_path_DEG_comp,"Shared_DGEs_V_S_DOWN.csv"))
 
 #Verity and Slota Hippocampus downregulated DGEs
-Verity_Slota_HP_shared_DEGs_DOWN <- subset(DEG_data_Verity_Slota[[3]], gene %in% interactions_DOWN[[3]]) #interactions 3 is the crossover between Verity_HP.SlotA_HP
-
-write.csv(Verity_Slota_HP_shared_DEGs_DOWN, file= "Shared_DGEs_V_S_DOWN.csv")
+Verity_Slota_HP_shared_DEGs_DOWN <- subset(DEG_data_Verity_Slota[[3]], gene %in% interactions_DOWN[[5]]) #interactions 5 is the crossover between Verity_HP.SlotA_HP
+write.csv(Verity_Slota_HP_shared_DEGs_DOWN, file=paste0(plotting_path_DEG_comp,"Shared_DGEs_V_Shp_DOWN.csv"))
 ```
 
 
 
-## Untested
+# Untested
 
-
+## Make mart
 ```{r}
-mart <- useDataset("mmusculus_gene_ensembl", useMart("ensembl"))
+m <- useDataset("mmusculus_gene_ensembl", useMart("ensembl"))
 ```
 
 ```{r}
@@ -188,7 +218,7 @@ BiocManager::install("piano")
 library(piano)
 
 #piano_GO terms
-GO_terms_m <- getBM(attributes = c("name_1006","ensembl_gene_id"), mart = mart)
+GO_terms_m <- getBM(attributes = c("name_1006","ensembl_gene_id"), m = m)
 GO_terms_m <- GO_terms_m[c('ensembl_gene_id', 'name_1006')]
 names(GO_terms_m) <- c('gene.name', "GO_terms")
 GO_term_piano <- loadGSC(GO_terms_m)
@@ -377,7 +407,7 @@ networks <- function(data,full,direc){
 networks(DE_Astrocytes_C3_Psig_piano_gsea_data, GO_terms_m , 'pos')
 DE_Astrocytes_C3_Psig_piano_gsea_data <- cbind(DE_Astrocytes_C3_Psig_piano_gsea_data, gene_names_)
 
-#write.csv(DE_Astrocytes_C3_Psig_piano_gsea_data, "E:/R_231222/DE_Astrocytes_C3_Psig_piano_gsea_data.csv")
+#write.csv(DE_Astrocytes_C3_Psig_piano_gsea_data, file=paste0(plotting_path_DEG_comp,"DE_Astrocytes_C3_Psig_piano_gsea_data.csv"))
 
 ```
 
