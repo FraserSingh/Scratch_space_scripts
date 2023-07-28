@@ -847,19 +847,36 @@ Verity_DEGs_PrionUp__entrez <-na.omit(Verity_DEGs_PrionUp__entrez)
 VerityPrion_up_GO_OvR = enrichGO(gene = Verity_DEGs_PrionUp__entrez$ENTREZID, OrgDb = org.Mm.eg.db, readable = T, ont= "BP", pvalueCutoff = 0.05, qvalueCutoff = 0.10)
 
 
-## feature 1: numeric vector
-geneList = Verity_astrocyte_prion_markers$avg_log2FC
 
+
+## feature 1: numeric vector
+geneList_stdname = Verity_astrocyte_prion_markers$avg_log2FC
+names(geneList_stdname)<-Verity_astrocyte_prion_markers$gene
+table(duplicated(names(geneList_stdname))) #no duplicates with standard name
+
+geneList_entrezname<-Verity_astrocyte_prion_markers$avg_log2FC
 ## feature 2: named vector of enembl IDs
-names(geneList) = as.character(
-  (bitr(Verity_astrocyte_prion_markers$gene, fromType = "SYMBOL", toType = "ENTREZID", OrgDb = org.Mm.eg.db))$ENTREZID
-)
+gene_info_2<-getBM(attributes = c("entrezgene_id"), filters = "external_gene_name", values = Verity_astrocyte_prion_markers$gene, mart = m)
+names(geneList_entrezname)<-gene_info_2$entrezgene_id
 
 #There are non mappings here, shouldn't just be Rik genes as they will be gone by now.....
-table(duplicated(names(geneList)))
+table(is.na(names(geneList_entrezname)))
+table(duplicated(names(geneList_stdname)))
 
-## feature 3: decreasing orde
-geneList = sort(geneList, decreasing = TRUE)
+# ## feature 3: decreasing orde
+# geneList = sort(geneList, decreasing = TRUE)
+# 
+
+data.frame(geneList_stdname)
+data.frame(geneList_entrezname)
+
+#filter normal name df by the rows of the entrez name df which are duplicates/NA
+non_mapped_ids<-geneList_stdname[duplicated(names(geneList_entrezname))]
+as.character(
+  (bitr(names(non_mapped_ids), fromType = "SYMBOL", toType = "ENTREZID", OrgDb = org.Mm.eg.db))$ENTREZID
+)
+
+geneList_entrezname[names(geneList_entrezname)=='330788']
 
 ggp = barplot(VerityPrion_up_GO_OvR , showCategory=20)
 ggp2 = dotplot(VerityPrion_up_GO_OvR, showCategory=20)
@@ -907,15 +924,31 @@ dev.off()
 #create list of the original DEG list but with ranking? check guides
 #Verity_astrocyte_prion_markers
 
-# ego3 <- gseGO(geneList     = geneList, #This is the DEG list full list of DEGs
-#               OrgDb        = org.Mm.eg.db,
-#               ont          = "ALL",
-#               minGSSize    = 100,
-#               maxGSSize    = 500,
-#               pvalueCutoff = 0.05,
-#               verbose      = FALSE)
-# ego3
+ego3 <- gseGO(geneList     = geneList, #This is the DEG list full list of DEGs
+              OrgDb        = org.Mm.eg.db,
+              ont          = "ALL",
+              minGSSize    = 100,
+              maxGSSize    = 500,
+              pvalueCutoff = 0.05,
+              verbose      = FALSE)
+ego3
 
+
+
+```
+
+
+```{r}
+devtools::install_github("junjunlab/GseaVis")
+library(GseaVis)
+
+dotplotGsea(data = ego3,topn = 10,
+            order.by = 'NES',
+            add.seg = T,
+            scales = 'free')
+
+dotplotGsea(data = ego3,topn = 10,
+            order.by = 'NES')
 ```
 
 
