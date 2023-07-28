@@ -752,7 +752,7 @@ Prepare the biomart info
 #Adapted from http://girke.bioinformatics.ucr.edu/CSHL_RNAseq/mydoc/mydoc_systemPipeRNAseq_07/
 #Get annotation info
 library("biomaRt")
-m <- useMart("ensembl", dataset="mmusculus_gene_ensembl")
+m <- useMart("ensembl", dataset="mmusculus_gene_ensembl", version="")
 ```
 
 
@@ -837,8 +837,6 @@ Verity_astrocyte_prion_markers_up<-subset(Verity_astrocyte_prion_markers, subset
 Verity_Prion_DEGs_up = (Verity_astrocyte_prion_markers_up$gene)
 #Convert this gene SYMBOL list into Entrez ID:
 Verity_DEGs_PrionUp__entrez = bitr(Verity_Prion_DEGs_up, fromType = "SYMBOL", toType = "ENTREZID", OrgDb = org.Mm.eg.db)#, drop=F) #uncomment end of line to see non mapping genes, which do not exist in the original list
-#Warning! some genes not mapping, see:
-# View(Verity_DEGs_PrionUp__entrez[is.na(Verity_DEGs_PrionUp__entrez$ENTREZID),])
 
 #Remove NAs
 Verity_DEGs_PrionUp__entrez <-na.omit(Verity_DEGs_PrionUp__entrez)
@@ -856,27 +854,52 @@ table(duplicated(names(geneList_stdname))) #no duplicates with standard name
 
 geneList_entrezname<-Verity_astrocyte_prion_markers$avg_log2FC
 ## feature 2: named vector of enembl IDs
-gene_info_2<-getBM(attributes = c("entrezgene_id"), filters = "external_gene_name", values = Verity_astrocyte_prion_markers$gene, mart = m)
-names(geneList_entrezname)<-gene_info_2$entrezgene_id
+names(geneList_entrezname) = as.character(
+  (bitr(Verity_astrocyte_prion_markers$gene, fromType = "SYMBOL", toType = "ENTREZID", OrgDb = org.Mm.eg.db))$ENTREZID
+)
 
-#There are non mappings here, shouldn't just be Rik genes as they will be gone by now.....
+#showing the missing NA entrez names
 table(is.na(names(geneList_entrezname)))
 table(duplicated(names(geneList_stdname)))
-
-# ## feature 3: decreasing orde
-# geneList = sort(geneList, decreasing = TRUE)
-# 
+data.frame(names(geneList_stdname[is.na(names(geneList_entrezname))]))
+#the lists are the same, so index positions are consistent across objects
+length(geneList_entrezname)
+length(geneList_stdname)
+#show the index position of some of the NA genes in the symbols object
+match('Zfp831', names(geneList_stdname))
+match('Zfp846', names(geneList_stdname))
+#show that the names are NA in the entrez list, with an example of an appropriately named entrez gene too
+names(geneList_stdname)[1]
+names(geneList_entrezname)[6485]
+names(geneList_entrezname)[6484]
+names(geneList_entrezname)[6486]
 
 data.frame(geneList_stdname)
 data.frame(geneList_entrezname)
 
-#filter normal name df by the rows of the entrez name df which are duplicates/NA
-non_mapped_ids<-geneList_stdname[duplicated(names(geneList_entrezname))]
-as.character(
-  (bitr(names(non_mapped_ids), fromType = "SYMBOL", toType = "ENTREZID", OrgDb = org.Mm.eg.db))$ENTREZID
-)
 
-geneList_entrezname[names(geneList_entrezname)=='330788']
+#manually assign the entrez gene IDs #FIXME this would be specific to each of the four gene lists in this project
+NAgenes<-data.frame(names(geneList_stdname[is.na(names(geneList_entrezname))]))
+NAgenes$entrez_id<-c("100043757","244721","330788","208292","109910","69504","242747","237411","73233","74670","319615","240041","71640","414758","234413","73430","434179","208111","22762","22763","103406","22764","217695","218441","211978","319740","231125","230597","229007","22770","387609","320799","22776","74570","100041581","210162","72739","215693","320158","328365","414118","52915","230709","76007","56364","67785","219105","100177","66505","228880","229937","170737","387524","407821","360216","53861","226409"," 22184","232875","432731","212168","74464","67263","268721","72580","52696","80292","414872","195018","108946")
+
+#assign the ids to a LOg2FC value by using symbols object and NAgene object
+
+NAgenes$log2FC<-geneList_stdname[NAgenes$names.geneList_stdname.is.na.names.geneList_entrezname....]
+NAgenes$names.geneList_stdname.is.na.names.geneList_entrezname....<-NULL
+rownames(NAgenes)<-NAgenes$entrez_id; NAgenes$entrez_id<-NULL
+double_attempt<-as.double(NAgenes$log2FC)
+names(double_attempt)<-rownames(NAgenes)
+
+#remove the nas from the original geneList
+dropnageneList_entrez<-geneList_entrezname[!is.na(names(geneList_entrezname))]
+
+#combine the manually assigned names with the rest of the list
+concat_attempt<-append(dropnageneList_entrez, double_attempt)
+concat_attempt<-sort(concat_attempt, decreasing = TRUE)
+table(duplicated(names(concat_attempt)))
+
+# ## feature 3: decreasing order
+geneList = sort(geneList, decreasing = TRUE)
 
 ggp = barplot(VerityPrion_up_GO_OvR , showCategory=20)
 ggp2 = dotplot(VerityPrion_up_GO_OvR, showCategory=20)
@@ -917,21 +940,19 @@ dev.off()
 #returns none at the moment
 
 
-
-
 #FIXME
 
 #create list of the original DEG list but with ranking? check guides
 #Verity_astrocyte_prion_markers
 
-ego3 <- gseGO(geneList     = geneList, #This is the DEG list full list of DEGs
+ego4 <- gseGO(geneList     = concat_attempt, #This is the DEG list full list of DEGs
               OrgDb        = org.Mm.eg.db,
               ont          = "ALL",
               minGSSize    = 100,
               maxGSSize    = 500,
               pvalueCutoff = 0.05,
               verbose      = FALSE)
-ego3
+ego4
 
 
 
