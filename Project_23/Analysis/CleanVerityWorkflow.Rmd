@@ -861,23 +861,16 @@ names(geneList_entrezname) = as.character(
 #showing the missing NA entrez names
 table(is.na(names(geneList_entrezname)))
 table(duplicated(names(geneList_stdname)))
-data.frame(names(geneList_stdname[is.na(names(geneList_entrezname))]))
-#the lists are the same, so index positions are consistent across objects
-length(geneList_entrezname)
-length(geneList_stdname)
-#show the index position of some of the NA genes in the symbols object
-match('Zfp831', names(geneList_stdname))
-match('Zfp846', names(geneList_stdname))
-#show that the names are NA in the entrez list, with an example of an appropriately named entrez gene too
-names(geneList_stdname)[1]
-names(geneList_entrezname)[6485]
-names(geneList_entrezname)[6484]
-names(geneList_entrezname)[6486]
 
-data.frame(geneList_stdname)
-data.frame(geneList_entrezname)
+geneList_entrezname<-Verity_astrocyte_prion_markers$avg_log2FC
+geneList_entrezname_df<-as.data.frame(geneList_entrezname)
+geneList_entrezname_df$entrezid<-as.character(
+(bitr(Verity_astrocyte_prion_markers$gene, fromType = "SYMBOL", toType = "ENTREZID", OrgDb = org.Mm.eg.db, drop = F))$ENTREZID
+)
+geneList_entrezname_df$gene<-Verity_astrocyte_prion_markers$gene
 
 
+#FIXME NEEDS TO BE CORRECT GENE NAMES ETC
 #manually assign the entrez gene IDs #FIXME this would be specific to each of the four gene lists in this project
 NAgenes<-data.frame(names(geneList_stdname[is.na(names(geneList_entrezname))]))
 NAgenes$entrez_id<-c("100043757","244721","330788","208292","109910","69504","242747","237411","73233","74670","319615","240041","71640","414758","234413","73430","434179","208111","22762","22763","103406","22764","217695","218441","211978","319740","231125","230597","229007","22770","387609","320799","22776","74570","100041581","210162","72739","215693","320158","328365","414118","52915","230709","76007","56364","67785","219105","100177","66505","228880","229937","170737","387524","407821","360216","53861","226409"," 22184","232875","432731","212168","74464","67263","268721","72580","52696","80292","414872","195018","108946")
