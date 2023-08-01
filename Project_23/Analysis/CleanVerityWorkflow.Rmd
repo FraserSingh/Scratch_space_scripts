@@ -752,7 +752,7 @@ Prepare the biomart info
 #Adapted from http://girke.bioinformatics.ucr.edu/CSHL_RNAseq/mydoc/mydoc_systemPipeRNAseq_07/
 #Get annotation info
 library("biomaRt")
-m <- useMart("ensembl", dataset="mmusculus_gene_ensembl", version="")
+m <- useMart("ensembl", dataset="mmusculus_gene_ensembl")
 ```
 
 
@@ -830,66 +830,144 @@ table(Verity_Prion_comp_astrocytes$treatment)
 
 ```{r}
 
-# Upregulated genes
+# Subset by Upregulated genes for GO enrichment
 Verity_astrocyte_prion_markers_up<-subset(Verity_astrocyte_prion_markers, subset=avg_log2FC>(0.25)&p_val_adj<0.05) #Added p value filter here
 
-#Create a list of just the genes: 
+#Create a list of just the gene symbols 
 Verity_Prion_DEGs_up = (Verity_astrocyte_prion_markers_up$gene)
 #Convert this gene SYMBOL list into Entrez ID:
 Verity_DEGs_PrionUp__entrez = bitr(Verity_Prion_DEGs_up, fromType = "SYMBOL", toType = "ENTREZID", OrgDb = org.Mm.eg.db)#, drop=F) #uncomment end of line to see non mapping genes, which do not exist in the original list
 
-#Remove NAs
+#Remove NAs (shouldn't do anything if drop=F in bitr command)
 Verity_DEGs_PrionUp__entrez <-na.omit(Verity_DEGs_PrionUp__entrez)
 
-#GO over-representation
+# Run GO over-representation on upregulated entrezIds, biological process selected from GO terms
 VerityPrion_up_GO_OvR = enrichGO(gene = Verity_DEGs_PrionUp__entrez$ENTREZID, OrgDb = org.Mm.eg.db, readable = T, ont= "BP", pvalueCutoff = 0.05, qvalueCutoff = 0.10)
 
 
 
-
-## feature 1: numeric vector
+#Exploring entrezid mapping issues
+## create named numeric vector of log2FC values. rownames are SYMBOLS
 geneList_stdname = Verity_astrocyte_prion_markers$avg_log2FC
 names(geneList_stdname)<-Verity_astrocyte_prion_markers$gene
 table(duplicated(names(geneList_stdname))) #no duplicates with standard name
 
+
+## create named numeric vector of log2FC values. rownames are ENTREZID
 geneList_entrezname<-Verity_astrocyte_prion_markers$avg_log2FC
-## feature 2: named vector of enembl IDs
 names(geneList_entrezname) = as.character(
   (bitr(Verity_astrocyte_prion_markers$gene, fromType = "SYMBOL", toType = "ENTREZID", OrgDb = org.Mm.eg.db))$ENTREZID
 )
 
-#showing the missing NA entrez names
+#showing the missing NA entrez names (ones which cannot be mapped), and the number of genes symbols which are duplicated as sanity check that starting data is sound.
 table(is.na(names(geneList_entrezname)))
 table(duplicated(names(geneList_stdname)))
 
-geneList_entrezname<-Verity_astrocyte_prion_markers$avg_log2FC
-geneList_entrezname_df<-as.data.frame(geneList_entrezname)
-geneList_entrezname_df$entrezid<-as.character(
-(bitr(Verity_astrocyte_prion_markers$gene, fromType = "SYMBOL", toType = "ENTREZID", OrgDb = org.Mm.eg.db, drop = F))$ENTREZID
-)
+
+#Make datafrmae of the names and entrez mappings for raw DEGs
+#load log2FC
+geneList_entrezname_df<-Verity_astrocyte_prion_markers$avg_log2FC
+#convert to df
+geneList_entrezname_df<-as.data.frame(geneList_entrezname_df)
+#add gene symbols as column
 geneList_entrezname_df$gene<-Verity_astrocyte_prion_markers$gene
+#add column for entrezIDs
+geneList_entrezname_df$entrezid<-NA
+
+#convert to entrezids, retain NAs
+entrezids<-as.character(
+(bitr(geneList_entrezname_df$gene, fromType = "SYMBOL", toType = "ENTREZID", OrgDb = org.Mm.eg.db, drop = F))$ENTREZID)
+failure_indices<-is.na(entrezids)
+#make list of gene names not mapping
+x<-list(geneList_entrezname_df$gene[failure_indices])
+
+# Find gene names which have . versions in them, remove the version notation and remove duplicates
+versioned_genes<-x[[1]][grep('\\.',x[[1]])]
+version_free<-substr(versioned_genes, 1, nchar(versioned_genes) - 2)
+version_free<-version_free[!duplicated(version_free)]
+z<-c(x[[1]][! x[[1]] %in% versioned_genes],version_free)
+
+
+
+# Assuming the bitr() function is from a package like biomaRt or AnnotationDbi
+# Make sure you have the necessary packages installed and loaded
+
+# Create a sample dataframe 'y' with genes in each row
+y <- data.frame(row.names = unlist(z),stringsAsFactors = FALSE)
+
+
+# Create an empty data frame to store the mapped ENTREZID values
+remapped <- data.frame(ALIAS = character(0), ENTREZID = character(0), stringsAsFactors = FALSE)
+
+# Loop through each gene in 'y'
+for (gene in rownames(y)) {
+  # Attempt to perform the mapping using tryCatch
+  mapped_genes <- tryCatch(
+    {
+      bitr(
+        gene,
+        fromType = "ALIAS",
+        toType = "ENTREZID",
+        OrgDb = org.Mm.eg.db,
+        drop = FALSE
+      )
+    },
+    error = function(e) {
+      # If an error occurs, handle it by returning a data frame with NA values
+      message(paste("Error mapping gene:", gene))
+      return(data.frame(ALIAS = gene, ENTREZID = NA, stringsAsFactors = FALSE))
+    }
+  )
+
+  # Append the temporary data frame to 'remapped'
+  remapped <- rbind(remapped, mapped_genes)
+  Sys.sleep(0.5)
+}
+
+#get biomart conversions for those still without entrez ids 
+biomart_remapped<-getBM(attributes = c("external_gene_name","entrezgene_id"), filters = "external_gene_name", values = remapped[is.na(remapped$ENTREZID),]$ALIAS, mart = m)
+#add any more whihc have been mapped
+biomart_remapped<-biomart_remapped[!is.na(biomart_remapped$entrezgene_id),]
+
+a <- merge(remapped, biomart_remapped, by.x = "ALIAS", by.y = "external_gene_name", all.x = TRUE)
+a$entrezgene_id <- as.character(a$entrezgene_id)
+
+b <- a %>%
+  mutate(combined_id = coalesce(ENTREZID, entrezgene_id))
+b$ENTREZID<-ENTREZID<- NULL
+b$entrezgene_id<-entrezgene_id<- NULL
+c<-b[!is.na(b$combined_id),]
+
+
+
+
+#USE this combined with the biomart remapped
+d<-bitr(x[[1]], fromType = "ALIAS", toType = "ENTREZID", OrgDb = org.Mm.eg.db, drop = F);View(d)
+
+
+
 
 
 #FIXME NEEDS TO BE CORRECT GENE NAMES ETC
-#manually assign the entrez gene IDs #FIXME this would be specific to each of the four gene lists in this project
-NAgenes<-data.frame(names(geneList_stdname[is.na(names(geneList_entrezname))]))
-NAgenes$entrez_id<-c("100043757","244721","330788","208292","109910","69504","242747","237411","73233","74670","319615","240041","71640","414758","234413","73430","434179","208111","22762","22763","103406","22764","217695","218441","211978","319740","231125","230597","229007","22770","387609","320799","22776","74570","100041581","210162","72739","215693","320158","328365","414118","52915","230709","76007","56364","67785","219105","100177","66505","228880","229937","170737","387524","407821","360216","53861","226409"," 22184","232875","432731","212168","74464","67263","268721","72580","52696","80292","414872","195018","108946")
-
-#assign the ids to a LOg2FC value by using symbols object and NAgene object
-
-NAgenes$log2FC<-geneList_stdname[NAgenes$names.geneList_stdname.is.na.names.geneList_entrezname....]
-NAgenes$names.geneList_stdname.is.na.names.geneList_entrezname....<-NULL
-rownames(NAgenes)<-NAgenes$entrez_id; NAgenes$entrez_id<-NULL
-double_attempt<-as.double(NAgenes$log2FC)
-names(double_attempt)<-rownames(NAgenes)
-
-#remove the nas from the original geneList
-dropnageneList_entrez<-geneList_entrezname[!is.na(names(geneList_entrezname))]
-
-#combine the manually assigned names with the rest of the list
-concat_attempt<-append(dropnageneList_entrez, double_attempt)
-concat_attempt<-sort(concat_attempt, decreasing = TRUE)
-table(duplicated(names(concat_attempt)))
+# #manually assign the entrez gene IDs #FIXME this would be specific to each of the four gene lists in this project
+# NAgenes<-data.frame(names(geneList_stdname[is.na(names(geneList_entrezname))]))
+# NAgenes$entrez_id<-c("100043757","244721","330788","208292","109910","69504","242747","237411","73233","74670","319615","240041","71640","414758","234413","73430","434179","208111","22762","22763","103406","22764","217695","218441","211978","319740","231125","230597","229007","22770","387609","320799","22776","74570","100041581","210162","72739","215693","320158","328365","414118","52915","230709","76007","56364","67785","219105","100177","66505","228880","229937","170737","387524","407821","360216","53861","226409"," 22184","232875","432731","212168","74464","67263","268721","72580","52696","80292","414872","195018","108946")
+# 
+# #assign the ids to a LOg2FC value by using symbols object and NAgene object
+# 
+# NAgenes$log2FC<-geneList_stdname[NAgenes$names.geneList_stdname.is.na.names.geneList_entrezname....]
+# NAgenes$names.geneList_stdname.is.na.names.geneList_entrezname....<-NULL
+# rownames(NAgenes)<-NAgenes$entrez_id; NAgenes$entrez_id<-NULL
+# double_attempt<-as.double(NAgenes$log2FC)
+# names(double_attempt)<-rownames(NAgenes)
+# 
+# #remove the nas from the original geneList
+# dropnageneList_entrez<-geneList_entrezname[!is.na(names(geneList_entrezname))]
+# 
+# #combine the manually assigned names with the rest of the list
+# concat_attempt<-append(dropnageneList_entrez, double_attempt)
+# concat_attempt<-sort(concat_attempt, decreasing = TRUE)
+# table(duplicated(names(concat_attempt)))
 
 # ## feature 3: decreasing order
 geneList = sort(geneList, decreasing = TRUE)
