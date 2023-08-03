@@ -932,6 +932,7 @@ Verity_Prion_DEGs_up = (Verity_astrocyte_prion_markers_up$entrezgene_id)
 VerityPrion_up_GO_ORA = enrichGO(gene = Verity_Prion_DEGs_up, OrgDb = org.Mm.eg.db, readable = T, ont= "BP", pvalueCutoff = 0.05, qvalueCutoff = 0.10)
 ```
 
+
 #### GO ORA visualisation and saving
 
 ```{r}
@@ -964,6 +965,53 @@ png(paste0(plotting_path,"Verity_Prion_GOR_heatplot.png"), width = 3000,height =
 ggp5
 dev.off()
 ```
+
+#### Do the same for downregulated
+
+```{r}
+#Create downregulated significant genes for GO enrichment
+Verity_astrocyte_prion_markers_down<-subset(Verity_astrocyte_prion_markers_entrez, subset=avg_log2FC<(-0.25)&p_val_adj<0.05) #Added p value filter here
+
+#Create a list of just the gene symbols 
+Verity_Prion_DEGs_down = (Verity_astrocyte_prion_markers_down$entrezgene_id)
+
+
+# Run GO over-representation on upregulated entrezIds, biological process selected from GO terms
+VerityPrion_down_GO_ORA = enrichGO(gene = Verity_Prion_DEGs_down, OrgDb = org.Mm.eg.db, readable = T, ont= "BP", pvalueCutoff = 0.05, qvalueCutoff = 0.10)
+
+
+ggp_b<-barplot(VerityPrion_down_GO_ORA , showCategory=20)
+ggp2_b<-dotplot(VerityPrion_down_GO_ORA, showCategory=20)
+ggp3_b<-goplot(VerityPrion_down_GO_ORA, showCategory = 20)
+ggp4_b<-cnetplot(VerityPrion_down_GO_ORA, foldChange=geneList_VP)
+ggp5_b<-heatplot(VerityPrion_down_GO_ORA, showCategory=20)
+
+ggp_b
+ggp2_b
+ggp3_b
+ggp4_b
+ggp5_b
+
+png(paste0(plotting_path,"Verity_Prion_GOR_down_barplot.png"), width = 1000,height = 750)
+ggp_b
+dev.off()
+png(paste0(plotting_path,"Verity_Prion_GOR_down_dotplot.png"), width = 1000,height = 750)
+ggp2_b
+dev.off()
+png(paste0(plotting_path,"Verity_Prion_GOR_down_goplot.png"), width = 1000,height = 750)
+ggp3_b
+dev.off()
+png(paste0(plotting_path,"Verity_Prion_GOR_down_cnetplot.png"), width = 1500,height = 1000)
+ggp4_b
+dev.off()
+png(paste0(plotting_path,"Verity_Prion_GOR_down_heatplot.png"), width = 1500,height = 1000)
+ggp5_b
+dev.off()
+
+
+
+```
+
 
 ### GO GSEA
 
@@ -1356,8 +1404,8 @@ VerityAgeing_up_GO_ORA = enrichGO(gene = Verity_Ageing_DEGs_up, OrgDb = org.Mm.e
 ggp <- barplot(VerityAgeing_up_GO_ORA , showCategory=20)
 ggp2 <- dotplot(VerityAgeing_up_GO_ORA, showCategory=20)
 ggp3 <- goplot(VerityAgeing_up_GO_ORA, showCategory = 20)
-ggp4<- cnetplot(VerityAgeing_up_GO_ORA, foldChange=geneList_VA)#, foldChange=geneList_VA)
-ggp5<-heatplot(VerityAgeing_up_GO_ORA, showCategory=20)#,foldChange=geneList_VA)
+ggp4<- cnetplot(VerityAgeing_up_GO_ORA, foldChange=geneList_VA)
+ggp5<-heatplot(VerityAgeing_up_GO_ORA, showCategory=20,foldChange=geneList_VA)
 
 
 ggp
@@ -1383,6 +1431,53 @@ ggp5
 dev.off()
 ```
 
+
+#### Same for downregulation
+
+```{r}
+#Create downregulated significant genes for GO enrichment
+Verity_astrocyte_ageing_markers_down<-subset(Verity_astrocyte_ageing_markers_entrez, subset=avg_log2FC<(-0.25)&p_val_adj<0.05) #Added p value filter here
+
+#Create a list of just the gene symbols 
+Verity_Ageing_DEGs_down = (Verity_astrocyte_ageing_markers_down$entrezgene_id)
+
+
+# Run GO over-representation on upregulated entrezIds, biological process selected from GO terms
+VerityAgeing_down_GO_ORA = enrichGO(gene = Verity_Ageing_DEGs_down, OrgDb = org.Mm.eg.db, readable = T, ont= "BP", pvalueCutoff = 0.05, qvalueCutoff = 0.10)
+
+ggp_b<-barplot(VerityAgeing_down_GO_ORA , showCategory=20)
+ggp2_b<-dotplot(VerityAgeing_down_GO_ORA, showCategory=20)
+ggp3_b<-goplot(VerityAgeing_down_GO_ORA, showCategory = 20)
+ggp4_b<-cnetplot(VerityAgeing_down_GO_ORA, foldChange=geneList_VP)
+ggp5_b<-heatplot(VerityAgeing_down_GO_ORA, showCategory=20)
+
+ggp_b
+ggp2_b
+ggp3_b
+ggp4_b
+ggp5_b
+
+
+png(paste0(plotting_path,"Verity_Ageing_GOR_down_barplot.png"), width = 1000,height = 750)
+ggp_b
+dev.off()
+png(paste0(plotting_path,"Verity_Ageing_GOR_down_dotplot.png"), width = 1000,height = 750)
+ggp2_b
+dev.off()
+png(paste0(plotting_path,"Verity_Ageing_GOR_down_goplot.png"), width = 1000,height = 750)
+ggp3_b
+dev.off()
+png(paste0(plotting_path,"Verity_Ageing_GOR_down_cnetplot.png"), width = 1500,height = 1000)
+ggp4_b
+dev.off()
+png(paste0(plotting_path,"Verity_Ageing_GOR_down_heatplot.png"), width = 1500,height = 1000)
+ggp5_b
+dev.off()
+
+
+```
+
+
 ### GO GSEA
 
 ```{r}
@@ -1403,6 +1498,8 @@ View(data.frame(VA_GO_GSEA))
 
 write.csv(data.frame(VA_GO_GSEA), file = paste0(plotting_path,"VA_GO_GSEA.csv"))
 ```
+
+
 
 #### GO GSEA visualisation
 
