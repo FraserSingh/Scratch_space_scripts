@@ -11,33 +11,46 @@ editor_options:
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+
+#Package management
+
 ```{r}
-if (!require("BiocManager", quietly = TRUE))
-    install.packages("BiocManager", lib="/exports/cmvm/eddie/eb/groups/mabbott_grp/Fraser/Project_23/Rpackages")
+#.libPaths(new = "/home/s2268606/University_Directories/Project_23/R_packages_project")
+#/opt/R/4.2.1/lib/R/library
 
-BiocManager::install("DropletUtils", lib="/exports/cmvm/eddie/eb/groups/mabbott_grp/Fraser/Project_23/Rpackages")
-BiocManager::install("Seurat", lib="/exports/cmvm/eddie/eb/groups/mabbott_grp/Fraser/Project_23/Rpackages")
+update.packages(ask = FALSE)
 
-remotes::install_github('chris-mcginnis-ucsf/DoubletFinder', lib="/exports/cmvm/eddie/eb/groups/mabbott_grp/Fraser/Project_23/Rpackages")
 
-if (!require("SoupX", quietly = TRUE))
-    install.packages("SoupX", lib="/exports/cmvm/eddie/eb/groups/mabbott_grp/Fraser/Project_23/Rpackages")
+install.packages("BiocManager")
 
-if (!require("scCustomize", quietly = TRUE))
-    install.packages("scCustomize", lib="/exports/cmvm/eddie/eb/groups/mabbott_grp/Fraser/Project_23/Rpackages")
+BiocManager::install(c(
+  "org.Mm.eg.db",
+  "AnnotationDbi",
+  "clusterProfiler",
+  "tidyverse",
+  'knitr',
+  "DropletUtils",
+  "Seurat",
+  "SoupX",
+  "scCustomize",
+  "glmGamPoi",
+  "DESeq2",
+  "Polychrome",
+  "ReactomePA"
+  ))
 
-BiocManager::install("glmGamPoi", lib="/exports/cmvm/eddie/eb/groups/mabbott_grp/Fraser/Project_23/Rpackages")
 
-if (!require("DESeq2", quietly = TRUE))
-    install.packages("DESeq2", lib="/exports/cmvm/eddie/eb/groups/mabbott_grp/Fraser/Project_23/Rpackages")
+remotes::install_github('chris-mcginnis-ucsf/DoubletFinder')
 
-install.packages("Polychrome", lib="/exports/cmvm/eddie/eb/groups/mabbott_grp/Fraser/Project_23/Rpackages")
-BiocManager::install("org.Mm.eg.db", lib="/exports/cmvm/eddie/eb/groups/mabbott_grp/Fraser/Project_23/Rpackages")
-BiocManager::install("clusterProfiler", lib="/exports/cmvm/eddie/eb/groups/mabbott_grp/Fraser/Project_23/Rpackages")
+remotes::install_github("satijalab/seurat", "seurat5")
+
+devtools::install_github("junjunlab/GseaVis")
 
 ```
 
 ```{r}
+library(org.Mm.eg.db)
+library(clusterProfiler)
 library(DropletUtils)
 library(Seurat)
 library(tidyverse)
@@ -49,8 +62,8 @@ library(SoupX)
 library(scCustomize)
 library(DESeq2)
 library(Polychrome)
-library(org.Mm.eg.db)
-library(clusterProfiler)
+library(GseaVis)
+library(ReactomePA)
 ```
 
 Make folder for plots
@@ -63,7 +76,7 @@ dir_name <- "Terminal_sample_investigation"
 system(paste0("mkdir ", dir_name))
 
 #save folder path for plot saving
-plotting_path<-paste0("./", dir_name,"/")
+plotting_path<-paste0("../Analysis/", dir_name,"/")
 
 #set seed for reproducibility
 set.seed(42)
@@ -606,16 +619,16 @@ Slota_HP_comp<-Slota_tissues[[1]]
 Slota_CX_comp<-Slota_tissues[[2]]
 
 #Plot how many doublets there were
-p18<-VlnPlot(Slota_HP_comp, features = "nFeature_RNA", group.by = 'doublet_finder', pt.size = 0.0)#+ggtitle(paste0("Verity data", comp_pair))
+p18<-VlnPlot(Slota_HP_comp, features = "nFeature_RNA", group.by = 'doublet_finder', pt.size = 0.0)#+ggtitle(paste0("Slota data", comp_pair))
 
-p19<-VlnPlot(Slota_CX_comp, features = "nFeature_RNA", group.by = 'doublet_finder', pt.size = 0.0)#+ggtitle(paste0("Verity data", comp_pair))
+p19<-VlnPlot(Slota_CX_comp, features = "nFeature_RNA", group.by = 'doublet_finder', pt.size = 0.0)#+ggtitle(paste0("Slota data", comp_pair))
 
 
-png("Verity_HP_doublets.png", width = 2000,height = 1500)
+png("Slota_HP_doublets.png", width = 2000,height = 1500)
 p18
 dev.off()
 
-png("Verity_CX_doublets.png", width = 2000,height = 1500)
+png("Slota_CX_doublets.png", width = 2000,height = 1500)
 p19
 dev.off()
 
@@ -667,10 +680,10 @@ save(Slota_HP_comp,file=paste0(plotting_path,"Slota_HP_comp.Rdata"))
 metrics <-  c("nUMI", "nGene", "mitoRatio")
 
 #FIXME titles
-DimPlot(Slota_HP_comp , reduction = "umap", group.by = "treatment", raster=FALSE)+ ggtitle("Verity Hippocampal cells labelled by treatment")
+DimPlot(Slota_HP_comp , reduction = "umap", group.by = "treatment", raster=FALSE)+ ggtitle("Slota Hippocampal cells labelled by treatment")
 
 #cyclechange resolution number in group.by to see difference in clusters
-DimPlot(Slota_HP_comp, group.by = 'RNA_snn_res.0.3', reduction = 'umap', label = TRUE, repel = TRUE, raster=F)+ggtitle("Verity Hippocampal cells labelled by cluster numbers")
+DimPlot(Slota_HP_comp, group.by = 'RNA_snn_res.0.3', reduction = 'umap', label = TRUE, repel = TRUE, raster=F)+ggtitle("Slota Hippocampal cells labelled by cluster numbers")
 
 #adapted from https://github.com/hbctraining/scRNA-seq_online/blob/master/lessons/08_SC_clustering_quality_control.md#segregation-of-clusters-by-various-sources-of-uninteresting-variation
 
@@ -798,7 +811,7 @@ Slota_astrocyte_prion_markers_clean_HP$gene<-rownames(Slota_astrocyte_prion_mark
 gene_ids <- unique(Slota_astrocyte_prion_markers_clean_HP$gene)
   
 #get relevant info from the mart
-gene_info <- getBM(attributes = c("external_gene_name", "description","chromosome_name"), filters = "external_gene_name", values = gene_ids, mart = m)
+gene_info <- getBM(attributes = c("external_gene_name", "description","chromosome_name","entrezgene_id"), filters = "external_gene_name", values = gene_ids, mart = m)
   
 #apply the info to the gene list
 Slota_astrocyte_prion_markers_clean_HP <- merge(Slota_astrocyte_prion_markers_clean_HP, gene_info, by.x = "gene", by.y = "external_gene_name", all.x = TRUE)
@@ -813,41 +826,112 @@ table(Slota_HP_comp_astrocytes$treatment)
 ```
 
 
-##Functional annotation
+## Functional annotation
+
+### Address the potential non-mapping gene entrezIDs, make a gene list
+with fewer NAs
 
 ```{r}
 
-# Upregulated genes
-Slota_astrocyte_prion_markers_clean_HP_up<-subset(Slota_astrocyte_prion_markers_clean_HP, subset=avg_log2FC>(0.25)&p_val_adj<0.05) #Added p value filter here
+#make list of gene names not mapping
+not_mapped<-(Slota_astrocyte_prion_markers_clean_HP[is.na(Slota_astrocyte_prion_markers_clean_HP$entrezgene_id),]$gene)
+not_mapped<-not_mapped[!duplicated(not_mapped)]
 
-#Create a list of just the genes:
-Slota_HP_DEGs_up = (Slota_astrocyte_prion_markers_clean_HP_up$gene)
-#Convert this gene SYMBOL list into Entrez ID:
-Slota_DEGs_HPup__entrez = bitr(Slota_HP_DEGs_up, fromType = "SYMBOL", toType = "ENTREZID", OrgDb = org.Mm.eg.db)
-#Remove NAs
-Slota_DEGs_HPup__entrez <-na.omit(Slota_DEGs_HPup__entrez)
+# Create an empty data frame to store the mapped ENTREZID values
+remapped <- data.frame(ALIAS = character(0), ENTREZID = character(0), stringsAsFactors = FALSE)
 
-#GO over-representation
-Slota_HPup_GO_OvR = enrichGO(gene = Slota_DEGs_HPup__entrez$ENTREZID, OrgDb = org.Mm.eg.db, readable = T, ont= "BP", pvalueCutoff = 0.05, qvalueCutoff = 0.10)
+# Loop through each gene in 'not_mapped'
+for (gene in not_mapped) {
+  # Attempt to perform the mapping using tryCatch
+  mapped_genes <- tryCatch(
+    {
+      bitr(
+        gene,
+        fromType = "ALIAS",
+        toType = "ENTREZID",
+        OrgDb = org.Mm.eg.db,
+        drop = FALSE
+      )
+    },
+    error = function(e) {
+      # If an error occurs, handle it by returning a data frame with NA values
+      message(paste("Error mapping gene:", gene))
+      return(data.frame(ALIAS = gene, ENTREZID = NA, stringsAsFactors = FALSE))
+    }
+  )
 
-#make background list
+  # Append the temporary data frame to 'remapped'
+  remapped <- rbind(remapped, mapped_genes)
+  Sys.sleep(0.5)
+}
+
+#Additionally, get biomart conversions for those still without entrez ids 
+biomart_remapped<-getBM(attributes = c("external_gene_name","entrezgene_id"), filters = "external_gene_name", values = remapped[is.na(remapped$ENTREZID),]$ALIAS, mart = m)
+
+#add any more which have been mapped
+biomart_remapped<-biomart_remapped[!is.na(biomart_remapped$entrezgene_id),]
+
+#put everything recovered into a single df
+bloated_mapped_df <- merge(remapped, biomart_remapped, by.x = "ALIAS", by.y = "external_gene_name", all.x = TRUE)
+bloated_mapped_df$entrezgene_id <- as.character(bloated_mapped_df$entrezgene_id)
+
+#make a single column for everything recovered, remove old columns
+condensed_mapped <- bloated_mapped_df %>%
+  mutate(entrezgene_id = coalesce(ENTREZID, entrezgene_id))
+condensed_mapped$entrezgene_id<-as.integer(condensed_mapped$entrezgene_id)
+#remove old columns
+condensed_mapped$ENTREZID<-ENTREZID<- NULL
+
+
+#The final list of newly gnerated entrezIDs, removed NAs
+c<-condensed_mapped[!is.na(condensed_mapped$entrezgene_id),] 
+
+#Add them back to the original list of markers, remove eztraneous columns
+Slota_astrocyte_prion_markers_clean_HP <- merge(Slota_astrocyte_prion_markers_clean_HP, c, by.x = "gene", by.y = "ALIAS", all.x = TRUE)
+Slota_astrocyte_prion_markers_clean_HP$entrezgene_id<-coalesce(Slota_astrocyte_prion_markers_clean_HP$entrezgene_id.x, Slota_astrocyte_prion_markers_clean_HP$entrezgene_id.y)
+Slota_astrocyte_prion_markers_clean_HP<-subset(Slota_astrocyte_prion_markers_clean_HP, select = -c(entrezgene_id.x, entrezgene_id.y))
+```
+
+### Discard any genes which don't have an ENTREZID, generate list of
+background DEGs
+
+```{r}
+#Discard any genes which don't have an ENTREZID
+Slota_astrocyte_HP_markers_entrez<-Slota_astrocyte_prion_markers_clean_HP[!is.na(Slota_astrocyte_prion_markers_clean_HP$entrezgene_id),]
+
+
+#create the genelist background for Slota Up
 ## feature 1: numeric vector
-geneList = Slota_astrocyte_prion_markers_clean_HP$avg_log2FC
-
+geneList_SHp <- Slota_astrocyte_HP_markers_entrez$avg_log2FC
 ## feature 2: named vector of enembl IDs
-names(geneList) = as.character(
-  (bitr(Slota_astrocyte_prion_markers_clean_HP$gene, fromType = "SYMBOL", toType = "ENTREZID", OrgDb = org.Mm.eg.db))$ENTREZID
-)
+names(geneList_SHp) <-Slota_astrocyte_HP_markers_entrez$entrezgene_id
+## feature 3: decreasing order
+geneList_SHp <- sort(geneList_SHp, decreasing = TRUE) #object of type double
+```
 
-## feature 3: decreasing orde
-geneList = sort(geneList, decreasing = TRUE)
+### Subset upregulated genes and perform ORA
 
-ggp = barplot(Slota_HPup_GO_OvR , showCategory=20)
-ggp2 = dotplot(Slota_HPup_GO_OvR, showCategory=20)
-ggp3 = goplot(Slota_HPup_GO_OvR, showCategory = 20)
-ggp4 = cnetplot(Slota_HPup_GO_OvR, categorySize=p.adjust)
-ggp5<- cnetplot(Slota_HPup_GO_OvR, categorySize="pvalue")#, foldChange=geneList)
-ggp6<-heatplot(Slota_HPup_GO_OvR, showCategory=20)#, foldChange=geneList)
+```{r}
+#Create upregulated significant genes
+# Subset by Upregulated genes for GO enrichment
+Slota_astrocyte_prion_markers_up<-subset(Slota_astrocyte_HP_markers_entrez, subset=avg_log2FC>(0.25)&p_val_adj<0.05) #Added p value filter here
+
+#Create a list of just the gene symbols 
+Slota_Prion_DEGs_up = (Slota_astrocyte_prion_markers_up$entrezgene_id)
+
+
+# Run GO over-representation on upregulated entrezIds, biological process selected from GO terms
+Slota_Hp_up_GO_ORA = enrichGO(gene = Slota_Prion_DEGs_up, OrgDb = org.Mm.eg.db, readable = T, ont= "BP", pvalueCutoff = 0.05, qvalueCutoff = 0.10)
+```
+
+#### GO ORA visualisation and saving
+
+```{r}
+ggp <- barplot(Slota_Hp_up_GO_ORA , showCategory=20)
+ggp2 <- dotplot(Slota_Hp_up_GO_ORA, showCategory=20)
+ggp3 <- goplot(Slota_Hp_up_GO_ORA, showCategory = 20)
+ggp4<- cnetplot(Slota_Hp_up_GO_ORA, foldChange=geneList_SHp)
+ggp5<-heatplot(Slota_Hp_up_GO_ORA, showCategory=20)#,foldChange=geneList_SHp)
 
 
 ggp
@@ -855,42 +939,134 @@ ggp2
 ggp3
 ggp4
 ggp5
-ggp6
 
-
-png(paste0(plotting_path,"Terminal_Hp_GOR_barplot.png"), width = 1000,height = 750)
+png(paste0(plotting_path,"Slota_Prion_GOR_barplot.png"), width = 1000,height = 750)
 ggp
 dev.off()
-png(paste0(plotting_path,"Terminal_Hp_GOR_dotplot.png"), width = 1000,height = 750)
+png(paste0(plotting_path,"Slota_Prion_GOR_dotplot.png"), width = 1000,height = 750)
 ggp2
 dev.off()
-png(paste0(plotting_path,"Terminal_Hp_GOR_goplot.png"), width = 1000,height = 750)
+png(paste0(plotting_path,"Slota_Prion_GOR_goplot.png"), width = 1000,height = 750)
 ggp3
 dev.off()
-png(paste0(plotting_path,"Terminal_Hp_GOR_cnetplot.png"), width = 1000,height = 750)
+png(paste0(plotting_path,"Slota_Prion_GOR_cnetplot.png"), width = 1000,height = 750)
 ggp4
 dev.off()
-png(paste0(plotting_path,"Terminal_Hp_GOR_cnetplot2.png"), width = 1000,height = 750)
+png(paste0(plotting_path,"Slota_Prion_GOR_heatplot.png"), width = 3000,height = 1000)
 ggp5
 dev.off()
-png(paste0(plotting_path,"Terminal_Hp_GOR_heatplot.png"), width = 3000,height = 750)
+```
+
+### GO GSEA
+
+```{r}
+#Perform GO GSEA
+SHp_GO_GSEA <- gseGO(geneList= geneList_SHp, #This is the DEG list full list of DEGs
+              OrgDb        = org.Mm.eg.db,
+              ont          = "BP",
+              minGSSize    = 100,
+              maxGSSize    = 500,
+              pvalueCutoff = 0.05,
+              verbose      = FALSE,
+              seed=42)
+
+#convert back to Symbols for plotting
+SHp_GO_GSEA <- setReadable(SHp_GO_GSEA, 'org.Mm.eg.db', 'ENTREZID')
+
+View(data.frame(SHp_GO_GSEA))
+
+write.csv(data.frame(SHp_GO_GSEA), file = paste0(plotting_path,"SHp_GO_GSEA.csv"))
+```
+
+#### GO GSEA visualisation
+
+```{r}
+ggp6<-dotplotGsea(data = SHp_GO_GSEA,topn = 10,
+            order.by = 'NES')
+
+ggp7<-cnetplot(SHp_GO_GSEA, colorEdge = TRUE,foldChange=geneList_SHp, showCategory=5)
+
+ggp6
+ggp7
+
+#calculate pairwise similarity of GSEA genesets
+SHp_GO_GSEA_interactions <- pairwise_termsim(SHp_GO_GSEA)
+#interaction between genesets
+ggp7_1<-emapplot(SHp_GO_GSEA_interactions, color ='NES',layout='nicely')
+
+ggp7_1
+
+png(paste0(plotting_path,"SHp_GO_GSEA_dotplot.png"), width = 1000,height = 750)
 ggp6
 dev.off()
-
-#GO GSEA
-
-
-
-# ego3 <- gseGO(geneList     = geneList, #full list of DEGs
-#               OrgDb        = org.Mm.eg.db,
-#               ont          = "ALL",
-#               minGSSize    = 100,
-#               maxGSSize    = 500,
-#               pvalueCutoff = 0.05,
-#               verbose      = FALSE)
-# ego3
+png(paste0(plotting_path,"SHp_GO_GSEA_cnetplot.png"), width = 2000,height = 2000)
+ggp7
+dev.off()
+png(paste0(plotting_path,"SHp_GO_GSEA_interactions.png"), width = 1500,height = 1500)
+ggp7_1
+dev.off()
 
 ```
+
+### Reactome ORA and GSEA
+
+```{r}
+
+#Reactome over-representation
+SHp_Reactome_ORA <- enrichPathway(gene=Slota_astrocyte_prion_markers_up$entrezgene_id, pvalueCutoff = 0.05, readable=TRUE, organism = "mouse")
+
+#Reactome GSEA calculation
+SHp_Reactome_GSEA <- gsePathway(geneList_SHp, 
+                pvalueCutoff = 0.05,
+                pAdjustMethod = "BH",
+                organism = "mouse",
+                verbose = FALSE,
+                seed=42,
+                maxGSSize = 100) ##FIXME trying a lower limit to remove broad terms
+
+#convert back to symbols
+SHp_Reactome_GSEA <- setReadable(SHp_Reactome_GSEA, 'org.Mm.eg.db', 'ENTREZID')
+View(data.frame(SHp_Reactome_GSEA))
+write.csv(data.frame(SHp_Reactome_GSEA), file = paste0(plotting_path,"SHp_Reactome_GSEA.csv"))
+```
+
+#### Reactome GSEA visualisation
+
+```{r}
+#calculate pairwise similarity of GSEA genesets
+SHp_Reactome_GSEA_interactions <- pairwise_termsim(SHp_Reactome_GSEA)
+
+ggp8<-heatplot(SHp_Reactome_GSEA, showCategory = 10, foldChange=geneList_SHp)
+ggp9<-cnetplot(SHp_Reactome_GSEA, circular = TRUE, colorEdge = TRUE, foldChange=geneList_SHp)
+ggp10<-cnetplot(SHp_Reactome_GSEA, colorEdge = TRUE, foldChange=geneList_SHp, showCategory=10)
+ggp11<-ridgeplot(SHp_Reactome_GSEA,fill = 'NES', showCategory = 10)
+
+#interaction between genesets
+ggp12<-emapplot(SHp_Reactome_GSEA_interactions, color ='NES',layout='nicely')
+
+ggp8
+ggp9
+ggp10
+ggp11
+ggp12
+
+png(paste0(plotting_path,"Slota_Prion_GSEA_heatplot_Reactome.png"), width = 3000,height = 1000)
+ggp8
+dev.off()
+png(paste0(plotting_path,"Slota_Prion_GSEA_cnetplot_circular_Reactome.png"), width =2000,height = 2000)
+ggp9
+dev.off()
+png(paste0(plotting_path,"Slota_Prion_GSEA_cnetplot_Reactome.png"), width =2000,height = 2000)
+ggp10
+dev.off()
+png(paste0(plotting_path,"Slota_Prion_GSEA_ridgeplot_Reactome.png"), width = 1000,height = 750)
+ggp11
+dev.off()
+png(paste0(plotting_path,"Slota_Prion_GSEA_interactions_plot_Reactome.png"), width = 1500,height = 1500)
+ggp12
+dev.off()
+```
+
 
 
 # CX
@@ -927,10 +1103,10 @@ save(Slota_CX_comp,file=paste0(plotting_path,"Slota_CX_comp.Rdata"))
 metrics <-  c("nUMI", "nGene", "mitoRatio")
 
 #FIXME titles
-DimPlot(Slota_CX_comp , reduction = "umap", group.by = "treatment", raster=FALSE)+ ggtitle("Verity Hippocampal cells labelled by treatment")
+DimPlot(Slota_CX_comp , reduction = "umap", group.by = "treatment", raster=FALSE)+ ggtitle("Slota Hippocampal cells labelled by treatment")
 
 #cyclechange resolution number in group.by to see difference in clusters
-DimPlot(Slota_CX_comp, group.by = 'RNA_snn_res.0.3', reduction = 'umap', label = TRUE, repel = TRUE, raster=F)+ggtitle("Verity Hippocampal cells labelled by cluster numbers")
+DimPlot(Slota_CX_comp, group.by = 'RNA_snn_res.0.3', reduction = 'umap', label = TRUE, repel = TRUE, raster=F)+ggtitle("Slota Hippocampal cells labelled by cluster numbers")
 
 #adapted from https://github.com/hbctraining/scRNA-seq_online/blob/master/lessons/08_SC_clustering_quality_control.md#segregation-of-clusters-by-various-sources-of-uninteresting-variation
 
@@ -1048,7 +1224,7 @@ Slota_astrocyte_prion_markers_clean_CX$gene<-rownames(Slota_astrocyte_prion_mark
 gene_ids <- unique(Slota_astrocyte_prion_markers_clean_CX$gene)
   
 #get relevant info from the mart
-gene_info <- getBM(attributes = c("external_gene_name", "description","chromosome_name"), filters = "external_gene_name", values = gene_ids, mart = m)
+gene_info <- getBM(attributes = c("external_gene_name", "description","chromosome_name","entrezgene_id"), filters = "external_gene_name", values = gene_ids, mart = m)
   
 #apply the info to the gene list
   Slota_astrocyte_prion_markers_clean_CX <- merge(Slota_astrocyte_prion_markers_clean_CX, gene_info, by.x = "gene", by.y = "external_gene_name", all.x = TRUE)
@@ -1062,84 +1238,244 @@ save(Slota_astrocyte_prion_markers_clean_CX, file=paste0(plotting_path,"Slota_as
 table(Slota_CX_comp_astrocytes$treatment)
 ```
 
-##Functional annotation
+## Functional annotation
+
+### Address the potential non-mapping gene entrezIDs, make a gene list
+with fewer NAs
 
 ```{r}
 
-# Upregulated genes
-Slota_astrocyte_prion_markers_clean_CX_up<-subset(Slota_astrocyte_prion_markers_clean_CX,subset=avg_log2FC>(0.25)&p_val_adj<(0.05)) #Added p value filter here
+#make list of gene names not mapping
+not_mapped<-(Slota_astrocyte_prion_markers_clean_CX[is.na(Slota_astrocyte_prion_markers_clean_CX$entrezgene_id),]$gene)
+not_mapped<-not_mapped[!duplicated(not_mapped)]
 
-#Create a list of just the genes: 
-Slota_CX_DEGs_up = (Slota_astrocyte_prion_markers_clean_CX_up$gene)
-#Convert this gene SYMBOL list into Entrez ID:
-Slota_DEGs_CXup__entrez = bitr(Slota_CX_DEGs_up, fromType = "SYMBOL", toType = "ENTREZID", OrgDb = org.Mm.eg.db)
-#Remove NAs
-Slota_DEGs_CXup__entrez <-na.omit(Slota_DEGs_CXup__entrez)
+# Create an empty data frame to store the mapped ENTREZID values
+remapped <- data.frame(ALIAS = character(0), ENTREZID = character(0), stringsAsFactors = FALSE)
 
-#GO over-representation
-Slota_CXup_GO_OvR = enrichGO(gene = Slota_DEGs_CXup__entrez$ENTREZID, OrgDb = org.Mm.eg.db, readable = T, ont= "BP", pvalueCutoff = 0.05, qvalueCutoff = 0.10)
+# Loop through each gene in 'not_mapped'
+for (gene in not_mapped) {
+  # Attempt to perform the mapping using tryCatch
+  mapped_genes <- tryCatch(
+    {
+      bitr(
+        gene,
+        fromType = "ALIAS",
+        toType = "ENTREZID",
+        OrgDb = org.Mm.eg.db,
+        drop = FALSE
+      )
+    },
+    error = function(e) {
+      # If an error occurs, handle it by returning a data frame with NA values
+      message(paste("Error mapping gene:", gene))
+      return(data.frame(ALIAS = gene, ENTREZID = NA, stringsAsFactors = FALSE))
+    }
+  )
+
+  # Append the temporary data frame to 'remapped'
+  remapped <- rbind(remapped, mapped_genes)
+  Sys.sleep(0.5)
+}
+
+#Additionally, get biomart conversions for those still without entrez ids 
+biomart_remapped<-getBM(attributes = c("external_gene_name","entrezgene_id"), filters = "external_gene_name", values = remapped[is.na(remapped$ENTREZID),]$ALIAS, mart = m)
+
+#add any more which have been mapped
+biomart_remapped<-biomart_remapped[!is.na(biomart_remapped$entrezgene_id),]
+
+#put everything recovered into a single df
+bloated_mapped_df <- merge(remapped, biomart_remapped, by.x = "ALIAS", by.y = "external_gene_name", all.x = TRUE)
+bloated_mapped_df$entrezgene_id <- as.character(bloated_mapped_df$entrezgene_id)
+
+#make a single column for everything recovered, remove old columns
+condensed_mapped <- bloated_mapped_df %>%
+  mutate(entrezgene_id = coalesce(ENTREZID, entrezgene_id))
+condensed_mapped$entrezgene_id<-as.integer(condensed_mapped$entrezgene_id)
+#remove old columns
+condensed_mapped$ENTREZID<-ENTREZID<- NULL
 
 
+#The final list of newly gnerated entrezIDs, removed NAs
+c<-condensed_mapped[!is.na(condensed_mapped$entrezgene_id),] 
 
+#Add them back to the original list of markers, remove eztraneous columns
+Slota_astrocyte_prion_markers_clean_CX <- merge(Slota_astrocyte_prion_markers_clean_CX, c, by.x = "gene", by.y = "ALIAS", all.x = TRUE)
+Slota_astrocyte_prion_markers_clean_CX$entrezgene_id<-coalesce(Slota_astrocyte_prion_markers_clean_CX$entrezgene_id.x, Slota_astrocyte_prion_markers_clean_CX$entrezgene_id.y)
+Slota_astrocyte_prion_markers_clean_CX<-subset(Slota_astrocyte_prion_markers_clean_CX, select = -c(entrezgene_id.x, entrezgene_id.y))
+```
+
+### Discard any genes which don't have an ENTREZID, generate list of
+background DEGs
+
+```{r}
+#Discard any genes which don't have an ENTREZID
+Slota_astrocyte_prion_markers_clean_CX_entrez<-Slota_astrocyte_prion_markers_clean_CX[!is.na(Slota_astrocyte_prion_markers_clean_CX$entrezgene_id),]
+
+
+#create the genelist background for Verity Up
 ## feature 1: numeric vector
-geneList = Slota_astrocyte_prion_markers_clean_CX$avg_log2FC
-
+geneList_SCx <- Slota_astrocyte_prion_markers_clean_CX_entrez$avg_log2FC
 ## feature 2: named vector of enembl IDs
-names(geneList) = as.character(
-  (bitr(Slota_astrocyte_prion_markers_clean_CX$gene, fromType = "SYMBOL", toType = "ENTREZID", OrgDb = org.Mm.eg.db))$ENTREZID
-)
+names(geneList_SCx) <-Slota_astrocyte_prion_markers_clean_CX_entrez$entrezgene_id
+## feature 3: decreasing order
+geneList_SCx <- sort(geneList_SCx, decreasing = TRUE) #object of type double
+```
 
-## feature 3: decreasing orde
-geneList = sort(geneList, decreasing = TRUE)
+### Subset upregulated genes and perform ORA
 
-ggp7 = barplot(Slota_CXup_GO_OvR , showCategory=20)
-ggp8 = dotplot(Slota_CXup_GO_OvR, showCategory=20)
-ggp9 = goplot(Slota_CXup_GO_OvR, showCategory = 20)
-ggp10 = cnetplot(Slota_CXup_GO_OvR, categorySize=p.adjust)
-ggp11<- cnetplot(Slota_CXup_GO_OvR, categorySize="pvalue")#, foldChange=geneList)
-ggp12<-heatplot(Slota_CXup_GO_OvR, showCategory=20,)# foldChange=geneList)
+```{r}
+#Create upregulated significant genes
+# Subset by Upregulated genes for GO enrichment
+Slota_astrocyte_prion_markers_clean_CX_up<-subset(Slota_astrocyte_prion_markers_clean_CX_entrez, subset=avg_log2FC>(0.25)&p_val_adj<0.05) #Added p value filter here
 
-
-ggp7 
-ggp8 
-ggp9 
-ggp10
-ggp11
-ggp12
+#Create a list of just the gene symbols 
+Slota_Cx_DEGs_up = (Slota_astrocyte_prion_markers_clean_CX_up$entrezgene_id)
 
 
+# Run GO over-representation on upregulated entrezIds, biological process selected from GO terms
+Slota_Cx_up_GO_ORA = enrichGO(gene = Slota_Cx_DEGs_up, OrgDb = org.Mm.eg.db, readable = T, ont= "BP", pvalueCutoff = 0.05, qvalueCutoff = 0.10)
+```
 
-png(paste0(plotting_path,"Terminal_Cx_GOR_barplot.png"), width = 1000,height = 750)
+#### GO ORA visualisation and saving
+
+```{r}
+ggp <- barplot(Slota_Cx_up_GO_ORA , showCategory=20)
+ggp2 <- dotplot(Slota_Cx_up_GO_ORA, showCategory=20)
+ggp3 <- goplot(Slota_Cx_up_GO_ORA, showCategory = 20)
+ggp4<- cnetplot(Slota_Cx_up_GO_ORA, foldChange=geneList_SCx)
+ggp5<-heatplot(Slota_Cx_up_GO_ORA, showCategory=20)#,foldChange=geneList_SCx)
+
+
+ggp
+ggp2
+ggp3
+ggp4
+ggp5
+
+png(paste0(plotting_path,"Slota_Cx_GOR_barplot.png"), width = 1000,height = 750)
+ggp
+dev.off()
+png(paste0(plotting_path,"Slota_Cx_GOR_dotplot.png"), width = 1000,height = 750)
+ggp2
+dev.off()
+png(paste0(plotting_path,"Slota_Cx_GOR_goplot.png"), width = 1000,height = 750)
+ggp3
+dev.off()
+png(paste0(plotting_path,"Slota_Cx_GOR_cnetplot.png"), width = 1000,height = 750)
+ggp4
+dev.off()
+png(paste0(plotting_path,"Slota_Cx_GOR_heatplot.png"), width = 3000,height = 1000)
+ggp5
+dev.off()
+```
+
+### GO GSEA
+
+```{r}
+#Perform GO GSEA
+SCx_GO_GSEA <- gseGO(geneList= geneList_SCx, #This is the DEG list full list of DEGs
+              OrgDb        = org.Mm.eg.db,
+              ont          = "BP",
+              minGSSize    = 100,
+              maxGSSize    = 500,
+              pvalueCutoff = 0.05,
+              verbose      = FALSE,
+              seed=42)
+
+#convert back to Symbols for plotting
+SCx_GO_GSEA <- setReadable(SCx_GO_GSEA, 'org.Mm.eg.db', 'ENTREZID')
+
+View(data.frame(SCx_GO_GSEA))
+
+write.csv(data.frame(SCx_GO_GSEA), file = paste0(plotting_path,"SCx_GO_GSEA.csv"))
+```
+
+#### GO GSEA visualisation
+
+```{r}
+ggp6<-dotplotGsea(data = SCx_GO_GSEA,topn = 10,
+            order.by = 'NES')
+
+ggp7<-cnetplot(SCx_GO_GSEA, colorEdge = TRUE,foldChange=geneList_SCx, showCategory=5)
+
+ggp6
+ggp7
+
+#calculate pairwise similarity of GSEA genesets
+SCx_GO_GSEA_interactions <- pairwise_termsim(SCx_GO_GSEA)
+#interaction between genesets
+ggp7_1<-emapplot(SCx_GO_GSEA_interactions, color ='NES',layout='nicely')
+
+ggp7_1
+
+png(paste0(plotting_path,"SCx_GO_GSEA_dotplot.png"), width = 1000,height = 750)
+ggp6
+dev.off()
+png(paste0(plotting_path,"SCx_GO_GSEA_cnetplot.png"), width = 2000,height = 2000)
 ggp7
 dev.off()
-png(paste0(plotting_path,"Terminal_Cx_GOR_dotplot.png"), width = 1000,height = 750)
+png(paste0(plotting_path,"SCx_GO_GSEA_interactions.png"), width = 1500,height = 1500)
+ggp7_1
+dev.off()
+
+```
+
+### Reactome ORA and GSEA
+
+```{r}
+
+#Reactome over-representation
+SCx_Reactome_ORA <- enrichPathway(gene=Slota_astrocyte_prion_markers_clean_CX_up$entrezgene_id, pvalueCutoff = 0.05, readable=TRUE, organism = "mouse")
+
+#Reactome GSEA calculation
+SCx_Reactome_GSEA <- gsePathway(geneList_SCx, 
+                pvalueCutoff = 0.05,
+                pAdjustMethod = "BH",
+                organism = "mouse",
+                verbose = FALSE,
+                seed=42,
+                maxGSSize = 100) ##FIXME trying a lower limit to remove broad terms
+
+#convert back to symbols
+SCx_Reactome_GSEA <- setReadable(SCx_Reactome_GSEA, 'org.Mm.eg.db', 'ENTREZID')
+View(data.frame(SCx_Reactome_GSEA))
+write.csv(data.frame(SCx_Reactome_GSEA), file = paste0(plotting_path,"SCx_Reactome_GSEA.csv"))
+```
+
+#### Reactome GSEA visualisation
+
+```{r}
+#calculate pairwise similarity of GSEA genesets
+SCx_Reactome_GSEA_interactions <- pairwise_termsim(SCx_Reactome_GSEA)
+
+ggp8<-heatplot(SCx_Reactome_GSEA, showCategory = 10, foldChange=geneList_SCx)
+ggp9<-cnetplot(SCx_Reactome_GSEA, circular = TRUE, colorEdge = TRUE, foldChange=geneList_SCx)
+ggp10<-cnetplot(SCx_Reactome_GSEA, colorEdge = TRUE, foldChange=geneList_SCx, showCategory=10)
+ggp11<-ridgeplot(SCx_Reactome_GSEA,fill = 'NES', showCategory = 10)
+
+#interaction between genesets
+ggp12<-emapplot(SCx_Reactome_GSEA_interactions, color ='NES',layout='nicely')
+
+ggp8
+ggp9
+ggp10
+ggp11
+ggp12
+
+png(paste0(plotting_path,"Slota_Cx_GSEA_heatplot_Reactome.png"), width = 3000,height = 1000)
 ggp8
 dev.off()
-png(paste0(plotting_path,"Terminal_Cx_GOR_goplot.png"), width = 1000,height = 750)
+png(paste0(plotting_path,"Slota_Cx_GSEA_cnetplot_circular_Reactome.png"), width =2000,height = 2000)
 ggp9
 dev.off()
-png(paste0(plotting_path,"Terminal_Cx_GOR_cnetplot.png"), width = 1000,height = 750)
+png(paste0(plotting_path,"Slota_Cx_GSEA_cnetplot_Reactome.png"), width =2000,height = 2000)
 ggp10
 dev.off()
-png(paste0(plotting_path,"Terminal_Cx_GOR_cnetplot2.png"), width = 1000,height = 750)
+png(paste0(plotting_path,"Slota_Cx_GSEA_ridgeplot_Reactome.png"), width = 1000,height = 750)
 ggp11
 dev.off()
-png(paste0(plotting_path,"Terminal_Cx_GOR_heaplot.png"), width = 3000,height = 750)
+png(paste0(plotting_path,"Slota_Cx_GSEA_interactions_plot_Reactome.png"), width = 1500,height = 1500)
 ggp12
 dev.off()
-
-
-#GO GSEA
-
-
-
-# ego4 <- gseGO(geneList     = geneList, #full list of DEGs
-#               OrgDb        = org.Mm.eg.db,
-#               ont          = "ALL",
-#               minGSSize    = 100,
-#               maxGSSize    = 500,
-#               pvalueCutoff = 0.05,
-#               verbose      = FALSE)
-# ego4
 
 ```
