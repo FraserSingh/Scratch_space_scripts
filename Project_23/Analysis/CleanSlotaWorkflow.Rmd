@@ -1031,26 +1031,37 @@ write.csv(data.frame(SHp_GO_GSEA), file = paste0(plotting_path,"SHp_GO_GSEA.csv"
 ggp6<-dotplotGsea(data = SHp_GO_GSEA,topn = 10,
             order.by = 'NES')
 
-ggp7<-cnetplot(SHp_GO_GSEA, colorEdge = TRUE,foldChange=geneList_SHp, showCategory=5)
+ggp7<-cnetplot(SHp_GO_GSEA,foldChange=geneList_SHp, showCategory=5)
 
 ggp6
 ggp7
+
+
+
 
 #calculate pairwise similarity of GSEA genesets
 SHp_GO_GSEA_interactions <- pairwise_termsim(SHp_GO_GSEA)
 #interaction between genesets
 ggp7_1<-emapplot(SHp_GO_GSEA_interactions, color ='NES',layout='nicely')
-
 ggp7_1
 
-png(paste0(plotting_path,"SHp_GO_GSEA_dotplot.png"), width = 1000,height = 750)
+#CHOOSING PATHWAYS TO SHOW
+#retrieve synapse related pathways
+View(data.frame(subset(SHp_GO_GSEA@result, grepl("synap", Description, ignore.case = TRUE))))
+subset_result <- subset(SHp_GO_GSEA@result, grepl("synap", Description, ignore.case = TRUE))$Description
+ggp7_2_Hp<-cnetplot(SHp_GO_GSEA,foldChange=geneList_SHp, showCategory=subset_result)
+
+png(paste0(plotting_path_term,"SHp_GO_GSEA_dotplot.png"), width = 1000,height = 750)
 ggp6
 dev.off()
-png(paste0(plotting_path,"SHp_GO_GSEA_cnetplot.png"), width = 2000,height = 2000)
+png(paste0(plotting_path_term,"SHp_GO_GSEA_cnetplot.png"), width = 2000,height = 2000)
 ggp7
 dev.off()
-png(paste0(plotting_path,"SHp_GO_GSEA_interactions.png"), width = 1500,height = 1500)
+png(paste0(plotting_path_term,"SHp_GO_GSEA_interactions.png"), width = 1500,height = 1500)
 ggp7_1
+dev.off()
+png(paste0(plotting_path_term,"SHp_GO_GSEA_synapse_snet.png"), width = 3000,height = 1000)
+ggp7_2_Hp
 dev.off()
 
 ```
@@ -1499,8 +1510,14 @@ ggp7
 SCx_GO_GSEA_interactions <- pairwise_termsim(SCx_GO_GSEA)
 #interaction between genesets
 ggp7_1<-emapplot(SCx_GO_GSEA_interactions, color ='NES',layout='nicely')
-
 ggp7_1
+
+#CHOOSING PATHWAYS TO SHOW
+#retrieve synapse related pathways
+View(data.frame(subset(SCx_GO_GSEA@result, grepl("synap", Description, ignore.case = TRUE))))
+subset_result_Cx <- subset(SCx_GO_GSEA@result, grepl("synap", Description, ignore.case = TRUE))$Description
+ggp7_2<-cnetplot(SCx_GO_GSEA,foldChange=geneList_SCx, showCategory=subset_result_Cx)
+
 
 png(paste0(plotting_path,"SCx_GO_GSEA_dotplot.png"), width = 1000,height = 750)
 ggp6
@@ -1510,6 +1527,9 @@ ggp7
 dev.off()
 png(paste0(plotting_path,"SCx_GO_GSEA_interactions.png"), width = 1500,height = 1500)
 ggp7_1
+dev.off()
+png(paste0(plotting_path_term,"SCx_GO_GSEA_synapse_cnet.png"), width = 3000,height = 1000)
+ggp7_2
 dev.off()
 
 ```
