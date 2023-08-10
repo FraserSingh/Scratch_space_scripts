@@ -64,6 +64,7 @@ library(DESeq2)
 library(Polychrome)
 library(GseaVis)
 library(ReactomePA)
+library(patchwork)
 ```
 
 Make folder for plots

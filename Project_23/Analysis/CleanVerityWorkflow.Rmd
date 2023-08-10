@@ -1030,6 +1030,10 @@ VP_GO_GSEA <- gseGO(geneList= geneList_VP, #This is the DEG list full list of DE
 VP_GO_GSEA <- setReadable(VP_GO_GSEA, 'org.Mm.eg.db', 'ENTREZID')
 
 View(data.frame(VP_GO_GSEA))
+VP_GSEA_df<-data.frame(VP_GO_GSEA)
+#search for the GSEA terms of a gene of interest
+VP_GSEA_df[grep("Gfap", VP_GSEA_df$core_enrichment), ]$Description
+
 
 write.csv(data.frame(VP_GO_GSEA), file = paste0(plotting_path,"VP_GO_GSEA.csv"))
 ```
