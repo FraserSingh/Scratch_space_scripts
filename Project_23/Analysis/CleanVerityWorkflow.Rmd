@@ -195,12 +195,7 @@ colour_df_Verity$colours<-c('#59b47b',
 '#b6923c',
 '#f5496b')
 
-    scale_fill_manual(values = colour_df_Verity$colours)+
-    plot_annotation(title = "Ximerakis filtered, cells per sample")+
-    guides(fill = 'none')
-    
-
-ggsave("Ximerakis_Cell_counts_per_sample_final.png",plot=Xim_filtered_final_cellpersammple,device='png', path=Xim_plotting_path,width = 20, height = 15, units = 'cm' )
+colour_df_Verity_prion<-subset(colour_df_Verity, subset = folder_names != 'sample11' &folder_names != 'sample9')
 ```
 
 
@@ -646,6 +641,47 @@ Verity_comparisons <- lapply(Verity_comparisons, function(comp_pair) {
 })
 ```
 
+#Show overall QC stats after filtering
+
+```{r}
+load(paste0(plotting_path_Ver,"Verity_comparisons.RData"))
+Verityqc_comp1<-Verity_comparisons[[1]]
+Verityqc_comp2<-Verity_comparisons[[2]]
+
+Verity_Qc_comp<-merge(x=Verityqc_comp1, y=Verityqc_comp2,project="Verity")
+
+Idents(Verityqc_comp1)<-Verityqc_comp1$sample
+
+Verity_comparisons_filtered_QC<-VlnPlot(Verityqc_comp1, features=c("nFeature_RNA","nCount_RNA","percent.mt", "percent.rp","percent.hb"), ncol=5, pt.size = 0.0)&scale_fill_manual(values = colour_df_Verity_prion$colours)&plot_annotation(title = "Verity dataset after all filtering")
+
+
+Verity_comparisons_filtered_barplot<-Verityqc_comp1@meta.data%>%
+    ggplot(aes(x=factor(sample,level=c("sample1","sample2", "sample5", "sample6")), fill=sample)) + 
+  	geom_bar() +
+  	theme_classic() +
+  	theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
+  	theme(plot.title = element_text(hjust=0.5, face="bold")) +
+    scale_fill_manual(values = colour_df_Verity_prion$colours)+
+    scale_y_continuous(breaks=seq(0, 30000, 3000))+
+    guides(fill = 'none')
+Verity_comparisons_filtered_barplot
+
+Verity_comparisons_filtered_QC<-Verity_comparisons_filtered_QC+
+  Verity_comparisons_filtered_barplot+
+  ggtitle("Cells per sample")+
+  plot_layout(ncol = 3)&
+  plot_annotation(title = "Verity dataset after all filtering")&
+  xlab(NULL)
+
+Verity_comparisons_filtered_QC
+
+ggsave("Verity_comparisons_filtered_QC.png",plot=Verity_comparisons_filtered_QC,device='png', path=plotting_path_Ver,width = 30, height = 15, units = 'cm' )
+
+rm(Verityqc_comp1,Verityqc_comp2,Verity_Qc_comp)
+```
+
+
+
 # Split the data, rename doubletfinder metadata and Show Doublets for each comparison group witihn Verity data. Retain singlets
 
 ```{r}
@@ -830,8 +866,10 @@ Verity_Prion_comp_astrocytes <- FindClusters(Verity_Prion_comp_astrocytes, resol
 #save for reloading
 save(Verity_Prion_comp_astrocytes, file=paste0(plotting_path,"Verity_Prion_comp_astrocytes.Rdata"))
 
-#cyclechange resolution number in group.by to see difference in clusters
-DimPlot(Verity_Prion_comp_astrocytes, reduction = 'umap',  raster=F, group.by='treatment')+ggtitle("Verity data's HP astrocytes", subtitle="Labelled by treatment")
+Verity_astrocyte_treatment_plot<-DimPlot(Verity_Prion_comp_astrocytes, reduction = 'umap',  raster=F, group.by='treatment')+ggtitle("Verity data astrocytes", subtitle="Labelled by treatment")
+Verity_astrocyte_treatment_plot
+ggsave("Verity_astrocyte_treatment_plot.png",plot=Verity_astrocyte_treatment_plot,device='png', path=plotting_path_Ver,width = 20, height = 15, units = 'cm' )
+
 
 #Show the clustering of subset astrocytes
 DimPlot(Verity_Prion_comp_astrocytes, group.by = 'RNA_snn_res.0.3', reduction = 'umap', repel = TRUE, raster=F)
@@ -840,11 +878,17 @@ DimPlot(Verity_Prion_comp_astrocytes, group.by = 'RNA_snn_res.0.3', reduction = 
 DimPlot(Verity_Prion_comp_astrocytes, group.by = 'sample', reduction = 'umap', repel = TRUE, raster=F)
 
 #Show astrocyte markers in astrocyte subset
-FeaturePlot(Verity_Prion_comp_astrocytes,features=c('Gfap','Cd44'), raster=F)
+
+
+Verity_reactive_astrocyte_plot<-FeaturePlot(Verity_Prion_comp_astrocytes,features=c('Gfap','Cd44'), raster=F)&plot_annotation(title="Verity data astrocytes", subtitle="highlighting reactive astrocyte genes")
+Verity_reactive_astrocyte_plot
+ggsave("Verity_reactive_astrocyte_plot.png",plot=Verity_reactive_astrocyte_plot,device='png', path=plotting_path_Ver,width = 30, height = 10, units = 'cm' )
 
 #set the idents to 0.3
 Verity_Prion_comp_astrocytes@active.ident<-(Verity_Prion_comp_astrocytes@meta.data$RNA_snn_res.0.3)
 levels(Verity_Prion_comp_astrocytes)
+
+
 
 DefaultAssay(Verity_Prion_comp_astrocytes)<-'RNA'
 

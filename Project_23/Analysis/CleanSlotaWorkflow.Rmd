@@ -568,6 +568,44 @@ gc()
 save(Slota_filtered_clean, file="./Rdata/Slota_filtered_clean.RData")
 ```
 
+## Show QC after all filtering
+
+```{r}
+load("../Analysis/Rdata/Slota_filtered_clean.RData")
+
+Idents(Slota_filtered_clean)<-Slota_filtered_clean$sample
+
+Slota_filtered_QC<-VlnPlot(Slota_filtered_clean, features=c("nFeature_RNA","nCount_RNA","percent.mt", "percent.rp","percent.hb"), ncol=5, pt.size = 0.0)&scale_fill_manual(values = colour_df_Slota$colours)&plot_annotation(title = "Slota dataset after all filtering")
+
+Slota_filtered_QC
+  
+Slota_filtered_barplot<-Slota_filtered_clean@meta.data%>%
+    ggplot(aes(x=sample, fill=sample)) + 
+  	geom_bar() +
+  	theme_classic() +
+  	theme(axis.text.x = element_text(angle = 90, vjust = 1, hjust=1)) +
+  	theme(plot.title = element_text(hjust=0.5, face="bold")) +
+    scale_fill_manual(values = colour_df_Slota$colours)+
+    #scale_y_continuous(breaks=seq(0, 30000, 3000))+
+    guides(fill = 'none')
+
+Slota_filtered_barplot
+
+Slota_filtered_QC<-Slota_filtered_QC+
+  Slota_filtered_barplot+
+  ggtitle("Cells per sample")+
+  plot_layout(ncol = 3)&
+  theme(axis.text.x = element_text(angle = 90, vjust = 1, hjust=1, size=rel(0.55)))&
+  plot_annotation(title = "Slota dataset after all filtering")&
+  xlab(NULL)
+
+Slota_filtered_QC
+
+ggsave("Slota_filtered_QC.png",plot=Slota_filtered_QC,device='png', path="../Analysis/Terminal_publication_level/",width = 30, height = 15, units = 'cm' )
+
+```
+
+
 
 # Splitting the data by tissue
 
@@ -757,9 +795,22 @@ filtered_gene_names<-Gene_Names[!grepl("^\\d", Gene_Names)]
 filtered_gene_names[grep("^Slc1a2", filtered_gene_names)]
 
 #try to identify astrocytes  with genes
-astrocyte_genes<-c("Aldh1l1","Gfap","Slc1a2", "Slc1a3", "Glul", "Cd44")
+astrocyte_genes<-c("Aldh1l1","Gfap","Slc1a2", "Slc1a3", "Glul", "S100b")
 
-FeaturePlot(Slota_HP_comp,features=astrocyte_genes, raster=F)#+ggtitle("Slota data, labelled with astrocyte gene markers from ABCAM", subtitle="Clustering resolution 0.3, 20 PCs used")
+
+Slota_HP_astrocyte_markers_plot<-FeaturePlot(Slota_HP_comp,features=astrocyte_genes, raster=F,order=T)&plot_annotation(title = "Slota hippocampal data, labelled with astrocyte gene markers from ABCAM", subtitle="Clustering resolution 0.3, 20 PCs used")&scale_colour_gradient(low = "lightgrey", high = "blue",limits = c(0, 8))
+
+
+#From ChatGPT
+# Create the plot without the legend
+plot_without_legend <- Slota_HP_astrocyte_markers_plot + theme(legend.position = "none")
+# Get the legend
+legend <- get_legend(Slota_HP_astrocyte_markers_plot)
+# Combine the plot and legend using patchwork
+Slota_HP_astrocyte_markers_plot<- plot_without_legend + plot_layout(guides = "collect",ncol=3) 
+
+ggsave("Slota_HP_astrocyte_markers.png",plot=Slota_HP_astrocyte_markers_plot,device='png', path=plotting_path_Terminal,width = 30, height = 20, units = 'cm' )
+
 
 #As a reminder...
 DimPlot(Slota_HP_comp, group.by = 'RNA_snn_res.0.3', reduction = 'umap', label = TRUE, repel = TRUE, raster=F)+ggtitle("Integrated Slota data, labelled by cluster numbers", subtitle="RPCA,Clustering resolution 0.3, 20 PCs used")
@@ -822,7 +873,9 @@ Slota_HP_comp_astrocytes <- FindClusters(Slota_HP_comp_astrocytes, resolution = 
 save(Slota_HP_comp_astrocytes, file=paste0(plotting_path_Terminal,"Slota_HP_comp_astrocytes.Rdata"))
 
 #cyclechange resolution number in group.by to see difference in clusters
-DimPlot(Slota_HP_comp_astrocytes, reduction = 'umap',  raster=F, group.by='treatment')+ggtitle("Slota data's HP astrocytes", subtitle="Labelled by treatment")
+Slota_HP_astrocyte_treatment_plot<-DimPlot(Slota_HP_comp_astrocytes, reduction = 'umap',  raster=F, group.by='treatment')+ggtitle("Slota data's Hippocampal astrocytes", subtitle="Labelled by treatment")
+
+ggsave("Slota_HP_astrocyte_treatment_plot.png",plot=Slota_HP_astrocyte_treatment_plot,device='png', path=plotting_path_Terminal,width = 20, height = 15, units = 'cm' )
 
 #Show the clustering of subset astrocytes
 DimPlot(Slota_HP_comp_astrocytes, group.by = 'RNA_snn_res.0.2', reduction = 'umap', repel = TRUE, raster=F)
@@ -831,7 +884,9 @@ DimPlot(Slota_HP_comp_astrocytes, group.by = 'RNA_snn_res.0.2', reduction = 'uma
 DimPlot(Slota_HP_comp_astrocytes, group.by = 'sample', reduction = 'umap', repel = TRUE, raster=F)
 
 #Show astrocyte markers in astrocyte subset
-FeaturePlot(Slota_HP_comp_astrocytes,features=c('Gfap','Cd44'), raster=F)
+Slota_HP_reactive_astrocyte_plot<-FeaturePlot(Slota_HP_comp_astrocytes,features=c('Gfap','Cd44'), raster=F)&plot_annotation(title = "Slota data's Hippocampal astrocytes", subtitle="Highlighting expression of reactive astrocyte genes")
+Slota_HP_reactive_astrocyte_plot
+ggsave("Slota_HP_reactive_astrocyte_plot.png",plot=Slota_HP_reactive_astrocyte_plot,device='png', path=plotting_path_Terminal,width = 30, height = 10, units = 'cm' )
 
 #set the idents to 0.2
 Slota_HP_comp_astrocytes@active.ident<-(Slota_HP_comp_astrocytes@meta.data$RNA_snn_res.0.2)
@@ -1239,7 +1294,26 @@ filtered_gene_names<-Gene_Names[!grepl("^\\d", Gene_Names)]
 filtered_gene_names[grep("^Slc1a2", filtered_gene_names)]
 
 #try to identify astrocytes  with genes
-astrocyte_genes<-c("Aldh1l1","Gfap","Slc1a2", "Slc1a3", "Glul", "Cd44")
+astrocyte_genes<-c("Aldh1l1","Gfap","Slc1a2", "Slc1a3", "Glul", "S100b")
+
+
+Slota_CX_astrocyte_markers_plot<-FeaturePlot(Slota_CX_comp,features=astrocyte_genes, raster=F,order=T)&plot_annotation(title = "Slota cortical data, labelled with astrocyte gene markers from ABCAM", subtitle="Clustering resolution 0.3, 20 PCs used")&scale_colour_gradient(low = "lightgrey", high = "blue",limits = c(0, 8))
+
+
+#From ChatGPT
+# Create the plot without the legend
+plot_without_legend <- Slota_CX_astrocyte_markers_plot + theme(legend.position = "none")
+# Get the legend
+legend <- get_legend(Slota_CX_astrocyte_markers_plot)
+# Combine the plot and legend using patchwork
+Slota_CX_astrocyte_markers_plot<- plot_without_legend + plot_layout(guides = "collect",ncol=3) 
+
+ggsave("Slota_CX_astrocyte_markers.png",plot=Slota_CX_astrocyte_markers_plot,device='png', path=plotting_path_Terminal,width = 30, height = 20, units = 'cm' )
+
+
+#As a reminder...
+DimPlot(Slota_HP_comp, group.by = 'RNA_snn_res.0.3', reduction = 'umap', label = TRUE, repel = TRUE, raster=F)+ggtitle("Integrated Slota data, labelled by cluster numbers", subtitle="RPCA,Clustering resolution 0.3, 20 PCs used")
+
 
 FeaturePlot(Slota_CX_comp,features=astrocyte_genes, raster=F)#+ggtitle("Slota data, labelled with astrocyte gene markers from ABCAM", subtitle="Clustering resolution 0.3, 20 PCs used")
 
@@ -1292,6 +1366,11 @@ Slota_CX_comp_astrocytes <- FindClusters(Slota_CX_comp_astrocytes, resolution = 
 #save for reloading
 save(Slota_CX_comp_astrocytes, file=paste0(plotting_path_Terminal,"Slota_CX_comp_astrocytes.Rdata"))
 
+Slota_CX_astrocyte_treatment_plot<-DimPlot(Slota_CX_comp_astrocytes, reduction = 'umap',  raster=F, group.by='treatment')+ggtitle("Slota data's cortical astrocytes", subtitle="Labelled by treatment")
+Slota_CX_astrocyte_treatment_plot
+ggsave("Slota_CX_astrocyte_treatment_plot.png",plot=Slota_CX_astrocyte_treatment_plot,device='png', path=plotting_path_Terminal,width = 20, height = 15, units = 'cm' )
+
+
 #cyclechange resolution number in group.by to see difference in clusters
 DimPlot(Slota_CX_comp_astrocytes, reduction = 'umap',  raster=F, group.by='treatment')+ggtitle("Slota data's CX astrocytes", subtitle="Labelled by treatment")
 
@@ -1302,7 +1381,10 @@ DimPlot(Slota_CX_comp_astrocytes, group.by = 'RNA_snn_res.0.2', reduction = 'uma
 DimPlot(Slota_CX_comp_astrocytes, group.by = 'sample', reduction = 'umap', repel = TRUE, raster=F)
 
 #Show astrocyte markers in astrocyte subset
-FeaturePlot(Slota_CX_comp_astrocytes,features=c('Gfap','Cd44'), raster=F)
+Slota_CX_reactive_astrocyte_plot<-FeaturePlot(Slota_CX_comp_astrocytes,features=c('Gfap','Cd44'), raster=F)&plot_annotation(title = "Slota data's cortical astrocytes", subtitle="Highlighting expression of reactive astrocyte genes")
+Slota_CX_reactive_astrocyte_plot
+ggsave("Slota_CX_reactive_astrocyte_plot.png",plot=Slota_CX_reactive_astrocyte_plot,device='png', path=plotting_path_Terminal,width = 30, height = 10, units = 'cm' )
+
 
 #set the idents to 0.2
 Slota_CX_comp_astrocytes@active.ident<-(Slota_CX_comp_astrocytes@meta.data$RNA_snn_res.0.2)

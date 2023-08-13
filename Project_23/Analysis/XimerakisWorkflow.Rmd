@@ -347,6 +347,7 @@ Xim_UMI_cell
 ggsave("Ximerakis_UMI_transcripts_per_cellRedux.png",plot=Xim_UMI_cell,device='png', path=Xim_plotting_path,width = 20, height = 15, units = 'cm' )
 
 ```
+
 ```{r}
 #MAke unsouped data for the plot! PURELY FOR PLOTTING!
 
