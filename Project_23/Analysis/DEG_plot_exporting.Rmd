@@ -28,17 +28,17 @@ library(DESeq2)
 
 #For loading
 dir_name_ver <- "Verity_plots" #change depending on run to pull data from
-plotting_path_ver<-paste0("./", dir_name_ver,"/")
+plotting_path_ver<-paste0("../Analysis/", dir_name_ver,"/")
 
 
 dir_name_term <- "Terminal_sample_investigation"
-plotting_path_term<-paste0("./", dir_name_term,"/")
+plotting_path_term<-paste0("../Analysis/", dir_name_term,"/")
 
 #For saving #Change this for each run!
-dir_name_term <- "Venn_270723_1"
+dir_name_term <- "../Analysis/Venn_020823_1"
 # create folder:
 system(paste0("mkdir ", dir_name_term))
-plotting_path_DEG_comp<-paste0("./", dir_name_term,"/")
+plotting_path_DEG_comp<-paste0(dir_name_term,"/")
 
 ```
 
@@ -94,10 +94,13 @@ DEG_names_Verity_AGEING_RAW<-(DEG_data_Verity_Slota[[4]]$gene)
 
 library(gplots)
 # Create a Venn-diagram given just the list of gene-names for both sets
+png(paste0(plotting_path_DEG_comp,"RAW_DEGs_Venndiagram.png"), width = 1000,height = 750)
 venn_diagram_RAW <- venn(list("Verity PRION" = DEG_names_Verity_PRION_RAW,
                               "Verity AGEING" = DEG_names_Verity_AGEING_RAW,
                               "Terminal HP" = DEG_names_Terminal_HP_RAW,
                               "Terminal CX" = DEG_names_Terminal_CX_RAW))
+dev.off()
+
 
 # Inspect the list of classifications
 interactions_RAW<-attr(venn_diagram_RAW,"intersections")
@@ -127,10 +130,12 @@ DEG_names_Verity_AGEING_UP<-(DEG_data_Verity_Slota_UP[[4]]$gene)
 
 
 # Create a Venn-diagram given just the list of gene-names for both sets
+png(paste0(plotting_path_DEG_comp,"UP_DEGs_Venndiagram.png"), width = 1000,height = 750)
 venn_diagram_UP <- venn(list("Verity PRION UP" = DEG_names_Verity_PRION_UP,
                               # "Verity AGEING UP" = DEG_names_Verity_AGEING_UP,
                               "Terminal HP UP" = DEG_names_Terminal_HP_UP,
                               "Terminal CX UP" = DEG_names_Terminal_CX_UP))
+dev.off()
 
 # Inspect the list of classifications
 interactions_UP<-attr(venn_diagram_UP,"intersections")
@@ -148,10 +153,12 @@ DEG_names_Verity_AGEING_DOWN<-(DEG_data_Verity_Slota_DOWN[[4]]$gene)
 
 library(gplots)
 # Create a Venn-diagram given just the list of gene-names for both sets
+png(paste0(plotting_path_DEG_comp,"DOWN_DEGs_Venndiagram.png"), width = 1000,height = 750)
 venn_diagram_DOWN <- venn(list("Verity PRION DOWN" = DEG_names_Verity_PRION_DOWN,
                               # "Verity AGEING DOWN" = DEG_names_Verity_AGEING_DOWN,
                               "Terminal HP DOWN" = DEG_names_Terminal_HP_DOWN,
                               "Terminal CX DOWN" = DEG_names_Terminal_CX_DOWN))
+dev.off()
 
 # Inspect the list of classifications
 interactions_DOWN<-attr(venn_diagram_DOWN,"intersections")
@@ -166,7 +173,7 @@ write.csv(interactions_DOWN, file=paste0(plotting_path_DEG_comp,"VennGenes_DOWN.
 ```{r}
 interactions_UP
 interactions_DOWN
-interactions_RAW
+#interactions_RAW
 ```
 
 
@@ -180,266 +187,38 @@ interactions_RAW
 
 #Verity and both Slota all three categories' shared DGEs
 Verity_Slota_HP_shared_DEGs_RAW <- subset(DEG_data_Verity_Slota[[3]], gene %in% interactions_RAW[[9]]) #interactions 9 is the crossover between Verity_HP.Slota_HP.Slota_CX
-Verity_Slota_HP_shared_DEGs_RAW<-Verity_Slota_HP_shared_DEGs_RAW[c('gene','description')]
+Verity_Slota_HP_shared_DEGs_RAW<-subset(Verity_Slota_HP_shared_DEGs_RAW, select = c('gene','description.x')) #HAd to add .x in description due to erroenous column duplication
 
 write.csv(Verity_Slota_HP_shared_DEGs_RAW, file=paste0(plotting_path_DEG_comp,"Shared_DGEs_Vprion_S_RAW.csv"))
 
 #Verity and Slota HP upregulated DGEs
 Verity_Slota_HP_shared_DEGs_UP <- subset(DEG_data_Verity_Slota[[3]], gene %in% interactions_UP[[6]]) #interactions 6 is the crossover between Verity_HP.SlotA_HP
+Verity_Slota_HP_shared_DEGs_UP <- subset(Verity_Slota_HP_shared_DEGs_UP, select = c('gene','description.x')) 
+
 write.csv(Verity_Slota_HP_shared_DEGs_UP, file=paste0(plotting_path_DEG_comp,"Shared_DGEs_Vprion_Shp_UP.csv"))
 
 #Verity HP and Slota CX upregulated DGEs
 Verity_HP_Slota_CX_shared_DEGs_UP <- subset(DEG_data_Verity_Slota[[3]], gene %in% interactions_UP[[5]]) #interactions 5 is the crossover between Verity_HP.Slota_CX
+Verity_HP_Slota_CX_shared_DEGs_UP <- subset(Verity_HP_Slota_CX_shared_DEGs_UP, select = c('gene','description.x'))
 write.csv(Verity_HP_Slota_CX_shared_DEGs_UP, file=paste0(plotting_path_DEG_comp,"Shared_DGEs_VHP_SCX_UP.csv"))
 
 #Verity and both Slota downregulated DGEs
 Verity_Slota_shared_DEGs_DOWN <- subset(DEG_data_Verity_Slota[[3]], gene %in% interactions_DOWN[[6]]) #interactions 5 is the crossover between Verity_HP.SlotA_HP
+Verity_Slota_shared_DEGs_DOWN <- subset(Verity_Slota_shared_DEGs_DOWN, select = c('gene','description.x')) 
 write.csv(Verity_Slota_shared_DEGs_DOWN, file=paste0(plotting_path_DEG_comp,"Shared_DGEs_V_S_DOWN.csv"))
 
 #Verity and Slota Hippocampus downregulated DGEs
 Verity_Slota_HP_shared_DEGs_DOWN <- subset(DEG_data_Verity_Slota[[3]], gene %in% interactions_DOWN[[5]]) #interactions 5 is the crossover between Verity_HP.SlotA_HP
+Verity_Slota_HP_shared_DEGs_DOWN <- subset(Verity_Slota_HP_shared_DEGs_DOWN, select = c('gene','description.x')) 
 write.csv(Verity_Slota_HP_shared_DEGs_DOWN, file=paste0(plotting_path_DEG_comp,"Shared_DGEs_V_Shp_DOWN.csv"))
 ```
 
-
-
-# Untested
-
-## Make mart
-```{r}
-m <- useDataset("mmusculus_gene_ensembl", useMart("ensembl"))
-```
+#Make joint QC plot
 
 ```{r}
-if (!require("BiocManager", quietly = TRUE))
-    install.packages("BiocManager")
-
-BiocManager::install("piano")
-library(piano)
-
-#piano_GO terms
-GO_terms_m <- getBM(attributes = c("name_1006","ensembl_gene_id"), m = m)
-GO_terms_m <- GO_terms_m[c('ensembl_gene_id', 'name_1006')]
-names(GO_terms_m) <- c('gene.name', "GO_terms")
-GO_term_piano <- loadGSC(GO_terms_m)
+EDA_comp<-Xim_violin_EDA/p1_Terminal/p1+plot_annotation(tag_levels = 'A', title = 'EDA of each dataset')
+ggsave("joint_EDA.png",plot=EDA_comp,device='png', path=plotting_path_Terminal,width = 40, height = 45, units = 'cm' )
 ```
 
 
-```{r}
-#functions
-tidy_gsea <- function(x){
-  pos <- subset(x, x[3] > 0)
-  neg <- subset(x, x[3] < 0)
-  
-  pos <- pos[c("Name", "Genes (tot)", "Stat (dist.dir)" , "p (dist.dir.up)" , "p adj (dist.dir.up)")]
-  neg <- neg[c("Name", "Genes (tot)", "Stat (dist.dir)" , "p (dist.dir.dn)" , "p adj (dist.dir.dn)")]
-  
-  names(pos) <- c("Name", "gene.NO", 'stat', "pvalue", "padj")
-  names(neg) <- c("Name", "gene.NO", 'stat', "pvalue", "padj")
-  
-  exp_data <- rbind(pos,neg)
-  
-  return(exp_data)
-}
 
-add_gene_dataset <-function(x,dataset){
-  x <- x
-  term <- x[1]
-
-  gene_names <- subset(GO_terms_m, GO_terms_m$GO_terms == term[[1]])
-  if (as.numeric(stat[[1]]) < 0){
-    print(paste(as.numeric(stat[[1]]), "in down", sep = " "))
-    test <- subset(dataset, dataset$gene.name %in% gene_names[[1]])
-    test <- test[order(test$avg_log2FC),]
-    gene_name <- paste(test$external_gene_name, collapse = "|")
-  }
-  else{
-    print(paste((stat[[1]]), "in up", sep = " "))
-    test <- subset(dataset, dataset$gene.name %in% gene_names[[1]])
-    test <- test[order(-test$avg_log2FC),]
-    gene_name <- paste(test$external_gene_name, collapse = "|")
-  }
- return(gene_name)
-}
-
-```
-
-```{r}
-#GSEA------------------------------------
-#GO FROM HERE, COULD MAKE LOOP FOR EACH GENE LIST IN DEG_data_Verity_Slota
-#choose gene list from DEG_data_Verity_Slota
-DE_Astrocytes_C3_Psig<-DEG_data_Verity_Slota[[3]] #Verity prion treatment genes
-  
-#filter based on thresholds
-DE_Astrocytes_C3_Psig<-subset(DE_Astrocytes_C3_Psig, subset=p_val_adj<0.05)
-
-
-#subset the DEG gene lists info to only contain names and logFC
-DE_Astrocytes_C3_Psig_piano <- DE_Astrocytes_C3_Psig[,c('gene.name', 'avg_log2FC')]
-#change genes column into rownames and only hav logFC
-row.names(DE_Astrocytes_C3_Psig_piano) <- DE_Astrocytes_C3_Psig_piano$gene.name
-DE_Astrocytes_C3_Psig_piano$gene.name <- NULL
-
-#Run GSE using piano terms
-DE_Astrocytes_C3_Psig_piano_gsea <- runGSA(DE_Astrocytes_C3_Psig_piano, gsc=GO_term_piano, geneSetStat="gsea")
-
-#generate summary table
-DE_Astrocytes_C3_Psig_piano_gsea_data <- GSAsummaryTable(DE_Astrocytes_C3_Psig_piano_gsea, save=FALSE)
-
-# DE_Astrocytes_C3_Psig_piano_gsea_data <- tidy_gsea(DE_Astrocytes_C3_Psig_piano_gsea_data)
-
-names(DE_Astrocytes_C3_Psig_piano_gsea_data) <- c("Name", "gene.NO", 'stat', "pvalue", "padj")
-
-gene_names_ <- data.frame()
-for(i in 1:dim(DE_Astrocytes_C3_Psig_piano_gsea_data)[1]){
-  print(paste("start" , i, sep = " "))
-  subdata <- DE_Astrocytes_C3_Psig_piano_gsea_data[i,]
-  stat <- subdata[3]
-  exp <- add_gene_dataset(subdata, DE_Astrocytes_C3_Psig)
-  exp <- data.frame(gene_names = exp)
-  gene_names_ <- rbind(gene_names_, exp)
-}
-```
-
-###Generating networks
-
-###Functions needed for networks
-
-```{r}
-get_sig_neg <- function(x){
-  dat <- subset(x, x$padj <0.1)
-  dat <- subset(dat, dat$stat <0)
-  return(dat)}
-get_sig_pos <- function(x){
-  dat <- subset(x, x$padj <0.1)
-  dat <- subset(dat, dat$stat >0)
-  return(dat)}
-
-#to take the top items take order function and head - around 10-15 values usually on SS plots
-
-make_Col_pos <- function(x){
-  data <- data.frame(pval=V(x)$pvalue)
-  pal_col <- colorRampPalette(c("yellow","red"))
-  exp_table <- pal_col(20)[as.numeric(cut(data$pval,breaks = 20))]
-  return(exp_table)
-}
-make_Col_neg <- function(x){
-  data <- data.frame(pval=V(x)$pvalue)
-  pal_col <- colorRampPalette(c("white","blue"))
-  exp_table <- pal_col(20)[as.numeric(cut(data$pval,breaks = 20))]
-  return(exp_table)
-}
-
-#this divides the gradient into 20 sections: exp_table <- pal_col(20)[as.numeric(cut(data$pval,breaks = 20))
-#the padj are assigned to the 20 divided sections relative to same dataset, not binned by actual padj
-
-get_nodes <- function(x, direc){
-  if(!(direc %in% c("pos", "neg"))){stop("set direction as pos or neg with quotation")}
-  else if(direc == "pos"){data <- get_sig_pos(x)}
-  else if(direc == "neg"){data <- get_sig_neg(x)}
-
-  data$pvalue <- -log10(data$pvalue)
-  return(data)
-}
-
-#used in determination of circle size
-
-get_edge <- function(x, full,direc){
-  if(!(direc %in% c("pos", "neg"))){stop("set direction as pos or neg with quotation")}
-  else if(direc == "pos"){data_ <- get_sig_pos(x)}
-  else if(direc == "neg"){data_ <- get_sig_neg(x)}
-
-  full_data <- full
-  name <- data_$Name
-
- 
-  exp <- NULL
-
-  for(n in name){
-    first <- subset(full_data, full_data$GO_terms == n)
-    for(s in name){
-      if(n!=s){
-        second <- subset(full_data, full_data$GO_terms == s)
-        ovlap <- subset(first, first$gene.name %in% second$gene.name)
-        overlap <- dim(ovlap)[1]
-        start <- first$GO_terms[1]
-        end <- second$GO_terms[1]
-       
-        data <- data.frame(start = start, end= end, weight = overlap)
-       
-        exp <- rbind(exp,data)
-      }
-    }
-  }
-  exp <- as.data.frame(exp)
-  exp <- subset(exp, exp$weight !=0)
-  return(exp)
-}
-
-#determines clustering - effectively loops through GO terms comparing degree of overlap
-
-#ASK FOR CLARIFICATION ON THIS CODE
-
-networks <- function(data,full,direc){
-  nodes <- get_nodes(data, direc)
-  edge <- get_edge(data,full,direc)
-  net_IP <- graph_from_data_frame(d=edge[!duplicated(apply(edge[1:2],1,function(x) paste(sort(x),collapse=''))),],
-                                  vertices=nodes, directed=FALSE)
-
-#igraph network package plot   
-  
-  V(net_IP)$size <- V(net_IP)$pvalue *2
-  V(net_IP)$frame.color <- "white"
-
-  if(direc == "pos"){V(net_IP)$color <- make_Col_pos(net_IP)}
-  else if(direc == "neg"){V(net_IP)$color <- make_Col_neg(net_IP)}
-
-  E(net_IP)$arrow.mode <- 0
-  E(net_IP)$width <- E(net_IP)$weight/500
-  l_IP <- layout_with_fr(net_IP)
-  plot(net_IP, layout=l_IP)
-}
-```
-
-#Generating networks 
-
-```{r}
-networks(DE_Astrocytes_C3_Psig_piano_gsea_data, GO_terms_m , 'pos')
-DE_Astrocytes_C3_Psig_piano_gsea_data <- cbind(DE_Astrocytes_C3_Psig_piano_gsea_data, gene_names_)
-
-#write.csv(DE_Astrocytes_C3_Psig_piano_gsea_data, file=paste0(plotting_path_DEG_comp,"DE_Astrocytes_C3_Psig_piano_gsea_data.csv"))
-
-```
-
-
-```{r}
-#COMPARISON 2
-#list of samples to merge
-comp2a<-list(subset(Slo_singlets_merged,subset=sample==c("RML122HP","RML142HP","RML133HP","RML132HP","RML138HP","RML145HP","RML140HP"))) #FIXME check sample names
-comp2b<-list(subset(Ver_singlets_merged,subset=sample==c("sample5", "sample6")))
-comp2c<-list(subset(Ver_singlets_merged,subset=sample==c("OX1X","OX2X","OX3X", "OX4X","OX5X","OX6X","OX7X","OX8X")))
-
-comp2<-list(comp2a,comp2b, comp2c)
-# Merge raw samples, adapted from here https://hbctraining.github.io/scRNA-seq_online/lessons/06a_integration_harmony.html
-comp2_merged <-Merge_Seurat_List(list_seurat=comp1) 
-
-rm(list(comp2))
-gc()
-
-# Perform log-normalization and feature selection, as well as SCT normalization on global object
-comp2_merged <- comp2_merged %>%
-    NormalizeData() %>%
-    FindVariableFeatures(selection.method = "vst", nfeatures = 2000) %>% 
-    ScaleData() %>%
-    SCTransform(vars.to.regress = c("mitoRatio")) #FIXME do we need this?
-
-# Calculate PCs using variable features determined by SCTransform (3000 by default)
-comp2_merged <- RunPCA(comp2_merged, assay = "SCT", npcs = 50)
-
-comp2_merged_harmonized <- RunHarmony(comp2_merged, 
-				group.by.vars = c("sample_id", "experiment_date"), #FIXME variable names to integrate on
-				reduction = "pca", assay.use = "SCT", reduction.save = "harmony")
-
-comp2_merged_harmonized <- RunUMAP(comp2_merged_harmonized, reduction = "harmony", assay = "SCT", dims = 1:40)
-
-```
