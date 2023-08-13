@@ -372,6 +372,10 @@ for (folder_name in folder_names) {
 #merge the samples into one object
 Ximerakis_total_notsouped <- merge(ReduxOX1Xobj, y= c(ReduxOX2Xobj,ReduxOX3Xobj,ReduxOX4Xobj,ReduxOX5Xobj,ReduxOX6Xobj,ReduxOX7Xobj,ReduxOX8Xobj,ReduxYX1Lobj,ReduxYX2Lobj,ReduxYX3Robj,ReduxYX4Robj,ReduxYX5Robj,ReduxYX6Lobj,ReduxYX7Robj,ReduxYX8Lobj), add.cell.ids=c("OX1X", "OX2X", "OX3X", "OX4X", "OX5X", "OX6X", "OX7X", "OX8X", "YX1L", "YX2L","YX3R", "YX4R", "YX5R" ,"YX6L", "YX7R", "YX8L"), project="Ximerakis")
 
+save(Ximerakis_total_notsouped, file="../Analysis/Rdata/Ximerakis_total_notsouped.Rdata")
+
+load("./Analysis/Rdata/Ximerakis_total_notsouped.Rdata")
+
 #cleaning up memory
 rm("matching_vars","current_data","current_obj", "folder_name", "objName", "folder_path")
 
@@ -481,11 +485,12 @@ We want cells in top right
 ```{r}
 #Some code commented out because it introduced infitine values with a log transform
 # Visualize the correlation between genes detected and number of UMIs and determine whether strong presence of cells with low numbers of genes/UMIs
-png("Ximerakis_UMIs_vs_genes_detectedRedux.png", width=2000)
-metadata_test %>% 
+
+Xim_UMI_gene<-metadata_test %>% 
   	ggplot(aes(x=nUMI, y=nGene, color=mitoRatio)) + 
   	geom_point() + 
 	scale_colour_gradient(low = "gray90", high = "black") +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
   	#stat_smooth(method=lm) +
   	scale_x_log10() +
   	scale_y_log10() +
@@ -493,8 +498,10 @@ metadata_test %>%
   	geom_vline(xintercept = 500) +
   	geom_hline(yintercept = 250) +
   	facet_wrap(~sample) +
-    ggplot2::ggtitle("UMIs vs. genes detected", subtitle = "Ximerakis, minimum 20 genes")
-dev.off()
+    plot_annotation(title = "Ximerakis UMI and genes per cell with mitochondrial ratio")
+
+Xim_UMI_gene
+ggsave("Ximerakis_UMIs_vs_genes_detectedRedux.png",plot=Xim_UMI_gene,device='png', path=Xim_plotting_path,width = 20, height = 15, units = 'cm' )
 ```
 
 ### MitoRatio
@@ -503,15 +510,17 @@ We want data lower than 0.2
 
 ```{r}
 # Visualize the distribution of mitochondrial gene expression detected per cell
-png("Ximerakis_Distribution_of_mitochondrial_gene_expression_per_cellRedux.png", width=1000)
-metadata_test %>% 
-  	ggplot(aes(color=sample, x=mitoRatio, fill=sample)) + 
+
+Xim_mito_cell<-metadata_test %>% 
+  	ggplot(aes( x=mitoRatio, fill=sample)) + 
   	geom_density(alpha = 0.2) + 
   	scale_x_log10() + 
   	theme_classic() +
   	geom_vline(xintercept = 0.2)+
-    ggplot2::ggtitle("Distribution of mitochondrial gene expression per cell", subtitle="Ximerakis, filtered to minimum 20 genes")
-dev.off()
+    scale_fill_manual(values = colour_df_Ximerakis$colours)+
+    plot_annotation(title = "Ximerakis distribution of mitochondrial gene expression per cell")
+Xim_mito_cell
+ggsave("Ximerakis_Distribution_of_mitochondrial_gene_expression_per_cellRedux.png",plot=Xim_mito_cell,device='png', path=Xim_plotting_path,width = 20, height = 15, units = 'cm' )
 ```
 
 ```{r}
@@ -547,17 +556,18 @@ metadata_filtered<- metadata_test %>%
 
 ```{r}
 # Visualize the number of cell counts per sample with a minimum gene count set
-png("Ximerakis_Cell_counts_per_sample2Redux.png", width=1000)
-metadata_filtered %>% 
+
+Xim_filtered_cellpersammple<-metadata_filtered %>% 
   	ggplot(aes(x=sample, fill=sample)) + 
   	geom_bar() +
   	theme_classic() +
   	theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
   	theme(plot.title = element_text(hjust=0.5, face="bold")) +
-  	ggplot2::ggtitle("Cell counts per sample", subtitle="Ximerakis, filtered to minimum 0 transcripts, 300 genes and maximum 20% mitochondrial gene content")
-dev.off()
-
-table(metadata_filtered$sample)
+    scale_fill_manual(values = colour_df_Ximerakis$colours)+
+    plot_annotation(title = "Ximerakis filtered, cells per sample")+
+    guides(fill = 'none')
+Xim_filtered_cellpersammple
+ggsave("Ximerakis_Cell_counts_per_sample2Redux.png",plot=Xim_filtered_cellpersammple,device='png', path=Xim_plotting_path,width = 20, height = 15, units = 'cm' )
 ```
 
 ### UMI/ transcripts per cell
@@ -703,6 +713,22 @@ filtered_counts <- counts[keep_genes, ]
 Ximerakis_filtered <- CreateSeuratObject(filtered_counts, meta.data = Ximerakis_filtered@meta.data)
 rm(filtered_counts, nonzero,counts, keep_genes)
 ```
+
+```{r}
+#plot the cells per sample
+Xim_filtered_final_cellpersammple<-Ximerakis_filtered@meta.data%>%
+    ggplot(aes(x=sample, fill=sample)) + 
+  	geom_bar() +
+  	theme_classic() +
+  	theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
+  	theme(plot.title = element_text(hjust=0.5, face="bold")) +
+    scale_fill_manual(values = colour_df_Ximerakis$colours)+
+    plot_annotation(title = "Ximerakis filtered, cells per sample")+
+    guides(fill = 'none')
+Xim_filtered_final_cellpersammple
+ggsave("Ximerakis_Cell_counts_per_sample_final.png",plot=Xim_filtered_final_cellpersammple,device='png', path=Xim_plotting_path,width = 20, height = 15, units = 'cm' )
+```
+
 
 ### Saving object
 
