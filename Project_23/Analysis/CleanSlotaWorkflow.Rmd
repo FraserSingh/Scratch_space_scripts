@@ -71,18 +71,18 @@ Make folder for plots
 
 ```{r}
 #Specify the plotting folder to be made in the current working directory EDIT THIS ON EACH RUN TO AVOID OVERWRITING PLOTS
-dir_name <- "Terminal_sample_investigation"
+dir_name_Slota <- "Terminal_publication_level"
 
 # create folder:
-system(paste0("mkdir ", dir_name))
+system(paste0("mkdir ", dir_name_Slota))
 
 #save folder path for plot saving
-plotting_path<-paste0("../Analysis/", dir_name,"/")
+plotting_path_Terminal<-paste0("../Analysis/", dir_name_Slota,"/")
 
 #set seed for reproducibility
 set.seed(42)
 
-rm(dir_name)
+rm(dir_name_Slota)
 ```
 
 #Slota workflow
@@ -108,7 +108,7 @@ and
 # root_dir="/home/s2268606/University_Directories/Project_23/External_datasets/Slota_paper/SCP1962/other"
 # 
 # # Assuming the sample names are in a file called "Slota_samples.txt"
-# sample_names_file="/home/s2268606/University_Directories/Project_23/External_datasets/Slota_paper/Slota_samples.txt"
+# sample_names_Slota_file="/home/s2268606/University_Directories/Project_23/External_datasets/Slota_paper/Slota_samples.txt"
 # 
 # # Loop through each sample name in the file
 # while IFS= read -r sample
@@ -123,7 +123,7 @@ and
 #     mv "${root_dir}/${sample}/${sample}_barcodes.tsv" "${root_dir}/${sample}/barcodes.tsv"
 #     mv "${root_dir}/${sample}/${sample}_features.tsv" "${root_dir}/${sample}/features.tsv"
 #     mv "${root_dir}/${sample}/${sample}_matrix.mtx" "${root_dir}/${sample}/matrix.mtx"
-# done < "$sample_names_file"
+# done < "$sample_names_Slota_file"
 # 
 # cd $root_dir
 # gzip */{barcodes,features,matrix}*
@@ -131,12 +131,12 @@ and
 
 ```{r}
 # Create list of folder names
-sample_names<- readLines("/home/s2268606/University_Directories/Project_23/External_datasets/Slota_paper/Slota_samples.txt")
+sample_names_Slota<- readLines("/home/s2268606/University_Directories/Project_23/External_datasets/Slota_paper/Slota_samples.txt")
 #rename them for Slota folders
 
 
 # Loop through each folder to process it
-for (folder in sample_names) {
+for (folder in sample_names_Slota) {
   folder_path=paste0("/home/s2268606/University_Directories/Project_23/External_datasets/Slota_paper/SCP1962/other/",folder)
   
   
@@ -148,7 +148,7 @@ for (folder in sample_names) {
 
 Slota_raw_obj_clean<-merge(PBS25HP, y=c(PBS48CX,PBS48HP,PBS60CX,PBS61CX,PBS73CX,RML122CX,RML122HP,RML132CX,RML132HP,RML133CX,RML133HP,RML134CX,RML134HP,RML138CX,RML138HP,RML140CX,RML140HP,RML142CX,RML142HP,RML145CX,RML145HP))
 
-rm(current_data,current_obj, folder, sample_names)
+rm(current_data,current_obj, folder, sample_names_Slota)
 ```
 
 # Tailor metadata
@@ -180,6 +180,41 @@ rm(treat_detect_Slota, sampleLabs_Slota)
 
 ```
 
+```{r}
+#plotting colours dataframe
+colour_df_Slota<-data.frame(sample_names_Slota)
+colour_df_Slota$colours<-c('#88316f',
+'#53bf34',
+'#5e37bb',
+'#5cdf78',
+'#de69ef',
+'#748c00',
+'#9e79ff',
+'#74db98',
+'#fa43b5',
+'#00c7bc',
+'#c02b00',
+'#00a8e2',
+'#ff6280',
+'#006a45',
+'#ba008a',
+'#795000',
+'#5542a6',
+'#ffa6ab',
+'#c0abff',
+'#85465f',
+'#ff85d8',
+'#745684')
+
+    scale_fill_manual(values = colour_df_Verity$colours)+
+    plot_annotation(title = "Ximerakis filtered, cells per sample")+
+    guides(fill = 'none')
+    
+
+ggsave("Ximerakis_Cell_counts_per_sample_final.png",plot=Xim_filtered_final_cellpersammple,device='png', path=Xim_plotting_path_Terminal,width = 20, height = 15, units = 'cm' )
+```
+
+
 ## Identify mitochondrial and ribosomal populations
 
 ```{r}
@@ -197,7 +232,13 @@ Slota_raw_obj_clean[["mitoRatio"]] <- Slota_raw_obj_clean@meta.data$percent.mt /
 ##Initial data assessment
 
 ```{r}
-p1<-VlnPlot(Slota_raw_obj_clean, features=c("nFeature_RNA","nCount_RNA","percent.mt", "percent.rp","percent.hb"), ncol=5, pt.size = 0.0)#+ggtitle("Preliminary Data assessment", subtitle= "Slota, unfiltered")
+p1_Terminal<-VlnPlot(Slota_raw_obj_clean, features=c("nFeature_RNA","nCount_RNA","percent.mt", "percent.rp","percent.hb"), ncol=5, pt.size = 0.0)+
+    plot_annotation(title = "Slota EDA")+
+    guides(fill = 'none')&
+    scale_fill_manual(values = colour_df_Slota$colours)&
+    theme(axis.text.x = element_text(size=rel(0.75),angle=90, hjust=1))
+p1_Terminal
+ggsave("Terminal_EDA.png",plot=p1_Terminal,device='png', path=plotting_path_Terminal,width = 40, height = 15, units = 'cm' )
 
 # Plot each of these respectively, showing trends in cell health
 
@@ -218,19 +259,19 @@ p5<-FeatureScatter(Slota_raw_obj_clean, feature1 = "nCount_RNA", feature2="nFeat
 p1;p2;p3;p4;p5
 
 #Save plots
-png(paste0(plotting_path,"Terminal_EDA.png"), width = 3000,height = 1000)
+png(paste0(plotting_path_Terminal,"Terminal_EDA.png"), width = 3000,height = 1000)
 p1
 dev.off()
-png(paste0(plotting_path,"Terminal_UMI_MT.png"), width = 1750,height = 1500)
+png(paste0(plotting_path_Terminal,"Terminal_UMI_MT.png"), width = 1750,height = 1500)
 p2
 dev.off()
-png(paste0(plotting_path,"Terminal_UMI_RP.png"),width = 1750,height = 1500)
+png(paste0(plotting_path_Terminal,"Terminal_UMI_RP.png"),width = 1750,height = 1500)
 p3
 dev.off()
-png(paste0(plotting_path,"Terminal_RP_MT.png"),  width = 1750,height = 1500)
+png(paste0(plotting_path_Terminal,"Terminal_RP_MT.png"),  width = 1750,height = 1500)
 p4
 dev.off()
-png(paste0(plotting_path,"Terminal_UMI_nGene.png"), width = 1750,height = 1500)
+png(paste0(plotting_path_Terminal,"Terminal_UMI_nGene.png"), width = 1750,height = 1500)
 p5
 dev.off()
 
@@ -340,22 +381,22 @@ p11<-metadata_test %>%
 p6;p7;p8;p9;p10;p11
 
 #Save plots
-png(paste0(plotting_path,"Terminal_PreF_Counts_sample.png"), width = 2000,height = 1500)
+png(paste0(plotting_path_Terminal,"Terminal_PreF_Counts_sample.png"), width = 2000,height = 1500)
 p6
 dev.off()
-png(paste0(plotting_path,"Terminal_PreF_UMI_cell.png"),width = 2000,height = 1500)
+png(paste0(plotting_path_Terminal,"Terminal_PreF_UMI_cell.png"),width = 2000,height = 1500)
 p7
 dev.off()
-png(paste0(plotting_path,"Terminal_PreF_nGene_hist_sample.png"),width = 2000,height = 1500)
+png(paste0(plotting_path_Terminal,"Terminal_PreF_nGene_hist_sample.png"),width = 2000,height = 1500)
 p8
 dev.off()
-png(paste0(plotting_path,"Terminal_PreF_nGene_hist_sample.png"),width = 2000,height = 1500)
+png(paste0(plotting_path_Terminal,"Terminal_PreF_nGene_hist_sample.png"),width = 2000,height = 1500)
 p9
 dev.off()
-png(paste0(plotting_path,"Terminal_PreF_nGene_UMI_sample.png"),width = 2000,height = 1500)
+png(paste0(plotting_path_Terminal,"Terminal_PreF_nGene_UMI_sample.png"),width = 2000,height = 1500)
 p10
 dev.off()
-png(paste0(plotting_path,"Terminal_PreF_MT_cell.png"),width = 2000,height = 1500)
+png(paste0(plotting_path_Terminal,"Terminal_PreF_MT_cell.png"),width = 2000,height = 1500)
 p11
 dev.off()
 ```
@@ -438,22 +479,22 @@ p17<-metadata_filtered %>%
 p12;p13;p14;p15;p16;p17
 
 #Save plots
-png(paste0(plotting_path,"Terminal_PostF_Counts_sample.png"), width = 2000,height = 1500)
+png(paste0(plotting_path_Terminal,"Terminal_PostF_Counts_sample.png"), width = 2000,height = 1500)
 p12
 dev.off()
-png(paste0(plotting_path,"Terminal_PostF_UMI_cell.png"),width = 2000,height = 1500)
+png(paste0(plotting_path_Terminal,"Terminal_PostF_UMI_cell.png"),width = 2000,height = 1500)
 p13
 dev.off()
-png(paste0(plotting_path,"Terminal_PostF_nGene_hist_sample.png"),width = 2000,height = 1500)
+png(paste0(plotting_path_Terminal,"Terminal_PostF_nGene_hist_sample.png"),width = 2000,height = 1500)
 p14
 dev.off()
-png(paste0(plotting_path,"Terminal_PostF_nGene_hist_sample.png"),width = 2000,height = 1500)
+png(paste0(plotting_path_Terminal,"Terminal_PostF_nGene_hist_sample.png"),width = 2000,height = 1500)
 p15
 dev.off()
-png(paste0(plotting_path,"Terminal_PostF_nGene_UMI_sample.png"),width = 2000,height = 1500)
+png(paste0(plotting_path_Terminal,"Terminal_PostF_nGene_UMI_sample.png"),width = 2000,height = 1500)
 p16
 dev.off()
-png(paste0(plotting_path,"Terminal_PostF_MT_cell.png"),width = 2000,height = 1500)
+png(paste0(plotting_path_Terminal,"Terminal_PostF_MT_cell.png"),width = 2000,height = 1500)
 p17
 dev.off()
 ```
@@ -635,7 +676,7 @@ dev.off()
 
 
 #Save the data with Doublets retained too
-save(Slota_tissues, file=paste0(plotting_path,"Slota_tissues.RData"))
+save(Slota_tissues, file=paste0(plotting_path_Terminal,"Slota_tissues.RData"))
 
 #subset data by singlet status and save list of singlets to continue with
 #FIXME might need to be in loop or explicit if subsetting doesn't work
@@ -672,7 +713,7 @@ Slota_HP_comp <- RunUMAP(Slota_HP_comp, reduction = "pca", dims = 1:30, seed.use
 Slota_HP_comp <- FindNeighbors(Slota_HP_comp, reduction = "pca", dims = 1:30)
 Slota_HP_comp <- FindClusters(Slota_HP_comp, resolution = c(0.2,0.3,0.5,0.7,1))
 #Save the object
-save(Slota_HP_comp,file=paste0(plotting_path,"Slota_HP_comp.Rdata"))
+save(Slota_HP_comp,file=paste0(plotting_path_Terminal,"Slota_HP_comp.Rdata"))
 
 
 # Visualise the clustering resolutions for cluster number
@@ -778,7 +819,7 @@ Slota_HP_comp_astrocytes <- FindNeighbors(Slota_HP_comp_astrocytes, reduction = 
 Slota_HP_comp_astrocytes <- FindClusters(Slota_HP_comp_astrocytes, resolution = c(0.2,0.3,0.5,0.7,1))
 
 #save for reloading
-save(Slota_HP_comp_astrocytes, file=paste0(plotting_path,"Slota_HP_comp_astrocytes.Rdata"))
+save(Slota_HP_comp_astrocytes, file=paste0(plotting_path_Terminal,"Slota_HP_comp_astrocytes.Rdata"))
 
 #cyclechange resolution number in group.by to see difference in clusters
 DimPlot(Slota_HP_comp_astrocytes, reduction = 'umap',  raster=F, group.by='treatment')+ggtitle("Slota data's HP astrocytes", subtitle="Labelled by treatment")
@@ -819,9 +860,9 @@ Slota_astrocyte_prion_markers_clean_HP <- merge(Slota_astrocyte_prion_markers_cl
   
 
 #Save the file
-write.csv(Slota_astrocyte_prion_markers_clean_HP, file = paste0(plotting_path,"Slota_astrocyte_prion_markers_clean_HP.csv"))
+write.csv(Slota_astrocyte_prion_markers_clean_HP, file = paste0(plotting_path_Terminal,"Slota_astrocyte_prion_markers_clean_HP.csv"))
 
-save(Slota_astrocyte_prion_markers_clean_HP, file=paste0(plotting_path,"Slota_astrocyte_prion_markers_clean_HP.RData"))
+save(Slota_astrocyte_prion_markers_clean_HP, file=paste0(plotting_path_Terminal,"Slota_astrocyte_prion_markers_clean_HP.RData"))
 
 table(Slota_HP_comp_astrocytes$treatment)
 ```
@@ -941,19 +982,19 @@ ggp3
 ggp4
 ggp5
 
-png(paste0(plotting_path,"Slota_Prion_GOR_barplot.png"), width = 1000,height = 750)
+png(paste0(plotting_path_Terminal,"Slota_Prion_GOR_barplot.png"), width = 1000,height = 750)
 ggp
 dev.off()
-png(paste0(plotting_path,"Slota_Prion_GOR_dotplot.png"), width = 1000,height = 750)
+png(paste0(plotting_path_Terminal,"Slota_Prion_GOR_dotplot.png"), width = 1000,height = 750)
 ggp2
 dev.off()
-png(paste0(plotting_path,"Slota_Prion_GOR_goplot.png"), width = 1000,height = 750)
+png(paste0(plotting_path_Terminal,"Slota_Prion_GOR_goplot.png"), width = 1000,height = 750)
 ggp3
 dev.off()
-png(paste0(plotting_path,"Slota_Prion_GOR_cnetplot.png"), width = 1000,height = 750)
+png(paste0(plotting_path_Terminal,"Slota_Prion_GOR_cnetplot.png"), width = 1000,height = 750)
 ggp4
 dev.off()
-png(paste0(plotting_path,"Slota_Prion_GOR_heatplot.png"), width = 3000,height = 1000)
+png(paste0(plotting_path_Terminal,"Slota_Prion_GOR_heatplot.png"), width = 3000,height = 1000)
 ggp5
 dev.off()
 ```
@@ -986,19 +1027,19 @@ ggp3_b
 ggp4_b
 ggp5_b
 
-png(paste0(plotting_path,"Slota_Prion_GOR_down_barplot.png"), width = 1000,height = 750)
+png(paste0(plotting_path_Terminal,"Slota_Prion_GOR_down_barplot.png"), width = 1000,height = 750)
 ggp_b
 dev.off()
-png(paste0(plotting_path,"Slota_Prion_GOR_down_dotplot.png"), width = 1000,height = 750)
+png(paste0(plotting_path_Terminal,"Slota_Prion_GOR_down_dotplot.png"), width = 1000,height = 750)
 ggp2_b
 dev.off()
-png(paste0(plotting_path,"Slota_Prion_GOR_down_goplot.png"), width = 1000,height = 750)
+png(paste0(plotting_path_Terminal,"Slota_Prion_GOR_down_goplot.png"), width = 1000,height = 750)
 ggp3_b
 dev.off()
-png(paste0(plotting_path,"Slota_Prion_GOR_down_cnetplot.png"), width = 1500,height = 1000)
+png(paste0(plotting_path_Terminal,"Slota_Prion_GOR_down_cnetplot.png"), width = 1500,height = 1000)
 ggp4_b
 dev.off()
-png(paste0(plotting_path,"Slota_Prion_GOR_down_heatplot.png"), width = 3600,height = 750)
+png(paste0(plotting_path_Terminal,"Slota_Prion_GOR_down_heatplot.png"), width = 3600,height = 750)
 ggp5_b
 dev.off()
 ```
@@ -1023,7 +1064,7 @@ SHp_GO_GSEA <- setReadable(SHp_GO_GSEA, 'org.Mm.eg.db', 'ENTREZID')
 
 View(data.frame(SHp_GO_GSEA))
 
-write.csv(data.frame(SHp_GO_GSEA), file = paste0(plotting_path,"SHp_GO_GSEA.csv"))
+write.csv(data.frame(SHp_GO_GSEA), file = paste0(plotting_path_Terminal,"SHp_GO_GSEA.csv"))
 ```
 
 #### GO GSEA visualisation
@@ -1052,16 +1093,16 @@ View(data.frame(subset(SHp_GO_GSEA@result, grepl("synap", Description, ignore.ca
 subset_result <- subset(SHp_GO_GSEA@result, grepl("synap", Description, ignore.case = TRUE))$Description
 ggp7_2_Hp<-cnetplot(SHp_GO_GSEA,foldChange=geneList_SHp, showCategory=subset_result)
 
-png(paste0(plotting_path_term,"SHp_GO_GSEA_dotplot.png"), width = 1000,height = 750)
+png(paste0(plotting_path_Terminal_term,"SHp_GO_GSEA_dotplot.png"), width = 1000,height = 750)
 ggp6
 dev.off()
-png(paste0(plotting_path_term,"SHp_GO_GSEA_cnetplot.png"), width = 2000,height = 2000)
+png(paste0(plotting_path_Terminal_term,"SHp_GO_GSEA_cnetplot.png"), width = 2000,height = 2000)
 ggp7
 dev.off()
-png(paste0(plotting_path_term,"SHp_GO_GSEA_interactions.png"), width = 1500,height = 1500)
+png(paste0(plotting_path_Terminal_term,"SHp_GO_GSEA_interactions.png"), width = 1500,height = 1500)
 ggp7_1
 dev.off()
-png(paste0(plotting_path_term,"SHp_GO_GSEA_synapse_snet.png"), width = 3000,height = 1000)
+png(paste0(plotting_path_Terminal_term,"SHp_GO_GSEA_synapse_snet.png"), width = 3000,height = 1000)
 ggp7_2_Hp
 dev.off()
 
@@ -1086,7 +1127,7 @@ SHp_Reactome_GSEA <- gsePathway(geneList_SHp,
 #convert back to symbols
 SHp_Reactome_GSEA <- setReadable(SHp_Reactome_GSEA, 'org.Mm.eg.db', 'ENTREZID')
 View(data.frame(SHp_Reactome_GSEA))
-write.csv(data.frame(SHp_Reactome_GSEA), file = paste0(plotting_path,"SHp_Reactome_GSEA.csv"))
+write.csv(data.frame(SHp_Reactome_GSEA), file = paste0(plotting_path_Terminal,"SHp_Reactome_GSEA.csv"))
 ```
 
 #### Reactome GSEA visualisation
@@ -1109,19 +1150,19 @@ ggp10
 ggp11
 ggp12
 
-png(paste0(plotting_path,"Slota_Prion_GSEA_heatplot_Reactome.png"), width = 3000,height = 1000)
+png(paste0(plotting_path_Terminal,"Slota_Prion_GSEA_heatplot_Reactome.png"), width = 3000,height = 1000)
 ggp8
 dev.off()
-png(paste0(plotting_path,"Slota_Prion_GSEA_cnetplot_circular_Reactome.png"), width =2000,height = 2000)
+png(paste0(plotting_path_Terminal,"Slota_Prion_GSEA_cnetplot_circular_Reactome.png"), width =2000,height = 2000)
 ggp9
 dev.off()
-png(paste0(plotting_path,"Slota_Prion_GSEA_cnetplot_Reactome.png"), width =2000,height = 2000)
+png(paste0(plotting_path_Terminal,"Slota_Prion_GSEA_cnetplot_Reactome.png"), width =2000,height = 2000)
 ggp10
 dev.off()
-png(paste0(plotting_path,"Slota_Prion_GSEA_ridgeplot_Reactome.png"), width = 1000,height = 750)
+png(paste0(plotting_path_Terminal,"Slota_Prion_GSEA_ridgeplot_Reactome.png"), width = 1000,height = 750)
 ggp11
 dev.off()
-png(paste0(plotting_path,"Slota_Prion_GSEA_interactions_plot_Reactome.png"), width = 1500,height = 1500)
+png(paste0(plotting_path_Terminal,"Slota_Prion_GSEA_interactions_plot_Reactome.png"), width = 1500,height = 1500)
 ggp12
 dev.off()
 ```
@@ -1153,7 +1194,7 @@ Slota_CX_comp <- RunUMAP(Slota_CX_comp, reduction = "pca", dims = 1:30, seed.use
 Slota_CX_comp <- FindNeighbors(Slota_CX_comp, reduction = "pca", dims = 1:30)
 Slota_CX_comp <- FindClusters(Slota_CX_comp, resolution = c(0.2,0.3,0.5,0.7,1))
 #Save the object
-save(Slota_CX_comp,file=paste0(plotting_path,"Slota_CX_comp.Rdata"))
+save(Slota_CX_comp,file=paste0(plotting_path_Terminal,"Slota_CX_comp.Rdata"))
 
 
 # Visualise the clustering resolutions for cluster number
@@ -1188,7 +1229,7 @@ levels(Slota_CX_comp)
 rm(metrics)
 ```
 ```{r}
-#load(paste0(plotting_path,"Slo_singlets_merged_clean.Rdata")
+#load(paste0(plotting_path_Terminal,"Slo_singlets_merged_clean.Rdata")
 
 DefaultAssay(Slota_CX_comp)<-"RNA"
 
@@ -1249,7 +1290,7 @@ Slota_CX_comp_astrocytes <- FindNeighbors(Slota_CX_comp_astrocytes, reduction = 
 Slota_CX_comp_astrocytes <- FindClusters(Slota_CX_comp_astrocytes, resolution = c(0.2,0.3,0.5,0.7,1))
 
 #save for reloading
-save(Slota_CX_comp_astrocytes, file=paste0(plotting_path,"Slota_CX_comp_astrocytes.Rdata"))
+save(Slota_CX_comp_astrocytes, file=paste0(plotting_path_Terminal,"Slota_CX_comp_astrocytes.Rdata"))
 
 #cyclechange resolution number in group.by to see difference in clusters
 DimPlot(Slota_CX_comp_astrocytes, reduction = 'umap',  raster=F, group.by='treatment')+ggtitle("Slota data's CX astrocytes", subtitle="Labelled by treatment")
@@ -1290,9 +1331,9 @@ gene_info <- getBM(attributes = c("external_gene_name", "description","chromosom
   
 
 #Save the file
-write.csv(Slota_astrocyte_prion_markers_clean_CX, file = paste0(plotting_path,"Slota_astrocyte_prion_markers_clean_CX.csv"))
+write.csv(Slota_astrocyte_prion_markers_clean_CX, file = paste0(plotting_path_Terminal,"Slota_astrocyte_prion_markers_clean_CX.csv"))
 
-save(Slota_astrocyte_prion_markers_clean_CX, file=paste0(plotting_path,"Slota_astrocyte_prion_markers_clean_CX.RData"))
+save(Slota_astrocyte_prion_markers_clean_CX, file=paste0(plotting_path_Terminal,"Slota_astrocyte_prion_markers_clean_CX.RData"))
 
 table(Slota_CX_comp_astrocytes$treatment)
 ```
@@ -1411,19 +1452,19 @@ ggp3
 ggp4
 ggp5
 
-png(paste0(plotting_path,"Slota_Cx_GOR_barplot.png"), width = 1000,height = 750)
+png(paste0(plotting_path_Terminal,"Slota_Cx_GOR_barplot.png"), width = 1000,height = 750)
 ggp
 dev.off()
-png(paste0(plotting_path,"Slota_Cx_GOR_dotplot.png"), width = 1000,height = 750)
+png(paste0(plotting_path_Terminal,"Slota_Cx_GOR_dotplot.png"), width = 1000,height = 750)
 ggp2
 dev.off()
-png(paste0(plotting_path,"Slota_Cx_GOR_goplot.png"), width = 1000,height = 750)
+png(paste0(plotting_path_Terminal,"Slota_Cx_GOR_goplot.png"), width = 1000,height = 750)
 ggp3
 dev.off()
-png(paste0(plotting_path,"Slota_Cx_GOR_cnetplot.png"), width = 1000,height = 750)
+png(paste0(plotting_path_Terminal,"Slota_Cx_GOR_cnetplot.png"), width = 1000,height = 750)
 ggp4
 dev.off()
-png(paste0(plotting_path,"Slota_Cx_GOR_heatplot.png"), width = 3000,height = 1000)
+png(paste0(plotting_path_Terminal,"Slota_Cx_GOR_heatplot.png"), width = 3000,height = 1000)
 ggp5
 dev.off()
 ```
@@ -1457,19 +1498,19 @@ ggp3_b
 ggp4_b
 ggp5_b
 
-png(paste0(plotting_path,"Slota_Cx_GOR_down_barplot.png"), width = 1000,height = 750)
+png(paste0(plotting_path_Terminal,"Slota_Cx_GOR_down_barplot.png"), width = 1000,height = 750)
 ggp_b
 dev.off()
-png(paste0(plotting_path,"Slota_Cx_GOR_down_dotplot.png"), width = 1000,height = 750)
+png(paste0(plotting_path_Terminal,"Slota_Cx_GOR_down_dotplot.png"), width = 1000,height = 750)
 ggp2_b
 dev.off()
-png(paste0(plotting_path,"Slota_Cx_GOR_down_goplot.png"), width = 1000,height = 750)
+png(paste0(plotting_path_Terminal,"Slota_Cx_GOR_down_goplot.png"), width = 1000,height = 750)
 ggp3_b
 dev.off()
-png(paste0(plotting_path,"Slota_Cx_GOR_down_cnetplot.png"), width = 1500,height = 1000)
+png(paste0(plotting_path_Terminal,"Slota_Cx_GOR_down_cnetplot.png"), width = 1500,height = 1000)
 ggp4_b
 dev.off()
-png(paste0(plotting_path,"Slota_Cx_GOR_down_heatplot.png"), width = 3600,height = 750)
+png(paste0(plotting_path_Terminal,"Slota_Cx_GOR_down_heatplot.png"), width = 3600,height = 750)
 ggp5_b
 dev.off()
 ```
@@ -1493,7 +1534,7 @@ SCx_GO_GSEA <- setReadable(SCx_GO_GSEA, 'org.Mm.eg.db', 'ENTREZID')
 
 View(data.frame(SCx_GO_GSEA))
 
-write.csv(data.frame(SCx_GO_GSEA), file = paste0(plotting_path,"SCx_GO_GSEA.csv"))
+write.csv(data.frame(SCx_GO_GSEA), file = paste0(plotting_path_Terminal,"SCx_GO_GSEA.csv"))
 ```
 
 #### GO GSEA visualisation
@@ -1520,16 +1561,16 @@ subset_result_Cx <- subset(SCx_GO_GSEA@result, grepl("synap", Description, ignor
 ggp7_2<-cnetplot(SCx_GO_GSEA,foldChange=geneList_SCx, showCategory=subset_result_Cx)
 
 
-png(paste0(plotting_path,"SCx_GO_GSEA_dotplot.png"), width = 1000,height = 750)
+png(paste0(plotting_path_Terminal,"SCx_GO_GSEA_dotplot.png"), width = 1000,height = 750)
 ggp6
 dev.off()
-png(paste0(plotting_path,"SCx_GO_GSEA_cnetplot.png"), width = 2000,height = 2000)
+png(paste0(plotting_path_Terminal,"SCx_GO_GSEA_cnetplot.png"), width = 2000,height = 2000)
 ggp7
 dev.off()
-png(paste0(plotting_path,"SCx_GO_GSEA_interactions.png"), width = 1500,height = 1500)
+png(paste0(plotting_path_Terminal,"SCx_GO_GSEA_interactions.png"), width = 1500,height = 1500)
 ggp7_1
 dev.off()
-png(paste0(plotting_path_term,"SCx_GO_GSEA_synapse_cnet.png"), width = 3000,height = 1000)
+png(paste0(plotting_path_Terminal_term,"SCx_GO_GSEA_synapse_cnet.png"), width = 3000,height = 1000)
 ggp7_2
 dev.off()
 
@@ -1554,7 +1595,7 @@ SCx_Reactome_GSEA <- gsePathway(geneList_SCx,
 #convert back to symbols
 SCx_Reactome_GSEA <- setReadable(SCx_Reactome_GSEA, 'org.Mm.eg.db', 'ENTREZID')
 View(data.frame(SCx_Reactome_GSEA))
-write.csv(data.frame(SCx_Reactome_GSEA), file = paste0(plotting_path,"SCx_Reactome_GSEA.csv"))
+write.csv(data.frame(SCx_Reactome_GSEA), file = paste0(plotting_path_Terminal,"SCx_Reactome_GSEA.csv"))
 ```
 
 #### Reactome GSEA visualisation
@@ -1577,19 +1618,19 @@ ggp10
 ggp11
 ggp12
 
-png(paste0(plotting_path,"Slota_Cx_GSEA_heatplot_Reactome.png"), width = 3000,height = 1000)
+png(paste0(plotting_path_Terminal,"Slota_Cx_GSEA_heatplot_Reactome.png"), width = 3000,height = 1000)
 ggp8
 dev.off()
-png(paste0(plotting_path,"Slota_Cx_GSEA_cnetplot_circular_Reactome.png"), width =2000,height = 2000)
+png(paste0(plotting_path_Terminal,"Slota_Cx_GSEA_cnetplot_circular_Reactome.png"), width =2000,height = 2000)
 ggp9
 dev.off()
-png(paste0(plotting_path,"Slota_Cx_GSEA_cnetplot_Reactome.png"), width =2000,height = 2000)
+png(paste0(plotting_path_Terminal,"Slota_Cx_GSEA_cnetplot_Reactome.png"), width =2000,height = 2000)
 ggp10
 dev.off()
-png(paste0(plotting_path,"Slota_Cx_GSEA_ridgeplot_Reactome.png"), width = 1000,height = 750)
+png(paste0(plotting_path_Terminal,"Slota_Cx_GSEA_ridgeplot_Reactome.png"), width = 1000,height = 750)
 ggp11
 dev.off()
-png(paste0(plotting_path,"Slota_Cx_GSEA_interactions_plot_Reactome.png"), width = 1500,height = 1500)
+png(paste0(plotting_path_Terminal,"Slota_Cx_GSEA_interactions_plot_Reactome.png"), width = 1500,height = 1500)
 ggp12
 dev.off()
 

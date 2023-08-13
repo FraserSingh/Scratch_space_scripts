@@ -69,13 +69,13 @@ Make folder for plots and set seed
 
 ```{r}
 #Specify the plotting folder to be made in the current working directory EDIT THIS ON EACH RUN TO AVOID OVERWRITING PLOTS
-dir_name <- "Verity_plots"
+dir_name_Ver <- "Verity_plots"
 
 # create folder:
 system(paste0("mkdir ", dir_name))
 
 #save folder path for plot saving
-plotting_path<-paste0("../Analysis/", dir_name,"/")
+plotting_path_Ver<-paste0("../Analysis/", dir_name_Ver,"/")
 
 
 #set seed for reproducibility
@@ -185,6 +185,25 @@ Verity_total_clean@meta.data$treatment<-treat_detect
 rm(sampleLabs, treat_detect)
 ```
 
+```{r}
+#plotting colours dataframe
+colour_df_Verity<-data.frame(folder_names)
+colour_df_Verity$colours<-c('#59b47b',
+'#58a92f',
+'#ae87ff',
+'#ee623f',
+'#b6923c',
+'#f5496b')
+
+    scale_fill_manual(values = colour_df_Verity$colours)+
+    plot_annotation(title = "Ximerakis filtered, cells per sample")+
+    guides(fill = 'none')
+    
+
+ggsave("Ximerakis_Cell_counts_per_sample_final.png",plot=Xim_filtered_final_cellpersammple,device='png', path=Xim_plotting_path,width = 20, height = 15, units = 'cm' )
+```
+
+
 ## Identify mitochondrial and ribosomal populations
 
 ```{r}
@@ -205,42 +224,34 @@ View(Verity_total_clean@meta.data)
 ##Initial data assessment
 
 ```{r}
-p1<-VlnPlot(Verity_total_clean, features=c("nFeature_RNA","nCount_RNA","percent.mt", "percent.rp","percent.hb"), ncol=5, pt.size = 0.0)#+ggtitle("Preliminary Data assessment", subtitle= "Verity, unfiltered")
+p1<-VlnPlot(Verity_total_clean, features=c("nFeature_RNA","nCount_RNA","percent.mt", "percent.rp","percent.hb"), ncol=5, pt.size = 0.0)+scale_fill_manual(values = colour_df_Verity$colours)+plot_annotation(title = "Verity dataset EDA")
+p1
+ggsave("Verity_EDA.png",plot=p1,device='png', path=plotting_path_Ver,width = 40, height = 15, units = 'cm' )
 
 # Plot each of these respectively, showing trends in cell health
 
 #show mitochondrial proportion in reads
-p2<-FeatureScatter(Verity_total_clean, feature1 = "nCount_RNA", feature2 = "percent.mt", pt.size = 0)+ggtitle("Verity_UMIs per cell vs.mitochondrial genes detected", subtitle="UMIs per cell vs. % mitochondrial genes detected")
+p2<-FeatureScatter(Verity_total_clean, feature1 = "nCount_RNA", feature2 = "percent.mt", pt.size = 0)+scale_fill_manual(values = colour_df_Verity$colours)+plot_annotation(title = "Verity mitochondrial genes detected")
+p2
+ggsave("Verity_UMI_MT.png",plot=p2,device='png', path=plotting_path_Ver,width = 20, height = 15, units = 'cm' )
 
 
 #show ribosomal proportion in reads
-p3<-FeatureScatter(Verity_total_clean, feature1 = "nCount_RNA", feature2 = "percent.rp")+ggplot2::ggtitle("Verity_UMIs_per_cell_vsribosomal_protein_genes_detected", subtitle = "UMIs per cell vs. % ribosomal protein  genes detected")
+p3<-FeatureScatter(Verity_total_clean, feature1 = "nCount_RNA", feature2 = "percent.rp")+scale_fill_manual(values = colour_df_Verity$colours)+plot_annotation(title = "Verity_UMIs_per_cell and ribosomal_protein_genes_detected")
+p3
+ggsave("Verity_UMI_RP.png",plot=p3,device='png', path=plotting_path_Ver,width = 20, height = 15, units = 'cm' )
 
 
 #Ribosomal vs mitochondrial 
-p4<-FeatureScatter(Verity_total_clean, feature1 = "percent.rp", feature2 = "percent.mt")+ggplot2::ggtitle("Verity_ribosomal_protein_genes_detected_vsmitochondrial_genes_detected",subtitle="% ribosomal protein  genes detected vs. % mitochondrial genes detected")
+p4<-FeatureScatter(Verity_total_clean, feature1 = "percent.rp", feature2 = "percent.mt")+scale_fill_manual(values = colour_df_Verity$colours)+plot_annotation(title = "Verity_ribosomal_protein_genes_detected_vsmitochondrial_genes_detected")
+p4
+ggsave("Verity_RP_MT.png",plot=p4,device='png', path=plotting_path_Ver,width = 20, height = 15, units = 'cm' )
 
 #Show overall reads and gene counts for unfiltered data.
-p5<-FeatureScatter(Verity_total_clean, feature1 = "nCount_RNA", feature2="nFeature_RNA",raster=F, pt.size = 0.5)+ geom_smooth(method="lm")+ ggtitle("Verity_UMIs_per_cell_vs_number_of_genes",subtitle="UMIs per cell vs. number of genes ")
-
-p1;p2;p3;p4;p5
-
-#Save plots
-png(paste0(plotting_path,"Verity_EDA.png"), width = 3000,height = 1000)
-p1
-dev.off()
-png(paste0(plotting_path,"Verity_UMI_MT.png"), width = 1750,height = 1500)
-p2
-dev.off()
-png(paste0(plotting_path,"Verity_UMI_RP.png"),width = 1750,height = 1500)
-p3
-dev.off()
-png(paste0(plotting_path,"Verity_RP_MT.png"),  width = 1750,height = 1500)
-p4
-dev.off()
-png(paste0(plotting_path,"Verity_UMI_nGene.png"), width = 1750,height = 1500)
+p5<-FeatureScatter(Verity_total_clean, feature1 = "nCount_RNA", feature2="nFeature_RNA",raster=F, pt.size = 0.5)+ geom_smooth(method="lm")+scale_fill_manual(values = colour_df_Verity$colours)+plot_annotation(title = "Verity_UMIs_per_cell_vs_number_of_genes")
 p5
-dev.off()
+ggsave("Verity_UMI_nGene.png",plot=p5,device='png', path=plotting_path_Ver,width = 20, height = 15, units = 'cm' )
+
 ```
 
 ### Save the whole data
@@ -261,15 +272,15 @@ gc()
 # Rename columns from https://github.com/hbctraining/scRNA-seq/blob/master/lessons/04_SC_quality_control.md
 
 #Create metadata variable to edit it without affecting core data
-metadata_test<-Verity_total_clean@meta.data
+metadata_test_Verity<-Verity_total_clean@meta.data
 
 #Saving cell barcodes as metainfo
-metadata_test$cells<-rownames(metadata_test)
+metadata_test_Verity$cells<-rownames(metadata_test_Verity)
 
 #Setting minimum feature count to filter cells with no genes UMIs vs. genes detected, as these will be discarded anyway
-metadata_test <- subset(Verity_total_clean, subset= nFeature_RNA > 20)@meta.data
+metadata_test_Verity <- subset(Verity_total_clean, subset= nFeature_RNA > 20)@meta.data
 
-metadata_test <- metadata_test %>%
+metadata_test_Verity <- metadata_test_Verity %>%
     dplyr::rename(nUMI = nCount_RNA,
                   nGene = nFeature_RNA)
 
@@ -281,17 +292,21 @@ metadata_test <- metadata_test %>%
 
 ```{r}
 # Visualize the number of cell counts per sample with no filtering at all
-p6<-metadata_test %>% 
+p6_ver<-metadata_test_Verity %>% 
   	ggplot2::ggplot(aes(x=sample, fill=sample)) + 
   	geom_bar() +
   	theme_classic() +
   	theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
   	theme(plot.title = element_text(hjust=0.5, face="bold")) +
-  	ggplot2::ggtitle("Verity_Cell_counts_per_sample", subtitle="Filtered to minimum 20 genes")
+  	scale_fill_manual(values = colour_df_Verity$colours)+
+    plot_annotation(title = "Verity_Cell_counts_per_sample")+
+    guides(fill = 'none')
 
+p6_ver
+ggsave("Verity_PreF_Counts_sample.png",plot=p6_ver,device='png', path=plotting_path_Ver,width = 20, height = 15, units = 'cm' )
 
 # Visualize the number UMIs/transcripts per cell
-p7<-metadata_test %>% 
+p7<-metadata_test_Verity %>% 
   	ggplot(aes(color=sample, x=nUMI, fill= sample)) + 
   	geom_density(alpha = 0.2) + 
   	scale_x_log10() + 
@@ -300,9 +315,15 @@ p7<-metadata_test %>%
   	geom_vline(xintercept = 500)+
     ggplot2::ggtitle("Verity/UMI_transcripts_per_cell", subtitle="Filtered to minimum 20 genes")
 
+    scale_fill_manual(values = colour_df_Verity$colours)+
+    plot_annotation(title = "Ximerakis filtered, cells per sample")+
+    guides(fill = 'none')
+    
+
+ggsave("Ximerakis_Cell_counts_per_sample_final.png",plot=Xim_filtered_final_cellpersammple,device='png', path=Xim_plotting_path,width = 20, height = 15, units = 'cm' )
 
 # Visualize the distribution of genes detected per cell via histogram
-p8<-metadata_test %>% 
+p8<-metadata_test_Verity %>% 
   	ggplot(aes(color=sample, x=nGene, fill= sample)) + 
   	geom_density(alpha = 0.2) + 
   	theme_classic() +
@@ -310,9 +331,15 @@ p8<-metadata_test %>%
   	geom_vline(xintercept = 300)+
     ggplot2::ggtitle("Verity distribution of genes per cell", subtitle="Filtered to minimum 20 genes")
 
+    scale_fill_manual(values = colour_df_Verity$colours)+
+    plot_annotation(title = "Ximerakis filtered, cells per sample")+
+    guides(fill = 'none')
+    
+
+ggsave("Ximerakis_Cell_counts_per_sample_final.png",plot=Xim_filtered_final_cellpersammple,device='png', path=Xim_plotting_path,width = 20, height = 15, units = 'cm' )
 
 # Visualize the distribution of genes detected per cell via boxplot
-p9<-metadata_test %>% 
+p9<-metadata_test_Verity %>% 
   	ggplot(aes(x=sample, y=log10(nGene), fill=sample)) + 
   	geom_boxplot() + 
   	theme_classic() +
@@ -320,8 +347,15 @@ p9<-metadata_test %>%
   	theme(plot.title = element_text(hjust=0.5, face="bold")) +
   	ggplot2::ggtitle("Verity distribution of genes per cell", subtitle="Filtered to minimum 20 genes")
 
+    scale_fill_manual(values = colour_df_Verity$colours)+
+    plot_annotation(title = "Ximerakis filtered, cells per sample")+
+    guides(fill = 'none')
+    
+
+ggsave("Ximerakis_Cell_counts_per_sample_final.png",plot=Xim_filtered_final_cellpersammple,device='png', path=Xim_plotting_path,width = 20, height = 15, units = 'cm' )
+
 # Visualize the correlation between genes detected and number of UMIs and determine whether strong presence of cells with low numbers of genes/UMIs
-p10<-metadata_test %>% 
+p10<-metadata_test_Verity %>% 
   	ggplot(aes(x=nUMI, y=nGene, color=mitoRatio)) + 
   	geom_point() + 
 	scale_colour_gradient(low = "gray90", high = "black") +
@@ -333,14 +367,28 @@ p10<-metadata_test %>%
   	facet_wrap(~sample) +
     ggplot2::ggtitle("Verity UMIs vs. genes detected. Highlighting mitochondrial ratio in genes", subtitle = "Filtered to minimum 20 genes")
 
+    scale_fill_manual(values = colour_df_Verity$colours)+
+    plot_annotation(title = "Ximerakis filtered, cells per sample")+
+    guides(fill = 'none')
+    
+
+ggsave("Ximerakis_Cell_counts_per_sample_final.png",plot=Xim_filtered_final_cellpersammple,device='png', path=Xim_plotting_path,width = 20, height = 15, units = 'cm' )
+
 # Visualize the distribution of mitochondrial gene expression detected per cell
-p11<-metadata_test %>% 
+p11<-metadata_test_Verity %>% 
   	ggplot(aes(color=sample, x=mitoRatio, fill=sample)) + 
   	geom_density(alpha = 0.2) + 
   	scale_x_log10() + 
   	theme_classic() +
   	geom_vline(xintercept = 0.2)+
     ggplot2::ggtitle("Verity distribution of mitochondrial gene expression per cell", subtitle = "Filtered to minimum 20 genes")
+
+    scale_fill_manual(values = colour_df_Verity$colours)+
+    plot_annotation(title = "Ximerakis filtered, cells per sample")+
+    guides(fill = 'none')
+    
+
+ggsave("Ximerakis_Cell_counts_per_sample_final.png",plot=Xim_filtered_final_cellpersammple,device='png', path=Xim_plotting_path,width = 20, height = 15, units = 'cm' )
 
 p6;p7;p8;p9;p10;p11
 
@@ -368,7 +416,7 @@ dev.off()
 ## Filtering metadata
 
 ```{r}
-metadata_filtered<- metadata_test %>%
+metadata_filtered<- metadata_test_Verity %>%
     filter(nUMI > 500, nGene >1100, nUMI <35000, percent.mt <20, percent.hb < 20) 
 ```
 
@@ -464,7 +512,7 @@ dev.off()
 
 ```{r}
 #Assign the unfiltered metadata to Verity, updating the column names
-Verity_total_clean@meta.data<-metadata_test 
+Verity_total_clean@meta.data<-metadata_test_Verity 
 
 Verity_filtered_clean<- subset(Verity_total_clean,subset= 
                               percent.mt <20 &
@@ -512,7 +560,7 @@ p17b<-Verity_filtered_clean@meta.data %>%
 
 p17a;p17b
 
-rm(metadata_test, metadata_filtered,filtered_counts, nonzero,counts, keep_genes,folder_name,folder_names,folder_path,metadata_to_remove,var)
+rm(metadata_test_Verity, metadata_filtered,filtered_counts, nonzero,counts, keep_genes,folder_name,folder_names,folder_path,metadata_to_remove,var)
 gc()
 ```
 
