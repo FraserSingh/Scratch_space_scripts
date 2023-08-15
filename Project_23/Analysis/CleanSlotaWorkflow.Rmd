@@ -798,7 +798,7 @@ filtered_gene_names[grep("^Slc1a2", filtered_gene_names)]
 astrocyte_genes<-c("Aldh1l1","Gfap","Slc1a2", "Slc1a3", "Glul", "S100b")
 
 
-Slota_HP_astrocyte_markers_plot<-FeaturePlot(Slota_HP_comp,features=astrocyte_genes, raster=F,order=T)&plot_annotation(title = "Slota hippocampal data, labelled with astrocyte gene markers from ABCAM", subtitle="Clustering resolution 0.3, 20 PCs used")&scale_colour_gradient(low = "lightgrey", high = "blue",limits = c(0, 8))
+Slota_HP_astrocyte_markers_plot<-FeaturePlot(Slota_HP_comp,features=astrocyte_genes, raster=F,order=T, label = T)&plot_annotation(title = "Slota hippocampal data, labelled with astrocyte gene markers from ABCAM", subtitle="Clustering resolution 0.3, 20 PCs used")&scale_colour_gradient(low = "lightgrey", high = "blue",limits = c(0, 8))
 
 
 #From ChatGPT
@@ -884,13 +884,23 @@ DimPlot(Slota_HP_comp_astrocytes, group.by = 'RNA_snn_res.0.2', reduction = 'uma
 DimPlot(Slota_HP_comp_astrocytes, group.by = 'sample', reduction = 'umap', repel = TRUE, raster=F)
 
 #Show astrocyte markers in astrocyte subset
-Slota_HP_reactive_astrocyte_plot<-FeaturePlot(Slota_HP_comp_astrocytes,features=c('Gfap','Cd44'), raster=F)&plot_annotation(title = "Slota data's Hippocampal astrocytes", subtitle="Highlighting expression of reactive astrocyte genes")
+Slota_HP_reactive_astrocyte_plot<-FeaturePlot(Slota_HP_comp_astrocytes,features=c('Gfap','C4b','Cd44', 'Osmr','Trf','Stat3','Aqp4', 'Nrg1', 'Gria1'), raster=F)&plot_annotation(title="Slota data's Hippocampal astrocytes", subtitle="highlighting reactive astrocyte genes", tag_levels = 'A')&scale_colour_gradient(low = "lightgrey", high = "blue",limits = c(0,5))
+
+plot_without_legend <- Slota_HP_reactive_astrocyte_plot + theme(legend.position = "none")
+# Get the legend
+legend <- get_legend(Slota_HP_reactive_astrocyte_plot)
+# Combine the plot and legend using patchwork
+Slota_HP_reactive_astrocyte_plot<- plot_without_legend + plot_layout(guides = "collect",ncol=3) 
+
 Slota_HP_reactive_astrocyte_plot
-ggsave("Slota_HP_reactive_astrocyte_plot.png",plot=Slota_HP_reactive_astrocyte_plot,device='png', path=plotting_path_Terminal,width = 30, height = 10, units = 'cm' )
+ggsave("Slota_HP_reactive_astrocyte_plot.png",plot=Slota_HP_reactive_astrocyte_plot,device='png', path=plotting_path_Terminal,width = 20, height = 20, units = 'cm' )
+
 
 #set the idents to 0.2
 Slota_HP_comp_astrocytes@active.ident<-(Slota_HP_comp_astrocytes@meta.data$RNA_snn_res.0.2)
 levels(Slota_HP_comp_astrocytes)
+
+table(Slota_HP_comp_astrocytes$treatment)
 
 DefaultAssay(Slota_HP_comp_astrocytes)<-'RNA'
 
@@ -915,11 +925,9 @@ Slota_astrocyte_prion_markers_clean_HP <- merge(Slota_astrocyte_prion_markers_cl
   
 
 #Save the file
-write.csv(Slota_astrocyte_prion_markers_clean_HP, file = paste0(plotting_path_Terminal,"Slota_astrocyte_prion_markers_clean_HP.csv"))
+write.csv(Slota_astrocyte_prion_markers_clean_HP, file = paste0(writing_dir,"Slota_astrocyte_prion_markers_clean_HP.csv"))
 
-save(Slota_astrocyte_prion_markers_clean_HP, file=paste0(plotting_path_Terminal,"Slota_astrocyte_prion_markers_clean_HP.RData"))
-
-table(Slota_HP_comp_astrocytes$treatment)
+save(Slota_astrocyte_prion_markers_clean_HP, file=paste0("../Analysis/Rdata/Slota_astrocyte_prion_markers_clean_HP.RData"))
 ```
 
 
@@ -1004,6 +1012,9 @@ geneList_SHp <- Slota_astrocyte_HP_markers_entrez$avg_log2FC
 names(geneList_SHp) <-Slota_astrocyte_HP_markers_entrez$entrezgene_id
 ## feature 3: decreasing order
 geneList_SHp <- sort(geneList_SHp, decreasing = TRUE) #object of type double
+
+#save the data
+save(Slota_astrocyte_HP_markers_entrez, file=paste0("../Analysis/Rdata/Slota_astrocyte_HP_markers_entrez.RData"))
 ```
 
 ### Subset upregulated genes and perform ORA
@@ -1297,7 +1308,7 @@ filtered_gene_names[grep("^Slc1a2", filtered_gene_names)]
 astrocyte_genes<-c("Aldh1l1","Gfap","Slc1a2", "Slc1a3", "Glul", "S100b")
 
 
-Slota_CX_astrocyte_markers_plot<-FeaturePlot(Slota_CX_comp,features=astrocyte_genes, raster=F,order=T)&plot_annotation(title = "Slota cortical data, labelled with astrocyte gene markers from ABCAM", subtitle="Clustering resolution 0.3, 20 PCs used")&scale_colour_gradient(low = "lightgrey", high = "blue",limits = c(0, 8))
+Slota_CX_astrocyte_markers_plot<-FeaturePlot(Slota_CX_comp,features=astrocyte_genes, raster=F,order=T, label = T)&plot_annotation(title = "Slota cortical data, labelled with astrocyte gene markers from ABCAM", subtitle="Clustering resolution 0.3, 20 PCs used")&scale_colour_gradient(low = "lightgrey", high = "blue",limits = c(0, 8))
 
 
 #From ChatGPT
@@ -1323,7 +1334,6 @@ DimPlot(Slota_CX_comp, group.by = 'RNA_snn_res.0.3', reduction = 'umap', label =
 #No compare to the plots of astrocyte genes
 VlnPlot(Slota_CX_comp, features = astrocyte_genes, group.by = 'RNA_snn_res.0.3', pt.size = 0.0)
 
-#Glul is maybe a good indicator?
 ```
 
 
@@ -1384,6 +1394,19 @@ DimPlot(Slota_CX_comp_astrocytes, group.by = 'sample', reduction = 'umap', repel
 Slota_CX_reactive_astrocyte_plot<-FeaturePlot(Slota_CX_comp_astrocytes,features=c('Gfap','Cd44'), raster=F)&plot_annotation(title = "Slota data's cortical astrocytes", subtitle="Highlighting expression of reactive astrocyte genes")
 Slota_CX_reactive_astrocyte_plot
 ggsave("Slota_CX_reactive_astrocyte_plot.png",plot=Slota_CX_reactive_astrocyte_plot,device='png', path=plotting_path_Terminal,width = 30, height = 10, units = 'cm' )
+
+
+#Show astrocyte markers in astrocyte subset
+Slota_CX_reactive_astrocyte_plot<-FeaturePlot(Slota_CX_comp_astrocytes,features=c('Gfap','C4b','Cd44', 'Osmr','Trf','Stat3','Aqp4', 'Nrg1', 'Gria1'), raster=F)&plot_annotation(title="Slota data's Cortical astrocytes", subtitle="highlighting reactive astrocyte genes", tag_levels = 'A')&scale_colour_gradient(low = "lightgrey", high = "blue",limits = c(0,5))
+
+plot_without_legend <- Slota_CX_reactive_astrocyte_plot + theme(legend.position = "none")
+# Get the legend
+legend <- get_legend(Slota_CX_reactive_astrocyte_plot)
+# Combine the plot and legend using patchwork
+Slota_CX_reactive_astrocyte_plot<- plot_without_legend + plot_layout(guides = "collect",ncol=3) 
+
+Slota_CX_reactive_astrocyte_plot
+ggsave("Slota_CX_reactive_astrocyte_plot.png",plot=Slota_CX_reactive_astrocyte_plot,device='png', path=plotting_path_Terminal,width = 25, height = 20, units = 'cm' )
 
 
 #set the idents to 0.2
@@ -1462,12 +1485,13 @@ for (gene in not_mapped) {
 #Additionally, get biomart conversions for those still without entrez ids 
 biomart_remapped<-getBM(attributes = c("external_gene_name","entrezgene_id"), filters = "external_gene_name", values = remapped[is.na(remapped$ENTREZID),]$ALIAS, mart = m)
 
+
 #add any more which have been mapped
 biomart_remapped<-biomart_remapped[!is.na(biomart_remapped$entrezgene_id),]
 
 #put everything recovered into a single df
 bloated_mapped_df <- merge(remapped, biomart_remapped, by.x = "ALIAS", by.y = "external_gene_name", all.x = TRUE)
-bloated_mapped_df$entrezgene_id <- as.character(bloated_mapped_df$entrezgene_id)
+bloated_mapped_df$entrezgene_id <- as.character(bloated_mapped_df$ENTREZID)
 
 #make a single column for everything recovered, remove old columns
 condensed_mapped <- bloated_mapped_df %>%
@@ -1484,6 +1508,8 @@ c<-condensed_mapped[!is.na(condensed_mapped$entrezgene_id),]
 Slota_astrocyte_prion_markers_clean_CX <- merge(Slota_astrocyte_prion_markers_clean_CX, c, by.x = "gene", by.y = "ALIAS", all.x = TRUE)
 Slota_astrocyte_prion_markers_clean_CX$entrezgene_id<-coalesce(Slota_astrocyte_prion_markers_clean_CX$entrezgene_id.x, Slota_astrocyte_prion_markers_clean_CX$entrezgene_id.y)
 Slota_astrocyte_prion_markers_clean_CX<-subset(Slota_astrocyte_prion_markers_clean_CX, select = -c(entrezgene_id.x, entrezgene_id.y))
+
+
 ```
 
 ### Discard any genes which don't have an ENTREZID, generate list of
@@ -1501,6 +1527,7 @@ geneList_SCx <- Slota_astrocyte_prion_markers_clean_CX_entrez$avg_log2FC
 names(geneList_SCx) <-Slota_astrocyte_prion_markers_clean_CX_entrez$entrezgene_id
 ## feature 3: decreasing order
 geneList_SCx <- sort(geneList_SCx, decreasing = TRUE) #object of type double
+save(Slota_astrocyte_prion_markers_clean_CX_entrez, file=paste0(writing_dir,"Slota_astrocyte_prion_markers_clean_CX_entrez.RData"))
 ```
 
 ### Subset upregulated genes and perform ORA

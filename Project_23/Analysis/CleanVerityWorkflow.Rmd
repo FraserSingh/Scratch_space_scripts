@@ -63,6 +63,8 @@ library(DESeq2)
 library(Polychrome)
 library(GseaVis)
 library(ReactomePA)
+library(cowplot)
+library(biomaRt)
 ```
 
 Make folder for plots and set seed
@@ -77,6 +79,9 @@ system(paste0("mkdir ", dir_name))
 #save folder path for plot saving
 plotting_path_Ver<-paste0("../Analysis/", dir_name_Ver,"/")
 
+writing_dir<-"/home/s2268606/University_Directories/Project_23/Analysis/Writing_dir"
+system(paste0("mkdir ", writing_dir))
+rm(writing_dir)
 
 #set seed for reproducibility
 set.seed(42)
@@ -803,9 +808,22 @@ filtered_gene_names<-Gene_Names[!grepl("^\\d", Gene_Names)]
 filtered_gene_names[grep("^Slc1a2", filtered_gene_names)]
 
 #try to identify astrocytes  with genes
-astrocyte_genes<-c("Aldh1l1","Gfap","Slc1a2", "Slc1a3", "Glul", "Cd44")
+astrocyte_genes<-c("Aldh1l1","Gfap","Slc1a2", "Slc1a3", "Glul", "S100b")
 
-FeaturePlot(Verity_Prion_comp,features=astrocyte_genes, raster=F)#+ggtitle("Verity data, labelled with astrocyte gene markers from ABCAM", subtitle="Clustering resolution 0.3, 20 PCs used")
+Verity_astrocyte_markers_plot<-FeaturePlot(Verity_Prion_comp,features=astrocyte_genes, raster=F,order=T, label = T)&plot_annotation(title = "Verity prion data, labelled with astrocyte gene markers from ABCAM", subtitle="Clustering resolution 0.2, 30 PCs used")&scale_colour_gradient(low = "lightgrey", high = "blue",limits = c(0, 6))
+
+
+#From ChatGPT
+# Create the plot without the legend
+plot_without_legend <- Verity_astrocyte_markers_plot + theme(legend.position = "none")
+# Get the legend
+legend <- get_legend(Verity_astrocyte_markers_plot)
+# Combine the plot and legend using patchwork
+Verity_astrocyte_markers_plot<- plot_without_legend + plot_layout(guides = "collect",ncol=3) 
+
+ggsave("Verity_astrocyte_markers_plot.png",plot=Verity_astrocyte_markers_plot,device='png', path=plotting_path_Ver,width = 30, height = 20, units = 'cm' )
+
+
 
 #As a reminder...
 DimPlot(Verity_Prion_comp, group.by = 'RNA_snn_res.0.2', reduction = 'umap', label = TRUE, repel = TRUE, raster=F)+ggtitle("Integrated Verity data, labelled by cluster numbers", subtitle="RPCA,Clustering resolution 0.3, 20 PCs used")
@@ -813,7 +831,7 @@ DimPlot(Verity_Prion_comp, group.by = 'RNA_snn_res.0.2', reduction = 'umap', lab
 #No compare to the plots of astrocyte genes
 VlnPlot(Verity_Prion_comp, features = astrocyte_genes, group.by = 'RNA_snn_res.0.2', pt.size = 0.0)
 
-#Glul is maybe a good indicator?
+#16 clusters
 ```
 
 ## (SingleR annotation)
@@ -844,7 +862,7 @@ Prepare the biomart info
 ```{r}
 #Adapted from http://girke.bioinformatics.ucr.edu/CSHL_RNAseq/mydoc/mydoc_systemPipeRNAseq_07/
 #Get annotation info
-library("biomaRt")
+
 m <- useMart("ensembl", dataset="mmusculus_gene_ensembl")
 ```
 
@@ -880,9 +898,16 @@ DimPlot(Verity_Prion_comp_astrocytes, group.by = 'sample', reduction = 'umap', r
 #Show astrocyte markers in astrocyte subset
 
 
-Verity_reactive_astrocyte_plot<-FeaturePlot(Verity_Prion_comp_astrocytes,features=c('Gfap','Cd44'), raster=F)&plot_annotation(title="Verity data astrocytes", subtitle="highlighting reactive astrocyte genes")
+Verity_reactive_astrocyte_plot<-FeaturePlot(Verity_Prion_comp_astrocytes,features=c('Gfap','C4b','Cd44', 'Osmr','Trf','Stat3','Aqp4', 'Nrg1', 'Gria1'), raster=F)&plot_annotation(title="Verity data astrocytes", subtitle="highlighting reactive astrocyte genes", tag_levels = 'A')&scale_colour_gradient(low = "lightgrey", high = "blue",limits = c(0,5))
+
+plot_without_legend <- Verity_reactive_astrocyte_plot + theme(legend.position = "none")
+# Get the legend
+legend <- get_legend(Verity_reactive_astrocyte_plot)
+# Combine the plot and legend using patchwork
+Verity_reactive_astrocyte_plot<- plot_without_legend + plot_layout(guides = "collect",ncol=3) 
+
 Verity_reactive_astrocyte_plot
-ggsave("Verity_reactive_astrocyte_plot.png",plot=Verity_reactive_astrocyte_plot,device='png', path=plotting_path_Ver,width = 30, height = 10, units = 'cm' )
+ggsave("Verity_reactive_astrocyte_plot.png",plot=Verity_reactive_astrocyte_plot,device='png', path=plotting_path_Ver,width = 20, height = 20, units = 'cm' )
 
 #set the idents to 0.3
 Verity_Prion_comp_astrocytes@active.ident<-(Verity_Prion_comp_astrocytes@meta.data$RNA_snn_res.0.3)
@@ -998,7 +1023,7 @@ background DEGs
 ```{r}
 #Discard any genes which don't have an ENTREZID
 Verity_astrocyte_prion_markers_entrez<-Verity_astrocyte_prion_markers[!is.na(Verity_astrocyte_prion_markers$entrezgene_id),]
-
+save(Verity_astrocyte_prion_markers_entrez, file=paste0(writing_dir,"/Verity_astrocyte_prion_markers_entrez.RData"))
 
 #create the genelist background for Verity Up
 ## feature 1: numeric vector
@@ -1008,6 +1033,8 @@ names(geneList_VP) <-Verity_astrocyte_prion_markers_entrez$entrezgene_id
 ## feature 3: decreasing order
 geneList_VP <- sort(geneList_VP, decreasing = TRUE) #object of type double
 ```
+
+
 
 ### Subset upregulated genes and perform ORA
 
@@ -1022,6 +1049,13 @@ Verity_Prion_DEGs_up = (Verity_astrocyte_prion_markers_up$entrezgene_id)
 
 # Run GO over-representation on upregulated entrezIds, biological process selected from GO terms
 VerityPrion_up_GO_ORA = enrichGO(gene = Verity_Prion_DEGs_up, OrgDb = org.Mm.eg.db, readable = T, ont= "BP", pvalueCutoff = 0.05, qvalueCutoff = 0.10)
+
+save(VerityPrion_up_GO_ORA, file=paste0(writing_dir,"/VerityPrion_up_GO_ORA.RData"))
+
+#WIP could reduce terms by using simplify
+termism_test<-pairwise_termsim(VerityPrion_up_GO_ORA)
+simplify_ver_test<-clusterProfiler::simplify(termism_test)#, cutoff=0.7, by="p.adjust", select_fun=min)
+emapplot(simplify_ver_test)
 ```
 
 
@@ -1029,7 +1063,7 @@ VerityPrion_up_GO_ORA = enrichGO(gene = Verity_Prion_DEGs_up, OrgDb = org.Mm.eg.
 
 ```{r}
 ggp <- barplot(VerityPrion_up_GO_ORA , showCategory=20)
-ggp2 <- dotplot(VerityPrion_up_GO_ORA, showCategory=20)
+ggp2 <- dotplot(VerityPrion_up_GO_ORA, showCategory=10)
 ggp3 <- goplot(VerityPrion_up_GO_ORA, showCategory = 20)
 ggp4<- cnetplot(VerityPrion_up_GO_ORA, foldChange=geneList_VP)
 ggp5<-heatplot(VerityPrion_up_GO_ORA, showCategory=20)#,foldChange=geneList_VP)
@@ -1072,8 +1106,10 @@ Verity_Prion_DEGs_down = (Verity_astrocyte_prion_markers_down$entrezgene_id)
 VerityPrion_down_GO_ORA = enrichGO(gene = Verity_Prion_DEGs_down, OrgDb = org.Mm.eg.db, readable = T, ont= "BP", pvalueCutoff = 0.05, qvalueCutoff = 0.10)
 
 
+save(VerityPrion_down_GO_ORA, file=paste0(writing_dir,"/VerityPrion_down_GO_ORA.RData"))
+
 ggp_b<-barplot(VerityPrion_down_GO_ORA , showCategory=20)
-ggp2_b<-dotplot(VerityPrion_down_GO_ORA, showCategory=20)
+ggp2_b<-dotplot(VerityPrion_down_GO_ORA, showCategory=10)
 ggp3_b<-goplot(VerityPrion_down_GO_ORA, showCategory = 20)
 ggp4_b<-cnetplot(VerityPrion_down_GO_ORA, foldChange=geneList_VP)
 ggp5_b<-heatplot(VerityPrion_down_GO_ORA, showCategory=20)
@@ -1101,7 +1137,8 @@ ggp5_b
 dev.off()
 
 
-
+V_P_topGO<-ggp2 + ggp2_b & plot_annotation(title="Verity Top and bottom most enriched GO terms",tag_levels = 'A')
+ggsave("V_P_topGO.png",plot=V_P_topGO,device='png', path=writing_dir,width = 40, height = 15, units = 'cm' )
 ```
 
 
@@ -1120,6 +1157,8 @@ VP_GO_GSEA <- gseGO(geneList= geneList_VP, #This is the DEG list full list of DE
 
 #convert back to Symbols for plotting
 VP_GO_GSEA <- setReadable(VP_GO_GSEA, 'org.Mm.eg.db', 'ENTREZID')
+
+save(VP_GO_GSEA, file=paste0(writing_dir,"/VP_GO_GSEA.RData"))
 
 View(data.frame(VP_GO_GSEA))
 VP_GSEA_df<-data.frame(VP_GO_GSEA)

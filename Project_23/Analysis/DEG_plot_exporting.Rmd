@@ -221,4 +221,18 @@ ggsave("joint_EDA.png",plot=EDA_comp,device='png', path=plotting_path_Terminal,w
 ```
 
 
+#interesting list
+
+```{r}
+interesting_list<-c('Nrg1','Adgrb3', 'Nrxn3', 'Rimbp2', 'Tanc1', 'Tnr','Grm5', 'Plxna2', 'Prkag2', 'Prkca','Cacnb2', 'Dlgap2', 'Gria1', 'Grin2a', 'Nrp1', 'Plxna4','Ptn', 'Gpc5','C1qc', 'Ccl3', 'Nfkbia', 'Tnf', 'Tyrobp','Atp1a2', 'Chchd2', 'Aldh1l1', 'Aldoc', 'Cox7c', 'Mt3', 'Slc4a4', 'Ugp2', 'Erbb4', 'Tubb2b', 'Dgkb', 'Grid2', 'Glul', 'Grm3', 'Serpine2', 'C1qa', 'C1qb', 'Ptprc', 'Trem2', 'Icam1','Npm1','Atp2b2', 'Gpm6a', 'Nrxn1', 'Malat1', 'Msmo1', 'Vegfa','Magi2', 'Ctnnd2', 'Syn2', 'Unc13c','Gpc5', 'Slco1c1', 'Tspan7','Abca1', 'C4b', 'Gfap', 'Ldlrad4', 'Ppm1h', 'Ptprj', 'Ski', 'Slc39a14', 'Stat3', 'Trf', 'Zbtb16')
+
+lit_pan_genes<-c("Lcn2","Serpina3n","Steap4","Cxcl10","Hspb1","Vim","Serping1","C3","GLAST","SLC1A3","GLT1","SLC1A2","S1pr3","asprg","tip","Steap4","Hspb1","Osmr","Cp","LR1P","Aldh1l1","Gfap","Aspg","Ggta1","H2-D1","Hsbp1","Iigp1","Stat3")
+lit_A1_genes<-c("Il6","Il12b","Il33","Ccl4","Thbs1","Thbs4","Sparcl1","Gyp4","Gyp6","Serping1","H2t23","Ggta1","H2-D1","H2-T23","ligp1","Gbp2","Fbln5","Fkbp5","Srgn","Amigo2")
+lit_A2_genes<-c("S100a10","Vegfa","Bdnf","Ntf3","Cd109","Emp1","Cx","SPARCL1","Clcf1","Tgm1","Ptx3","S100a10","Sphk1","Cd109","Ptgs2","Emp1","Slc10a6","Tm4sf1","B3gnt5","Cd14","Hmox1")
+
+interesting_list[interesting_list %in% lit_A2_genes]
+
+```
+
+
 
