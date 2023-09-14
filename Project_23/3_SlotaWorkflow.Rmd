@@ -1,0 +1,1609 @@
+---
+title: "Clean Slota workflow"
+output: html_document
+date: "2023-07-18"
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Package management
+
+```{r}
+
+update.packages(ask = FALSE)
+
+install.packages("BiocManager")
+
+BiocManager::install(c(
+  "org.Mm.eg.db",
+  "AnnotationDbi",
+  "clusterProfiler",
+  "tidyverse",
+  'knitr',
+  "DropletUtils",
+  "Seurat",
+  "SoupX",
+  "scCustomize",
+  "glmGamPoi",
+  "DESeq2",
+  "Polychrome",
+  "ReactomePA"
+  ))
+
+
+remotes::install_github('chris-mcginnis-ucsf/DoubletFinder')
+
+remotes::install_github("satijalab/seurat", "seurat5")
+
+devtools::install_github("junjunlab/GseaVis")
+
+```
+
+```{r}
+library(org.Mm.eg.db)
+library(clusterProfiler)
+library(DropletUtils)
+library(Seurat)
+library(tidyverse)
+library(dplyr)
+library(stringr)
+library(knitr)
+library(DoubletFinder)
+library(SoupX)
+library(scCustomize)
+library(DESeq2)
+library(Polychrome)
+library(GseaVis)
+library(ReactomePA)
+library(patchwork)
+library(cowplot)
+library(enrichplot)
+```
+
+Make folder for plots
+
+```{r}
+#save folder path for plot saving
+plotting_path_Terminal<-paste0("Slota/Images/")
+
+#set seed for reproducibility
+set.seed(42)
+
+```
+
+# Slota workflow
+
+This workflow loads samples for the control and prion-treated data from
+Slota group's hippocampal and cortex prion work. The samples are QC
+assessed, filtered and plotted with clustering by gene expression
+profiles.
+
+Adapted from
+[here](https://bioconductor.org/packages/release/bioc/vignettes/DropletUtils/inst/doc/DropletUtils.html#reading-in-10x-genomics-data)
+and
+[here](https://www.singlecellcourse.org/scrna-seq-analysis-with-bioconductor.html).
+
+# Load the data
+
+```{r}
+# Create list of folder names
+sample_names_Slota<- readLines("./Slota/Data/Slota_samples.txt")
+#rename them for Slota folders
+
+
+# Loop through each folder to process it
+for (folder in sample_names_Slota) {
+  folder_path=paste0("./Slota/Data/SCP1962/other/",folder)
+  
+  
+  current_data<-Read10X(data.dir =folder_path)
+  current_obj<-CreateSeuratObject(counts=current_data, project=folder)
+  assign(paste0(folder), current_obj)
+  
+}
+
+Slota_raw_obj_clean<-merge(PBS25HP, y=c(PBS48CX,PBS48HP,PBS60CX,PBS61CX,PBS73CX,RML122CX,RML122HP,RML132CX,RML132HP,RML133CX,RML133HP,RML134CX,RML134HP,RML138CX,RML138HP,RML140CX,RML140HP,RML142CX,RML142HP,RML145CX,RML145HP))
+
+rm(current_data,current_obj, folder, sample_names_Slota)
+```
+
+# Tailor metadata
+
+## Treatment annotation
+
+adapted from <https://youtu.be/p49seH2_i8Y?t=312>
+
+```{r}
+Slota_raw_obj_clean$sample<-Slota_raw_obj_clean$orig.ident
+#Dealing with new merged object 
+Slota_raw_obj_clean@active.ident<-as.factor(Slota_raw_obj_clean$sample)
+
+#Add metadata on treatment, adapted from Chat GPT
+
+#Slota
+sampleLabs_Slota<- (Slota_raw_obj_clean@active.ident)
+
+treat_detect_Slota <- case_when(
+  str_detect(sampleLabs_Slota, "RML.*HP*") ~ "RML_HP",
+  str_detect(sampleLabs_Slota, "PBS.*HP*") ~ "PBS_HP",
+  str_detect(sampleLabs_Slota, "RML.*CX*") ~ "RML_CX",
+  str_detect(sampleLabs_Slota, "PBS.*CX*") ~ "PBS_CX",
+  TRUE ~ NA_character_
+)
+
+Slota_raw_obj_clean@meta.data$treatment<-treat_detect_Slota
+rm(treat_detect_Slota, sampleLabs_Slota)
+
+```
+
+```{r}
+#plotting colours dataframe
+colour_df_Slota<-data.frame(sample_names_Slota)
+colour_df_Slota$colours<-c('#88316f',
+'#53bf34',
+'#5e37bb',
+'#5cdf78',
+'#de69ef',
+'#748c00',
+'#9e79ff',
+'#74db98',
+'#fa43b5',
+'#00c7bc',
+'#c02b00',
+'#00a8e2',
+'#ff6280',
+'#006a45',
+'#ba008a',
+'#795000',
+'#5542a6',
+'#ffa6ab',
+'#c0abff',
+'#85465f',
+'#ff85d8',
+'#745684')
+
+```
+
+## Identify mitochondrial and ribosomal populations
+
+```{r}
+#identify mitochondrial and ribosomal protein gene portions, annotations syntax tailored to mouse
+Slota_raw_obj_clean[["percent.mt"]]<- PercentageFeatureSet(Slota_raw_obj_clean, pattern = "^Mt")
+Slota_raw_obj_clean[["percent.rp"]]<- PercentageFeatureSet(Slota_raw_obj_clean, pattern = "^Rp")
+Slota_raw_obj_clean[["percent.hb"]]<-PercentageFeatureSet(Slota_raw_obj_clean, "^Hb[^(p)]")
+
+#Generate genes per umi counts, from https://github.com/hbctraining/scRNA-seq/blob/master/lessons/04_SC_quality_control.md
+Slota_raw_obj_clean[["log10GenesPerUMI"]] <- log10(Slota_raw_obj_clean$nFeature_RNA) / log10(Slota_raw_obj_clean$nCount_RNA)
+
+Slota_raw_obj_clean[["mitoRatio"]] <- Slota_raw_obj_clean@meta.data$percent.mt / 100
+```
+
+## Initial data assessment
+
+```{r}
+p1<-VlnPlot(Slota_raw_obj_clean, features=c("nFeature_RNA","nCount_RNA","percent.mt", "percent.rp","percent.hb"), ncol=5, pt.size = 0.0)+
+  plot_annotation(title = "Slota Dataset EDA")+
+  guides(fill = 'none')&
+  theme(axis.text.x = element_text(size=rel(0.5),angle=90, hjust=1))&
+  scale_fill_manual(values = colour_df_Slota$colours)
+
+# Plot each of these respectively, showing trends in cell health
+
+#show mitochondrial proportion in reads
+p2<-FeatureScatter(Slota_raw_obj_clean, feature1 = "nCount_RNA", feature2 = "percent.mt", pt.size = 0,cols=colour_df_Slota$colours)+ggtitle("Slota dataset", subtitle="UMIs per cell vs. % mitochondrial genes detected")+theme(plot.background = element_rect(fill = "white"))
+
+
+#show ribosomal proportion in reads
+p3<-FeatureScatter(Slota_raw_obj_clean, feature1 = "nCount_RNA", feature2 = "percent.rp",cols=colour_df_Slota$colours)+ggplot2::ggtitle("Slota dataset", subtitle = "UMIs per cell vs. % ribosomal protein  genes detected")+theme(plot.background = element_rect(fill = "white"))
+
+
+#Ribosomal vs mitochondrial 
+p4<-FeatureScatter(Slota_raw_obj_clean, feature1 = "percent.rp", feature2 = "percent.mt",cols=colour_df_Slota$colours)+ggplot2::ggtitle("Slota dataset",subtitle="% ribosomal protein  genes detected vs. % mitochondrial genes detected")+theme(plot.background = element_rect(fill = "white"))
+
+#Show overall reads and gene counts for unfiltered data.
+p5<-FeatureScatter(Slota_raw_obj_clean, feature1 = "nCount_RNA", feature2="nFeature_RNA",raster=F, pt.size = 0.,cols=colour_df_Slota$colours)+ geom_smooth(method="lm")+ ggtitle("Slota dataset",subtitle="UMIs per cell vs. number of genes ")+theme(plot.background = element_rect(fill = "white"))
+
+p1;p2;p3;p4;p5
+
+#Save plots
+ggsave("Terminal_EDA.png",plot=p1,device='png', path=plotting_path_Terminal,width = 30, height = 10, units = 'cm' )
+
+ggsave("Terminal_UMI_MT.png",plot=p2,device='png', path=plotting_path_Terminal,width = 20, height = 20, units = 'cm' )
+
+ggsave("Terminal_UMI_RP.png",plot=p3,device='png', path=plotting_path_Terminal,width = 20, height = 20, units = 'cm' )
+
+ggsave("Terminal_RP_MT.png",plot=p4,device='png', path=plotting_path_Terminal,width = 20, height = 20, units = 'cm' )
+
+ggsave("Terminal_UMI_nGene.png",plot=p5,device='png', path=plotting_path_Terminal,width = 20, height = 20, units = 'cm' )
+```
+
+Low mitochondrial counts, good overall quality indicating prefilters?
+
+### Save the whole data and tidy up
+
+```{r}
+#Save the data object
+save(Slota_raw_obj_clean, file="./Slota/Data/Slota_raw_obj_clean.Rdata")
+
+rm(PBS25HP,PBS48CX,PBS48HP,PBS60CX,PBS61CX,PBS73CX,RML122CX,RML122HP,RML132CX,RML132HP,RML133CX,RML133HP,RML134CX,RML134HP,RML138CX,RML138HP,RML140CX,RML140HP,RML142CX,RML142HP,RML145CX,RML145HP)
+
+gc()
+```
+
+# QC
+
+## Exploration
+
+### Create metadata variable to edit it without affecting core data
+
+```{r}
+# Rename columns from https://github.com/hbctraining/scRNA-seq/blob/master/lessons/04_SC_quality_control.md
+
+#Create metadata variable to edit it without affecting core data
+metadata_test<-Slota_raw_obj_clean@meta.data
+
+#Saving cell barcodes as metainfo
+metadata_test$cells<-rownames(metadata_test)
+
+#Setting minimum feature count to filter cells with no genes UMIs vs. genes detected, as these will be discarded anyway
+metadata_test <- subset(Slota_raw_obj_clean, subset= nFeature_RNA > 20)@meta.data
+
+metadata_test <- metadata_test %>%
+    dplyr::rename(nUMI = nCount_RNA,
+                  nGene = nFeature_RNA)
+```
+
+### Plots
+
+```{r}
+# Visualize the number of cell counts per sample with no filtering at all
+p6<-metadata_test %>% 
+  	ggplot2::ggplot(aes(x=sample, fill=sample)) + 
+  	geom_bar() +
+  	theme_classic() +
+  	theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
+  	theme(plot.title = element_text(hjust=0.5, face="bold")) +
+    scale_fill_manual(values = colour_df_Slota$colours)+
+  	ggplot2::ggtitle("Slota Data cells per sample", subtitle="Filtered to minimum 20 genes")
+
+
+# Visualize the number UMIs/transcripts per cell
+p7<-metadata_test %>% 
+  	ggplot(aes(x=nUMI, fill= sample)) + 
+  	geom_density(alpha = 0.2,lwd=.25) + 
+  	scale_x_log10() + 
+  	theme_classic() +
+  	ylab("Cell density") +
+    scale_fill_manual(values = colour_df_Slota$colours)+
+  	geom_vline(xintercept = 500)+
+    ggplot2::ggtitle("Slota Data UMI per cell", subtitle="Filtered to minimum 20 genes")
+
+
+# Visualize the distribution of genes detected per cell via histogram
+p8<-metadata_test %>% 
+  	ggplot(aes(x=nGene, fill= sample)) + 
+  	geom_density(alpha = 0.2,lwd=.25) + 
+  	theme_classic() +
+  	scale_x_log10() + 
+  	geom_vline(xintercept = 300)+
+    scale_fill_manual(values = colour_df_Slota$colours)+
+    ggplot2::ggtitle("Slota distribution of genes per cell", subtitle="Filtered to minimum 20 genes")
+
+
+# Visualize the distribution of genes detected per cell via boxplot
+p9<-metadata_test %>% 
+  	ggplot(aes(x=sample, y=log10(nGene), fill=sample)) + 
+  	geom_boxplot() + 
+  	theme_classic() +
+  	theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
+  	theme(plot.title = element_text(hjust=0.5, face="bold")) +
+    scale_fill_manual(values = colour_df_Slota$colours)+
+    guides(fill = 'none')+
+  	ggplot2::ggtitle("Slota distribution of genes per cell", subtitle="Filtered to minimum 20 genes")
+
+# Visualize the correlation between genes detected and number of UMIs and determine whether strong presence of cells with low numbers of genes/UMIs
+p10<-metadata_test %>% 
+  	ggplot(aes(x=nUMI, y=nGene, color=mitoRatio)) + 
+  	geom_point() + 
+	scale_colour_gradient(low = "gray90", high = "black") +
+  	scale_x_log10() +
+  	scale_y_log10() +
+  	theme_classic() +
+  	geom_vline(xintercept = 500) +
+  	geom_hline(yintercept = 250) +
+  	facet_wrap(~sample) +
+    ggplot2::ggtitle("Slota UMIs vs. genes detected", subtitle = "Highlighting mitochondrial ratio in genes, filtered to minimum 20 genes")
+
+# Visualize the distribution of mitochondrial gene expression detected per cell
+p11<-metadata_test %>% 
+  	ggplot(aes(x=mitoRatio, fill=sample)) + 
+  	geom_density(alpha = 0.2,lwd=.25) + 
+  	scale_x_log10() + 
+  	theme_classic() +
+  	geom_vline(xintercept = 0.2)+
+    scale_fill_manual(values = colour_df_Slota$colours)+
+    ggplot2::ggtitle("Slota distribution of mitochondrial gene expression per cell", subtitle = "Filtered to minimum 20 genes")
+
+p6;p7;p8;p9;p10;p11
+
+#Save plots
+
+ggsave("Terminal_PreF_Counts_sample.png",plot=p6,device='png', path=plotting_path_Terminal,width = 20, height = 20, units = 'cm' )
+
+ggsave("Terminal_PreF_UMI_cell.png",plot=p7,device='png', path=plotting_path_Terminal,width = 20, height = 20, units = 'cm' )
+
+ggsave("Terminal_PreF_nGene_hist_sample.png",plot=p8,device='png', path=plotting_path_Terminal,width = 20, height = 20, units = 'cm' )
+
+ggsave("Terminal_PreF_nGene_hist_sample.png",plot=p9,device='png', path=plotting_path_Terminal,width = 20, height = 20, units = 'cm' )
+
+ggsave("Terminal_PreF_nGene_UMI_sample.png",plot=p10,device='png', path=plotting_path_Terminal,width = 20, height = 20, units = 'cm' )
+
+ggsave("Terminal_PreF_MT_cell.png",plot=p11,device='png', path=plotting_path_Terminal,width = 20, height = 20, units = 'cm' )
+```
+
+## Filtering metadata
+
+```{r}
+
+#running author's filters
+
+metadata_filtered<- metadata_test %>%
+    filter(nGene > 1000 & percent.mt < 20 & percent.rp > 1 & percent.hb < 20 & nUMI < 35000) 
+```
+
+## Repeat QC plotting
+
+```{r}
+# Visualize the number of cell counts per sample with no filtering at all
+p12<-metadata_filtered %>% 
+  	ggplot2::ggplot(aes(x=sample, fill=sample)) + 
+  	geom_bar() +
+  	theme_classic() +
+  	theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
+  	theme(plot.title = element_text(hjust=0.5, face="bold")) +
+    scale_fill_manual(values = colour_df_Slota$colours)+
+  	ggplot2::ggtitle("Slota Data cells per sample", subtitle="nGene>150, nUMI>0, % mito< 20")
+
+
+# Visualize the number UMIs/transcripts per cell
+p13<-metadata_filtered %>% 
+  	ggplot(aes(x=nUMI, fill= sample)) + 
+  	geom_density(alpha = 0.2,lwd=.25) + 
+  	scale_x_log10() + 
+  	theme_classic() +
+  	ylab("Cell density") +
+  	geom_vline(xintercept = 500)+
+    ggplot2::ggtitle("Slota Data UMI per cell", subtitle="nGene>150, nUMI>0, % mito< 20")
+
+
+# Visualize the distribution of genes detected per cell via histogram
+p14<-metadata_filtered %>% 
+  	ggplot(aes(x=nGene, fill= sample)) + 
+  	geom_density(alpha = 0.2,lwd=.25) + 
+  	theme_classic() +
+  	scale_x_log10() + 
+  	geom_vline(xintercept = 300)+
+    scale_fill_manual(values = colour_df_Slota$colours)+
+    ggplot2::ggtitle("Slota distribution of genes per cell", subtitle="nGene>150, nUMI>0, % mito< 20")
+
+
+# Visualize the distribution of genes detected per cell via boxplot
+p15<-metadata_filtered %>% 
+  	ggplot(aes(x=sample, y=log10(nGene), fill=sample)) + 
+  	geom_boxplot() + 
+  	theme_classic() +
+  	theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
+  	theme(plot.title = element_text(hjust=0.5, face="bold")) +
+    guides(fill = 'none')+
+    scale_fill_manual(values = colour_df_Slota$colours)+
+  	ggplot2::ggtitle("Slota distribution of genes per cell", subtitle="nGene>150, nUMI>0, % mito< 20")
+
+# Visualize the correlation between genes detected and number of UMIs and determine whether strong presence of cells with low numbers of genes/UMIs
+p16<-metadata_filtered %>% 
+  	ggplot(aes(x=nUMI, y=nGene, color=mitoRatio)) + 
+  	geom_point() + 
+	scale_colour_gradient(low = "gray90", high = "black") +
+  	scale_x_log10() +
+  	scale_y_log10() +
+  	theme_classic() +
+  	geom_vline(xintercept = 500) +
+  	geom_hline(yintercept = 250) +
+  	facet_wrap(~sample) +
+    theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
+    ggplot2::ggtitle("Slota UMIs vs. genes detected", subtitle="Highlighting mitochondrial ratio in genes,nGene>150, nUMI>0, % mito< 20")
+
+# Visualize the distribution of mitochondrial gene expression detected per cell
+p17<-metadata_filtered %>% 
+  	ggplot(aes(x=mitoRatio, fill=sample)) + 
+  	geom_density(alpha = 0.2,lwd=.25) + 
+  	scale_x_log10() + 
+  	theme_classic() +
+  	geom_vline(xintercept = 0.2)+
+    scale_fill_manual(values = colour_df_Slota$colours)+
+    ggplot2::ggtitle("Slota distribution of mitochondrial gene expression per cell", subtitle="nGene>150, nUMI>0, % mito< 20")
+
+p12;p13;p14;p15;p16;p17
+
+#Save plots
+ggsave("Terminal_PostF_Counts_sample.png",plot=p12,device='png', path=plotting_path_Terminal,width = 20, height = 20, units = 'cm' )
+
+ggsave("Terminal_PostF_UMI_cell.png",plot=p13,device='png', path=plotting_path_Terminal,width = 20, height = 20, units = 'cm' )
+
+ggsave("Terminal_PostF_nGene_hist_sample.png",plot=p14,device='png', path=plotting_path_Terminal,width = 20, height = 20, units = 'cm' )
+
+ggsave("Terminal_PostF_nGene_hist_sample.png",plot=p15,device='png', path=plotting_path_Terminal,width = 20, height = 20, units = 'cm' )
+
+ggsave("Terminal_PostF_nGene_UMI_sample.png",plot=p16,device='png', path=plotting_path_Terminal,width = 20, height = 20, units = 'cm' )
+
+ggsave("Terminal_PostF_MT_cell.png",plot=p17,device='png', path=plotting_path_Terminal,width = 20, height = 20, units = 'cm' )
+```
+
+## Assign filters to data, removing three poor quality samples
+
+```{r}
+#Assign the unfiltered metadata to Slota, updating the column names
+Slota_raw_obj_clean@meta.data<-metadata_test 
+
+Slota_filtered_clean<- subset(Slota_raw_obj_clean,subset= 
+                              nGene > 1000 & 
+                              percent.mt < 20 &
+                              percent.rp > 1 &
+                              percent.hb < 20 &
+                              nUMI < 35000 &
+                              sample !="PBS73CX" &
+                              sample !="RML133HP" &
+                              sample !="RML134HP" 
+                            )
+
+
+
+
+# Gene-level filtering
+# Keeping genes which appear in more than 3 cells for statistical power.
+
+# Output a logical vector for every gene on whether the more than zero counts per cell
+# Extract counts
+counts <- GetAssayData(object = Slota_filtered_clean, slot = "counts")
+
+# Output a logical vector for every gene on whether the more than zero counts per cell
+nonzero <- counts > 0
+
+# Sums all TRUE values and returns TRUE if more than 3 TRUE values per gene
+keep_genes <- Matrix::rowSums(nonzero) >= 3
+
+# Only keeping those genes expressed in more than 10 cells
+filtered_counts <- counts[keep_genes, ]
+
+# Reassign to filtered Seurat object
+Slota_filtered_clean <- CreateSeuratObject(filtered_counts, meta.data = Slota_filtered_clean@meta.data)
+
+
+p17a<-Slota_filtered_clean@meta.data %>% 
+  	ggplot2::ggplot(aes(x=sample, fill=sample)) + 
+  	geom_bar() +
+  	theme_classic() +
+  	theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
+  	theme(plot.title = element_text(hjust=0.5, face="bold")) +
+    scale_fill_manual(values = colour_df_Slota$colours)+
+    guides(fill = 'none')+
+  	ggplot2::ggtitle("Slota Cell counts per sample", subtitle="nGene>1000, nUMI>0<35,000, % mito< 20, % rp>1, % hb <20")
+
+p17b<-Slota_filtered_clean@meta.data %>% 
+  	ggplot(aes(x=nGene, fill= sample)) + 
+  	geom_density(alpha = 0.2,lwd=.25) + 
+  	theme_classic() +
+  	scale_x_log10() + 
+  	geom_vline(xintercept = 300)+
+    scale_fill_manual(values = colour_df_Slota$colours)+
+    ggplot2::ggtitle("Slota distribution of genes per cell", subtitle="nGene>1000, nUMI>0<35,000, % mito< 20, % rp>1, % hb <20")
+
+p17a;p17b
+
+ggsave("Terminal_PostF_cell_sample.png",plot=p17a,device='png', path=plotting_path_Terminal,width = 20, height = 20, units = 'cm' )
+
+ggsave("Terminal_PostF_gene_cell.png",plot=p17b,device='png', path=plotting_path_Terminal,width = 20, height = 20, units = 'cm' )
+
+gc()
+```
+
+### Saving object
+
+```{r}
+# Create .RData object to load at any time
+save(Slota_filtered_clean, file="./Slota/Data/Slota_filtered_clean.Rdata")
+```
+
+## Show QC after all filtering
+
+```{r}
+load("./Slota/Data/Slota_filtered_clean.Rdata")
+
+Idents(Slota_filtered_clean)<-Slota_filtered_clean$sample
+
+p18<-VlnPlot(Slota_filtered_clean, features=c("nFeature_RNA","nCount_RNA","percent.mt", "percent.rp","percent.hb"), ncol=5, pt.size = 0.0)&scale_fill_manual(values = colour_df_Slota$colours)&plot_annotation(title = "Slota dataset after all filtering")
+
+p18
+  
+p19<-Slota_filtered_clean@meta.data%>%
+    ggplot(aes(x=sample, fill=sample)) + 
+  	geom_bar() +
+  	theme_classic() +
+  	theme(axis.text.x = element_text(angle = 90, vjust = 1, hjust=1)) +
+  	theme(plot.title = element_text(hjust=0.5, face="bold")) +
+    scale_fill_manual(values = colour_df_Slota$colours)+
+    #scale_y_continuous(breaks=seq(0, 30000, 3000))+
+    guides(fill = 'none')
+
+p19
+
+p20<-p18+
+  p19+
+  ggtitle("Cells per sample")+
+  plot_layout(ncol = 3)&
+  theme(axis.text.x = element_text(angle = 90, vjust = 1, hjust=1, size=rel(0.55)))&
+  plot_annotation(title = "Slota dataset after all filtering")&
+  xlab(NULL)
+
+p20
+
+ggsave("Slota_filtered_QC.png",plot=p20,device='png', path=plotting_path_Terminal,width = 30, height = 15, units = 'cm' )
+
+```
+
+# Splitting the data by tissue
+
+```{r}
+Slota_HP<-subset(Slota_filtered_clean, subset=treatment=='PBS_HP' | treatment=='RML_HP')
+Slota_CX<-subset(Slota_filtered_clean, subset=treatment=='PBS_CX' | treatment=='RML_CX')
+
+Slota_tissues<-list(Slota_HP,Slota_CX)
+
+rm(Slota_HP,Slota_CX)
+```
+
+# Doublet finder for tissue groups separately
+
+```{r}
+
+#load in the filtered Slota object
+#load("./Slota/Data/Slota_filtered_clean.Rdata")
+
+#adapted from https://youtu.be/p49seH2_i8Y , https://github.com/kpatel427/YouTubeTutorials/blob/5b3c795cecafb22f0e992da069eae2efd6b5cb95/singleCell_doublets.R , https://rpubs.com/kenneditodd/doublet_finder_example 
+
+#DoubletFinder, keep singlets
+Slota_tissues <- lapply(Slota_tissues, function(tissue_group) {
+  #Normalise+Scale with SCTransform?
+  tissue_group <- SCTransform(tissue_group)
+  tissue_group <- RunPCA(tissue_group)
+  
+  # Find significant PCs
+  stdv <- tissue_group[["pca"]]@stdev
+  sum.stdv <- sum(tissue_group[["pca"]]@stdev)
+  percent.stdv <- (stdv / sum.stdv) * 100
+  cumulative <- cumsum(percent.stdv)
+  co1 <- which(cumulative > 90 & percent.stdv < 5)[1]
+  co2 <- sort(which((percent.stdv[1:length(percent.stdv) - 1] -
+                       percent.stdv[2:length(percent.stdv)]) > 0.1),
+              decreasing = TRUE)[1] + 1
+  min.pc <- min(co1, co2)
+  
+  # Finish pre-processing
+  tissue_group <- RunUMAP(tissue_group, dims = 1:min.pc, seed.use=42 )
+  tissue_group <- FindNeighbors(object = tissue_group, dims = 1:min.pc)              
+  tissue_group <- FindClusters(object = tissue_group, resolution = 0.1)
+  
+  # pK identification (no ground-truth)
+  sweep.list <- paramSweep_v3(tissue_group, PCs = 1:min.pc, sct = TRUE)
+  sweep.stats <- summarizeSweep(sweep.list)
+  bcmvn <- find.pK(sweep.stats)
+  
+  # Optimal pK is the max of the bomodality coefficient (BCmvn) distribution
+  bcmvn.max <- bcmvn[which.max(bcmvn$BCmetric),]
+  optimal.pk <- as.numeric(bcmvn.max$pK)
+
+  # Homotypic doublet proportion estimate
+  annotations <- tissue_group@meta.data$seurat_clusters
+  homotypic.prop <- modelHomotypic(annotations) 
+  nExp.poi <- round(0.087 * nrow(tissue_group@meta.data)) #expected doublets based on values from 10X resources
+  nExp.poi.adj <- round(nExp.poi * (1 - homotypic.prop))
+  
+  # Run DoubletFinder
+  tissue_group <- doubletFinder_v3(seu = tissue_group, 
+                             PCs = 1:min.pc, 
+                             pK = optimal.pk,
+                             nExp = nExp.poi.adj, 
+                             sct = TRUE, 
+                             pN=0.25)
+  return(tissue_group)
+  })
+```
+
+## Split the data, rename doubletfinder metadata and Show Doublets for each comparison group within Slota data. Retain singlets
+
+```{r}
+
+#Rename the columns
+Slota_tissues <- lapply(Slota_tissues, function(comp_pair) {
+  DefaultAssay(comp_pair)<-'RNA'
+  doublet_col_index <- which(grepl("DF.classifications_", colnames(comp_pair@meta.data)))
+  comp_pair$doublet_finder <- comp_pair@meta.data[doublet_col_index]
+  comp_pair@meta.data[doublet_col_index]<-NULL
+
+  #Show how many doublets there were
+  table(comp_pair$doublet_finder)
+  
+  return(comp_pair)
+})
+
+#Split the data
+Slota_HP_comp<-Slota_tissues[[1]]
+Slota_CX_comp<-Slota_tissues[[2]]
+
+#Plot how many doublets there were
+p21<-VlnPlot(Slota_HP_comp, features = "nFeature_RNA", group.by = 'doublet_finder', pt.size = 0.0)+ggtitle(paste0("Slota Hippocampal data doublets"))
+
+p22<-VlnPlot(Slota_CX_comp, features = "nFeature_RNA", group.by = 'doublet_finder', pt.size = 0.0)+ggtitle(paste0("Slota Cortical data Doublets"))
+
+p21;p22
+
+ggsave("Slota_HP_doublets.png",plot=p21,device='png', path=plotting_path_Terminal,width = 20, height = 20, units = 'cm' )
+
+ggsave("Slota_CX_doublets.png",plot=p22,device='png', path=plotting_path_Terminal,width = 20, height = 20, units = 'cm' )
+
+#Save the data with Doublets retained too
+save(Slota_tissues, file="./Slota/Data/Slota_tissues.Rdata")
+
+#subset data by singlet status and save list of singlets to continue with
+Slota_CX_comp <- subset(Slota_CX_comp, subset= doublet_finder=='Singlet')
+Slota_HP_comp <- subset(Slota_HP_comp, subset= doublet_finder=='Singlet')
+
+gc()
+```
+
+# HP work
+
+```{r}
+#active assay RNA
+DefaultAssay(Slota_HP_comp)<-"RNA"
+
+
+#DimReduc again
+#https://github.com/hbctraining/scRNA-seq_online/blob/master/lessons/06_SC_SCT_normalization.md
+# Normalize the counts
+Slota_HP_comp <- NormalizeData(Slota_HP_comp)
+# Identify the most variable genes with defaults
+Slota_HP_comp <- FindVariableFeatures(Slota_HP_comp, verbose = T)
+		     
+# Scale the counts
+Slota_HP_comp <- ScaleData(Slota_HP_comp)
+# Perform PCA
+Slota_HP_comp <- RunPCA(Slota_HP_comp)
+#Inspect the variability accounted for by the PCS
+#It appears that 23 PCs are responsible, so using 30 from now on
+ElbowPlot(Slota_HP_comp, ndims=30)+ggtitle("Elbowplot of Slota data", subtitle = "NBH and ME7")
+DimHeatmap(Slota_HP_comp, dims=1:9, cells=500, balanced=T)
+#Finish dimensinoality reduction steps
+Slota_HP_comp <- RunUMAP(Slota_HP_comp, reduction = "pca", dims = 1:30, seed.use=42)
+Slota_HP_comp <- FindNeighbors(Slota_HP_comp, reduction = "pca", dims = 1:30)
+Slota_HP_comp <- FindClusters(Slota_HP_comp, resolution = c(0.2,0.3,0.5,0.7,1))
+#Save the object
+save(Slota_HP_comp,file="./Slota/Data/Slota_HP_comp.Rdata")
+
+
+# Visualise the clustering resolutions for cluster number
+
+# Determine metrics to plot present in Ver_singlets_merged_clean@meta.data
+metrics <-  c("nUMI", "nGene", "mitoRatio")
+
+
+p23<-DimPlot(Slota_HP_comp , reduction = "umap", group.by = "treatment", raster=FALSE)+ ggtitle("Slota Hippocampal cells labelled by treatment")
+
+#cyclechange resolution number in group.by to see difference in clusters
+p24<-DimPlot(Slota_HP_comp, group.by = 'RNA_snn_res.0.3', reduction = 'umap', label = TRUE, repel = TRUE, raster=F)+ggtitle("Slota Hippocampal cells labelled by cluster numbers")
+
+#adapted from https://github.com/hbctraining/scRNA-seq_online/blob/master/lessons/08_SC_clustering_quality_control.md#segregation-of-clusters-by-various-sources-of-uninteresting-variation
+
+#Explore any clustering mishaps by lookin for localisation of any of these traits in a given cluster
+p25<-FeaturePlot(Slota_HP_comp, 
+            reduction = "umap", 
+            features = metrics,
+            pt.size = 0.4, 
+            order = TRUE,
+            #min.cutoff = 'q10', #This was a default in the online script, I don't see the benefit of colouring less of the range of values
+            label = TRUE)
+
+
+## Save the singlets with a cluster resolution?
+ #set the idents 
+Slota_HP_comp@active.ident<-comp_pair@meta.data$RNA_snn_res.0.3
+levels(Slota_HP_comp)
+
+p23;p24;p25
+
+ggsave("Terminal_HP_UMAP_treatment.png",plot=p23,device='png', path=plotting_path_Terminal,width = 20, height = 20, units = 'cm')
+ggsave("Terminal_HP_UMAP_cluster.png",plot=p24,device='png', path=plotting_path_Terminal,width = 20, height = 20, units = 'cm')
+ggsave("Terminal_HP_UMAP_QCmetrics.png",plot=p25,device='png', path=plotting_path_Terminal,width = 20, height = 20, units = 'cm')
+
+rm(metrics)
+```
+
+```{r}
+DefaultAssay(Slota_HP_comp)<-"RNA"
+
+#Check for a gene of interest in the data's geneset
+Gene_Names<-Slota_HP_comp@assays[["RNA"]]@counts@Dimnames[[1]]
+filtered_gene_names<-Gene_Names[!grepl("^\\d", Gene_Names)]
+filtered_gene_names[grep("^Slc1a2", filtered_gene_names)]
+
+#try to identify astrocytes  with genes
+astrocyte_genes<-c("Aldh1l1","Gfap","Slc1a2", "Slc1a3", "Glul", "S100b")
+
+
+Slota_HP_astrocyte_markers_plot<-FeaturePlot(Slota_HP_comp,features=astrocyte_genes, raster=F,order=T, label = T)&plot_annotation(title = "Slota hippocampal data", subtitle="Labelled with astrocyte gene markers. Clustering resolution 0.3, 20 PCs used")&scale_colour_gradient(low = "lightgrey", high = "blue",limits = c(0, 8))
+
+
+#From ChatGPT
+# Create the plot without the legend
+plot_without_legend <- Slota_HP_astrocyte_markers_plot + theme(legend.position = "none")
+# Get the legend
+legend <- get_legend(Slota_HP_astrocyte_markers_plot)
+# Combine the plot and legend using patchwork
+p26<- plot_without_legend + plot_layout(guides = "collect",ncol=3) 
+
+ggsave("Slota_HP_astrocyte_markers.png",plot=p26,device='png', path=plotting_path_Terminal,width = 30, height = 20, units = 'cm' )
+p26
+
+#As a reminder...
+DimPlot(Slota_HP_comp, group.by = 'RNA_snn_res.0.3', reduction = 'umap', label = TRUE, repel = TRUE, raster=F)+ggtitle("Slota Hippocampal data, labelled by cluster numbers")
+
+#Now compare to the plots of astrocyte genes
+VlnPlot(Slota_HP_comp, features = astrocyte_genes, group.by = 'RNA_snn_res.0.3', pt.size = 0.0)
+
+```
+
+## (SingleR annotation)
+
+Could go here, could be followed by bubbleplot
+<https://rdrr.io/github/milescsmith/seuratBubblePlot/man/bubbleplot.html>
+
+Alternatively, load information from the spreadsheet at
+Analysis/ABCAM_markers.xlsx then bubble plot
+
+## Investigate astrocytes, ensure identification
+
+```{r}
+# Convert cluster names to character
+Idents(Slota_HP_comp) <- Slota_HP_comp$RNA_snn_res.0.3
+
+#Subset out astrocytes
+Slota_HP_comp_astrocytes<-subset(Slota_HP_comp, idents='4')
+```
+
+## DEG work
+
+Prepare the biomart info
+
+```{r}
+#Adapted from http://girke.bioinformatics.ucr.edu/CSHL_RNAseq/mydoc/mydoc_systemPipeRNAseq_07/
+#Get annotation info
+library("biomaRt")
+m <- useMart("ensembl", dataset="mmusculus_gene_ensembl")
+```
+
+```{r}
+
+# Run the standard workflow for visualization and clustering
+Slota_HP_comp_astrocytes <- ScaleData(Slota_HP_comp_astrocytes, verbose = FALSE)
+Slota_HP_comp_astrocytes <- RunPCA(Slota_HP_comp_astrocytes, npcs = 30, verbose = FALSE)
+ElbowPlot(Slota_HP_comp_astrocytes, ndims=30)+ggtitle("Elbowplot of subset Slota astrocytes", subtitle = "RunPCA npcs=30")
+
+#15 PCs sems ok, so use 20 from now
+
+#20 PCs seem to cover the variability
+Slota_HP_comp_astrocytes <- RunUMAP(Slota_HP_comp_astrocytes, reduction = "pca", dims = 1:20, seed.use=42)
+Slota_HP_comp_astrocytes <- FindNeighbors(Slota_HP_comp_astrocytes, reduction = "pca", dims = 1:20)
+Slota_HP_comp_astrocytes <- FindClusters(Slota_HP_comp_astrocytes, resolution = c(0.2,0.3,0.5,0.7,1))
+
+#save for reloading
+save(Slota_HP_comp_astrocytes, file="./Slota/Data/Slota_HP_comp_astrocytes.Rdata")
+
+#cyclechange resolution number in group.by to see difference in clusters
+p27<-DimPlot(Slota_HP_comp_astrocytes, reduction = 'umap',  raster=F, group.by='treatment')+ggtitle("Slota data's Hippocampal astrocytes", subtitle="Labelled by treatment")
+
+ggsave("Slota_HP_astrocyte_treatment_plot.png",plot=p27,device='png', path=plotting_path_Terminal,width = 20, height = 15, units = 'cm' )
+
+#Show the clustering of subset astrocytes
+DimPlot(Slota_HP_comp_astrocytes, group.by = 'RNA_snn_res.0.2', reduction = 'umap', repel = TRUE, raster=F)
+
+#Show sample disctribution in clusters of astrocytes
+p27_a<-DimPlot(Slota_HP_comp_astrocytes, group.by = 'sample', reduction = 'umap', repel = TRUE, raster=F, cols=colour_df_Slota$colours)
+ggsave("Slota_HP_astrocyte_sample_plot.png",plot=p27_a,device='png', path=plotting_path_Terminal,width = 20, height = 15, units = 'cm' )
+
+#Show astrocyte markers in astrocyte subset
+Slota_HP_reactive_astrocyte_plot<-FeaturePlot(Slota_HP_comp_astrocytes,features=c('Gfap','C4b','Cd44', 'Osmr','Trf','Stat3','Aqp4', 'Nrg1', 'Gria1'), raster=F)&plot_annotation(title="Slota data's Hippocampal astrocytes", subtitle="highlighting reactive astrocyte genes", tag_levels = 'A')&scale_colour_gradient(low = "lightgrey", high = "blue",limits = c(0,5))
+
+plot_without_legend <- Slota_HP_reactive_astrocyte_plot + theme(legend.position = "none")
+# Get the legend
+legend <- get_legend(Slota_HP_reactive_astrocyte_plot)
+# Combine the plot and legend using patchwork
+p28<- plot_without_legend + plot_layout(guides = "collect",ncol=3) 
+
+p28
+ggsave("Slota_HP_reactive_astrocyte_plot.png",plot=p28,device='png', path=plotting_path_Terminal,width = 20, height = 20, units = 'cm' )
+
+
+#set the idents to 0.2
+Slota_HP_comp_astrocytes@active.ident<-(Slota_HP_comp_astrocytes@meta.data$RNA_snn_res.0.2)
+levels(Slota_HP_comp_astrocytes)
+
+table(Slota_HP_comp_astrocytes$treatment)
+
+DefaultAssay(Slota_HP_comp_astrocytes)<-'RNA'
+
+#by treatment, show the genes DE in Prion condition.
+Slota_HP_comp_astrocytes@active.ident<-as.factor(Slota_HP_comp_astrocytes$treatment)
+Slota_astrocyte_prion_markers_HP<-FindMarkers(Slota_HP_comp_astrocytes, ident.1 = 'RML_HP', ident.2 = 'PBS_HP',min.pct = 0.10, verbose = TRUE, test.use = "DESeq2")
+
+#Sort the list in descending log2FC and ascending pvalues
+Slota_astrocyte_prion_markers_clean_HP<-Slota_astrocyte_prion_markers_HP[order(-Slota_astrocyte_prion_markers_HP$avg_log2FC), ]
+
+
+#Use biomart info
+Slota_astrocyte_prion_markers_clean_HP$gene<-rownames(Slota_astrocyte_prion_markers_clean_HP)
+
+gene_ids <- unique(Slota_astrocyte_prion_markers_clean_HP$gene)
+  
+#get relevant info from the mart
+gene_info <- getBM(attributes = c("external_gene_name", "description","chromosome_name","entrezgene_id"), filters = "external_gene_name", values = gene_ids, mart = m)
+  
+#apply the info to the gene list
+Slota_astrocyte_prion_markers_clean_HP <- merge(Slota_astrocyte_prion_markers_clean_HP, gene_info, by.x = "gene", by.y = "external_gene_name", all.x = TRUE)
+  
+
+#Save the file
+write.csv(Slota_astrocyte_prion_markers_clean_HP, file = paste0(writing_dir,"Slota_astrocyte_prion_markers_clean_HP.csv"))
+
+save(Slota_astrocyte_prion_markers_clean_HP, file="./Slota/Data/Slota_astrocyte_prion_markers_clean_HP.Rdata")
+```
+
+## Functional annotation
+
+### Address the potential non-mapping gene entrezIDs, make a gene list
+
+with fewer NAs
+
+```{r}
+
+#make list of gene names not mapping
+not_mapped<-(Slota_astrocyte_prion_markers_clean_HP[is.na(Slota_astrocyte_prion_markers_clean_HP$entrezgene_id),]$gene)
+not_mapped<-not_mapped[!duplicated(not_mapped)]
+
+# Create an empty data frame to store the mapped ENTREZID values
+remapped <- data.frame(ALIAS = character(0), ENTREZID = character(0), stringsAsFactors = FALSE)
+
+# Loop through each gene in 'not_mapped'
+for (gene in not_mapped) {
+  # Attempt to perform the mapping using tryCatch
+  mapped_genes <- tryCatch(
+    {
+      bitr(
+        gene,
+        fromType = "ALIAS",
+        toType = "ENTREZID",
+        OrgDb = org.Mm.eg.db,
+        drop = FALSE
+      )
+    },
+    error = function(e) {
+      # If an error occurs, handle it by returning a data frame with NA values
+      message(paste("Error mapping gene:", gene))
+      return(data.frame(ALIAS = gene, ENTREZID = NA, stringsAsFactors = FALSE))
+    }
+  )
+
+  # Append the temporary data frame to 'remapped'
+  remapped <- rbind(remapped, mapped_genes)
+  Sys.sleep(0.5)
+}
+
+#Additionally, get biomart conversions for those still without entrez ids 
+biomart_remapped<-getBM(attributes = c("external_gene_name","entrezgene_id"), filters = "external_gene_name", values = remapped[is.na(remapped$ENTREZID),]$ALIAS, mart = m)
+
+#add any more which have been mapped
+biomart_remapped<-biomart_remapped[!is.na(biomart_remapped$entrezgene_id),]
+
+#put everything recovered into a single df
+bloated_mapped_df <- merge(remapped, biomart_remapped, by.x = "ALIAS", by.y = "external_gene_name", all.x = TRUE)
+bloated_mapped_df$entrezgene_id <- as.character(bloated_mapped_df$entrezgene_id)
+
+#make a single column for everything recovered, remove old columns
+condensed_mapped <- bloated_mapped_df %>%
+  mutate(entrezgene_id = coalesce(ENTREZID, entrezgene_id))
+condensed_mapped$entrezgene_id<-as.integer(condensed_mapped$entrezgene_id)
+#remove old columns
+condensed_mapped$ENTREZID<-ENTREZID<- NULL
+
+
+#The final list of newly gnerated entrezIDs, removed NAs
+c<-condensed_mapped[!is.na(condensed_mapped$entrezgene_id),] 
+
+#Add them back to the original list of markers, remove eztraneous columns
+Slota_astrocyte_prion_markers_clean_HP <- merge(Slota_astrocyte_prion_markers_clean_HP, c, by.x = "gene", by.y = "ALIAS", all.x = TRUE)
+Slota_astrocyte_prion_markers_clean_HP$entrezgene_id<-coalesce(Slota_astrocyte_prion_markers_clean_HP$entrezgene_id.x, Slota_astrocyte_prion_markers_clean_HP$entrezgene_id.y)
+Slota_astrocyte_prion_markers_clean_HP<-subset(Slota_astrocyte_prion_markers_clean_HP, select = -c(entrezgene_id.x, entrezgene_id.y))
+```
+
+### Discard any genes which don't have an ENTREZID, generate list of
+
+background DEGs
+
+```{r}
+#Discard any genes which don't have an ENTREZID
+Slota_astrocyte_HP_markers_entrez<-Slota_astrocyte_prion_markers_clean_HP[!is.na(Slota_astrocyte_prion_markers_clean_HP$entrezgene_id),]
+
+
+#create the genelist background for Slota Up
+## feature 1: numeric vector
+geneList_SHp <- Slota_astrocyte_HP_markers_entrez$avg_log2FC
+## feature 2: named vector of enembl IDs
+names(geneList_SHp) <-Slota_astrocyte_HP_markers_entrez$entrezgene_id
+## feature 3: decreasing order
+geneList_SHp <- sort(geneList_SHp, decreasing = TRUE) #object of type double
+
+#save the data
+save(Slota_astrocyte_HP_markers_entrez, file="./Slota/Data/Slota_astrocyte_HP_markers_entrez.Rdata")
+```
+
+### Subset upregulated genes and perform ORA
+
+```{r}
+#Create upregulated significant genes
+# Subset by Upregulated genes for GO enrichment
+Slota_astrocyte_prion_markers_up<-subset(Slota_astrocyte_HP_markers_entrez, subset=avg_log2FC>(0.25)&p_val_adj<0.05) #Added p value filter here
+
+#Create a list of just the gene symbols 
+Slota_Prion_DEGs_up = (Slota_astrocyte_prion_markers_up$entrezgene_id)
+
+
+# Run GO over-representation on upregulated entrezIds, biological process selected from GO terms
+Slota_Hp_up_GO_ORA = enrichGO(gene = Slota_Prion_DEGs_up, OrgDb = org.Mm.eg.db, readable = T, ont= "BP", pvalueCutoff = 0.05, qvalueCutoff = 0.10)
+```
+
+#### GO ORA visualisation and saving
+
+```{r}
+p29 <- barplot(Slota_Hp_up_GO_ORA , showCategory=20,font.size = rel(0.60))+plot_annotation(title = "Slota Hippocampal top upregulated ORA terms")
+p30 <- dotplot(Slota_Hp_up_GO_ORA, showCategory=20,font.size = rel(0.60))+plot_annotation(title = "Slota Hippocampal top upregulated ORA terms")
+p31 <- goplot(Slota_Hp_up_GO_ORA, showCategory = 20,font.size = rel(0.60))+plot_annotation(title = "Slota Hippocampal top upregulated ORA terms")
+p32<- cnetplot(Slota_Hp_up_GO_ORA, foldChange=geneList_SHp)+plot_annotation(title = "Slota Hippocampal top upregulated ORA terms")
+p33<-heatplot(Slota_Hp_up_GO_ORA, showCategory=20)+plot_annotation(title = "Slota Hippocampal top upregulated ORA terms by gene")
+
+p29;p30;p31;p32;p33
+
+ggsave("Slota_Prion_GOR_barplot.png",plot=p29,device='png', path=plotting_path_Terminal,width = 20, height = 20, units = 'cm' )
+
+ggsave("Slota_Prion_GOR_dotplot.png",plot=p30,device='png', path=plotting_path_Terminal,width = 20, height = 20, units = 'cm' )
+
+ggsave("Slota_Prion_GOR_goplot.png",plot=p31 ,device='png', path=plotting_path_Terminal,width = 20, height = 20, units = 'cm' )
+
+ggsave("Slota_Prion_GOR_cnetplot.png",plot=p32,device='png', path=plotting_path_Terminal,width = 20, height = 20, units = 'cm' )
+
+ggsave("Slota_Prion_GOR_heatplot.png",plot=p33,device='png', path=plotting_path_Terminal,width = 80, height = 20, units = 'cm' )
+```
+
+#### Same for downregulated
+
+```{r}
+
+#Create upregulated significant genes
+# Subset by Upregulated genes for GO enrichment
+Slota_astrocyte_prion_markers_down<-subset(Slota_astrocyte_HP_markers_entrez, subset=avg_log2FC<(-0.25)&p_val_adj<0.05) #Added p value filter here
+
+#Create a list of just the gene symbols 
+Slota_Prion_DEGs_down = (Slota_astrocyte_prion_markers_down$entrezgene_id)
+
+
+# Run GO over-representation on upregulated entrezIds, biological process selected from GO terms
+Slota_Hp_down_GO_ORA = enrichGO(gene = Slota_Prion_DEGs_down, OrgDb = org.Mm.eg.db, readable = T, ont= "BP", pvalueCutoff = 0.05, qvalueCutoff = 0.10)
+
+p34 <- barplot(Slota_Hp_down_GO_ORA , showCategory=20,font.size = rel(0.60))+plot_annotation(title = "Slota Hippocampal bottom upregulated ORA terms")
+p35 <- dotplot(Slota_Hp_down_GO_ORA, showCategory=20,font.size = rel(0.60))+plot_annotation(title = "Slota Hippocampal bottom upregulated ORA terms")
+p36 <- goplot(Slota_Hp_down_GO_ORA, showCategory = 20,font.size = rel(0.60))+plot_annotation(title = "Slota Hippocampal bottom upregulated ORA terms")
+p37 <- cnetplot(Slota_Hp_down_GO_ORA, foldChange=geneList_SHp)+plot_annotation(title = "Slota Hippocampal bottom upregulated ORA terms")
+p38 <-heatplot(Slota_Hp_down_GO_ORA, showCategory=20,foldChange=geneList_SHp)+plot_annotation(title = "Slota Hippocampal bottom upregulated ORA terms by gene")
+
+p34;p35;p36;p37;p38
+
+
+
+ggsave("Slota_Prion_GOR_down_barplot.png",plot=p34,device='png', path=plotting_path_Terminal,width = 20, height = 20, units = 'cm' )
+
+ggsave("Slota_Prion_GOR_down_dotplot.png",plot=p35,device='png', path=plotting_path_Terminal,width = 20, height = 20, units = 'cm' )
+
+ggsave("Slota_Prion_GOR_down_goplot.png",plot=p36,device='png', path=plotting_path_Terminal,width = 20, height = 20, units = 'cm' )
+
+ggsave("Slota_Prion_GOR_down_cnetplot.png",plot=p37,device='png', path=plotting_path_Terminal,width = 20, height = 20, units = 'cm' )
+
+ggsave("Slota_Prion_GOR_down_heatplot.png",plot=p38,device='png', path=plotting_path_Terminal,width = 40, height = 20, units = 'cm' )
+```
+
+### GO GSEA
+
+```{r}
+#Perform GO GSEA
+SHp_GO_GSEA <- gseGO(geneList= geneList_SHp, #This is the DEG list full list of DEGs
+              OrgDb        = org.Mm.eg.db,
+              ont          = "BP",
+              minGSSize    = 100,
+              maxGSSize    = 500,
+              pvalueCutoff = 0.05,
+              verbose      = FALSE,
+              seed=42)
+
+#convert back to Symbols for plotting
+SHp_GO_GSEA <- setReadable(SHp_GO_GSEA, 'org.Mm.eg.db', 'ENTREZID')
+
+View(data.frame(SHp_GO_GSEA))
+
+write.csv(data.frame(SHp_GO_GSEA), file = paste0(plotting_path_Terminal,"SHp_GO_GSEA.csv"))
+```
+
+#### GO GSEA visualisation
+
+```{r}
+p39<-dotplotGsea(data = SHp_GO_GSEA,topn = 10,order.by = 'NES')+theme(plot.background = element_rect(fill = "white"))
+
+p40<-cnetplot(SHp_GO_GSEA,foldChange=geneList_SHp, showCategory=5)+theme(plot.background = element_rect(fill = "white"))
+
+p39;p40
+
+
+
+
+#calculate pairwise similarity of GSEA genesets
+SHp_GO_GSEA_interactions <- pairwise_termsim(SHp_GO_GSEA)
+#interaction between genesets
+p41<-emapplot(SHp_GO_GSEA_interactions, color ='NES',layout='nicely')+theme(plot.background = element_rect(fill = "white"))
+p41
+
+#CHOOSING PATHWAYS TO SHOW
+#retrieve synapse related pathways
+View(data.frame(subset(SHp_GO_GSEA@result, grepl("synap", Description, ignore.case = TRUE))))
+subset_result <- subset(SHp_GO_GSEA@result, grepl("synap", Description, ignore.case = TRUE))$Description
+p42<-cnetplot(SHp_GO_GSEA,foldChange=geneList_SHp, showCategory=subset_result)
+p42
+
+ggsave("SHp_GO_GSEA_dotplot.png",plot=p39,device='png', path=plotting_path_Terminal,width = 20, height = 20, units = 'cm' )
+
+ggsave("SHp_GO_GSEA_cnetplot.png",plot=p40,device='png', path=plotting_path_Terminal,width = 30, height = 20, units = 'cm' )
+
+ggsave("SHp_GO_GSEA_interactions.png",plot=p41,device='png', path=plotting_path_Terminal,width = 30, height = 20, units = 'cm' )
+
+ggsave("SHp_GO_GSEA_synapse_snet.png",plot=p42,device='png', path=plotting_path_Terminal,width = 20, height = 20, units = 'cm' )
+```
+
+### Reactome ORA and GSEA
+
+```{r}
+
+#Reactome over-representation
+SHp_Reactome_ORA <- enrichPathway(gene=Slota_astrocyte_prion_markers_up$entrezgene_id, pvalueCutoff = 0.05, readable=TRUE, organism = "mouse")
+
+#Reactome GSEA calculation
+SHp_Reactome_GSEA <- gsePathway(geneList_SHp, 
+                pvalueCutoff = 0.05,
+                pAdjustMethod = "BH",
+                organism = "mouse",
+                verbose = FALSE,
+                seed=42,
+                maxGSSize = 100) ## trying a lower limit to remove broad terms
+
+#convert back to symbols
+SHp_Reactome_GSEA <- setReadable(SHp_Reactome_GSEA, 'org.Mm.eg.db', 'ENTREZID')
+View(data.frame(SHp_Reactome_GSEA))
+write.csv(data.frame(SHp_Reactome_GSEA), file = paste0(plotting_path_Terminal,"SHp_Reactome_GSEA.csv"))
+```
+
+#### Reactome GSEA visualisation
+
+```{r}
+#calculate pairwise similarity of GSEA genesets
+SHp_Reactome_GSEA_interactions <- pairwise_termsim(SHp_Reactome_GSEA)
+
+p43<-heatplot(SHp_Reactome_GSEA, showCategory = 10, foldChange=geneList_SHp)
+p44<-cnetplot(SHp_Reactome_GSEA, circular = TRUE, colorEdge = TRUE, foldChange=geneList_SHp)
+p45<-cnetplot(SHp_Reactome_GSEA, colorEdge = TRUE, foldChange=geneList_SHp, showCategory=10)
+p46<-ridgeplot(SHp_Reactome_GSEA,fill = 'NES', showCategory = 10)
+
+#interaction between genesets
+p47<-emapplot(SHp_Reactome_GSEA_interactions, color ='NES',layout='nicely')
+
+p43
+p44
+p45
+p46
+p47
+
+ggsave("Slota_Prion_GSEA_heatplot_Reactome.png",plot=p43,device='png', path=plotting_path_Terminal,width = 20, height = 20, units = 'cm' )
+
+ggsave("Slota_Prion_GSEA_cnetplot_circular_Reactome.png",plot=p44,device='png', path=plotting_path_Terminal,width = 20, height = 20, units = 'cm' )
+
+ggsave("Slota_Prion_GSEA_cnetplot_Reactome.png",plot=p45,device='png', path=plotting_path_Terminal,width = 20, height = 20, units = 'cm' )
+
+ggsave("Slota_Prion_GSEA_ridgeplot_Reactome.png",plot=p46,device='png', path=plotting_path_Terminal,width = 20, height = 20, units = 'cm' )
+
+ggsave("Slota_Prion_GSEA_interactions_plot_Reactome.png",plot=p47,device='png', path=plotting_path_Terminal,width = 20, height = 20, units = 'cm' )
+```
+
+# CX
+
+```{r}
+#active assay RNA
+DefaultAssay(Slota_CX_comp)<-"RNA"
+
+#DimReduc again
+#https://github.com/hbctraining/scRNA-seq_online/blob/master/lessons/06_SC_SCT_normalization.md
+# Normalize the counts
+Slota_CX_comp <- NormalizeData(Slota_CX_comp)
+# Identify the most variable genes with defaults
+Slota_CX_comp <- FindVariableFeatures(Slota_CX_comp, verbose = T)
+		     
+# Scale the counts
+Slota_CX_comp <- ScaleData(Slota_CX_comp)
+# Perform PCA
+Slota_CX_comp <- RunPCA(Slota_CX_comp)
+#Inspect the variability accounted for by the PCS
+#It appears that 23 PCs are responsible, so using 30 from now on
+ElbowPlot(Slota_CX_comp, ndims=30)+ggtitle("Elbowplot of Slota data", subtitle = "NBH and ME7")
+DimHeatmap(Slota_CX_comp, dims=1:9, cells=500, balanced=T)
+#Finish dimensinoality reduction steps
+Slota_CX_comp <- RunUMAP(Slota_CX_comp, reduction = "pca", dims = 1:30, seed.use=42)
+Slota_CX_comp <- FindNeighbors(Slota_CX_comp, reduction = "pca", dims = 1:30)
+Slota_CX_comp <- FindClusters(Slota_CX_comp, resolution = c(0.2,0.3,0.5,0.7,1))
+#Save the object
+save(Slota_CX_comp,file="./Slota/Data/Slota_CX_comp.Rdata")
+
+
+# Visualise the clustering resolutions for cluster number
+
+# Determine metrics to plot present in Ver_singlets_merged_clean@meta.data
+metrics <-  c("nUMI", "nGene", "mitoRatio")
+
+
+p48<-DimPlot(Slota_CX_comp , reduction = "umap", group.by = "treatment", raster=FALSE)+ ggtitle("Slota Hippocampal cells labelled by treatment")
+
+#cyclechange resolution number in group.by to see difference in clusters
+p49<-DimPlot(Slota_CX_comp, group.by = 'RNA_snn_res.0.3', reduction = 'umap', label = TRUE, repel = TRUE, raster=F)+ggtitle("Slota Hippocampal cells labelled by cluster numbers")
+
+#adapted from https://github.com/hbctraining/scRNA-seq_online/blob/master/lessons/08_SC_clustering_quality_control.md#segregation-of-clusters-by-various-sources-of-uninteresting-variation
+
+#Explore any clustering mishaps by lookin for localisation of any of these traits in a given cluster
+p50<-FeaturePlot(Slota_CX_comp, 
+            reduction = "umap", 
+            features = metrics,
+            pt.size = 0.4, 
+            order = TRUE,
+            #min.cutoff = 'q10', #This was a default in the online script, I don't see the benefit of colouring less of the range of values
+            label = TRUE)
+p50<-p50+plot_annotation(title = "Slota cortical data", subtitle="Annotated with QC metrics")
+
+ggsave("Terminal_CX_UMAP_treatment.png",plot=p48,device='png', path=plotting_path_Terminal,width = 20, height = 20, units = 'cm')
+ggsave("Terminal_CX_UMAP_cluster.png",plot=p49,device='png', path=plotting_path_Terminal,width = 20, height = 20, units = 'cm')
+ggsave("Terminal_CX_UMAP_QCmetrics.png",plot=p50,device='png', path=plotting_path_Terminal,width = 20, height = 20, units = 'cm')
+
+
+## Save the singlets with a cluster resolution?
+ #set the idents 
+Slota_CX_comp@active.ident<-Slota_CX_comp@meta.data$RNA_snn_res.0.3
+levels(Slota_CX_comp)
+
+rm(metrics)
+```
+
+```{r}
+#load(paste0(plotting_path_Terminal,"Slo_singlets_merged_clean.Rdata")
+
+DefaultAssay(Slota_CX_comp)<-"RNA"
+
+#Check for a gene of interest in the data's geneset
+Gene_Names<-Slota_CX_comp@assays[["RNA"]]@counts@Dimnames[[1]]
+filtered_gene_names<-Gene_Names[!grepl("^\\d", Gene_Names)]
+filtered_gene_names[grep("^Slc1a2", filtered_gene_names)]
+
+#try to identify astrocytes  with genes
+astrocyte_genes<-c("Aldh1l1","Gfap","Slc1a2", "Slc1a3", "Glul", "S100b")
+
+
+Slota_CX_astrocyte_markers_plot<-FeaturePlot(Slota_CX_comp,features=astrocyte_genes, raster=F,order=T, label = T)&plot_annotation(title = "Slota cortical data, labelled with astrocyte gene markers from ABCAM", subtitle="Clustering resolution 0.3, 20 PCs used")&scale_colour_gradient(low = "lightgrey", high = "blue",limits = c(0, 8))
+
+
+#From ChatGPT
+# Create the plot without the legend
+plot_without_legend <- Slota_CX_astrocyte_markers_plot + theme(legend.position = "none")
+# Get the legend
+legend <- get_legend(Slota_CX_astrocyte_markers_plot)
+# Combine the plot and legend using patchwork
+P51<- plot_without_legend + plot_layout(guides = "collect",ncol=3) 
+
+ggsave("Slota_CX_astrocyte_markers.png",plot=P51,device='png', path=plotting_path_Terminal,width = 30, height = 20, units = 'cm' )
+
+
+FeaturePlot(Slota_CX_comp,features=astrocyte_genes, raster=F)#+ggtitle("Slota data, labelled with astrocyte gene markers from ABCAM", subtitle="Clustering resolution 0.3, 20 PCs used")
+
+#As a reminder...
+DimPlot(Slota_CX_comp, group.by = 'RNA_snn_res.0.3', reduction = 'umap', label = TRUE, repel = TRUE, raster=F)+ggtitle("Slota Cortical data, labelled by cluster numbers")
+
+#No compare to the plots of astrocyte genes
+VlnPlot(Slota_CX_comp, features = astrocyte_genes, group.by = 'RNA_snn_res.0.3', pt.size = 0.0)
+
+```
+
+## (SingleR annotation)
+
+Could go here, could be followed by bubbleplot
+<https://rdrr.io/github/milescsmith/seuratBubblePlot/man/bubbleplot.html>
+
+Alternatively, load information from the spreadsheet at
+Analysis/ABCAM_markers.xlsx then bubble plot
+
+## Investigate astrocytes, ensure identification
+
+```{r}
+# Convert cluster names to character
+Idents(Slota_CX_comp) <- Slota_CX_comp$RNA_snn_res.0.3
+
+#Subset out astrocytes
+Slota_CX_comp_astrocytes<-subset(Slota_CX_comp, idents=c('5','10','22'))
+```
+
+## DEG work
+
+```{r}
+
+# Run the standard workflow for visualization and clustering
+Slota_CX_comp_astrocytes <- ScaleData(Slota_CX_comp_astrocytes, verbose = FALSE)
+Slota_CX_comp_astrocytes <- RunPCA(Slota_CX_comp_astrocytes, npcs = 30, verbose = FALSE)
+ElbowPlot(Slota_CX_comp_astrocytes, ndims=30)+ggtitle("Elbowplot of subset Slota astrocytes", subtitle = "RunPCA npcs=30")
+
+#15 PCs sems ok, so use 20 from now
+
+#20 PCs seem to cover the variability
+Slota_CX_comp_astrocytes <- RunUMAP(Slota_CX_comp_astrocytes, reduction = "pca", dims = 1:20, seed.use=42)
+Slota_CX_comp_astrocytes <- FindNeighbors(Slota_CX_comp_astrocytes, reduction = "pca", dims = 1:20)
+Slota_CX_comp_astrocytes <- FindClusters(Slota_CX_comp_astrocytes, resolution = c(0.2,0.3,0.5,0.7,1))
+
+#save for reloading
+save(Slota_CX_comp_astrocytes, file="./Slota/Data/Slota_CX_comp_astrocytes.Rdata")
+
+p51a<-DimPlot(Slota_CX_comp_astrocytes, reduction = 'umap',  raster=F, group.by='treatment')+ggtitle("Slota data's cortical astrocytes", subtitle="Labelled by treatment")
+p51a
+ggsave("Slota_CX_astrocyte_treatment_plot.png",plot=p51a,device='png', path=plotting_path_Terminal,width = 20, height = 15, units = 'cm' )
+
+
+#cyclechange resolution number in group.by to see difference in clusters
+#Show the clustering of subset astrocytes
+DimPlot(Slota_CX_comp_astrocytes, group.by = 'RNA_snn_res.0.2', reduction = 'umap', repel = TRUE, raster=F)
+
+#Show sample disctribution in clusters of astrocytes
+DimPlot(Slota_CX_comp_astrocytes, group.by = 'sample', reduction = 'umap', repel = TRUE, raster=F)
+
+#Show astrocyte markers in astrocyte subset
+Slota_CX_reactive_astrocyte_plot<-FeaturePlot(Slota_CX_comp_astrocytes,features=c('Gfap','C4b','Cd44', 'Osmr','Trf','Stat3','Aqp4', 'Nrg1', 'Gria1'), raster=F)&plot_annotation(title="Slota data's Cortical astrocytes", subtitle="highlighting reactive astrocyte genes", tag_levels = 'A')&scale_colour_gradient(low = "lightgrey", high = "blue",limits = c(0,5))
+
+plot_without_legend <- Slota_CX_reactive_astrocyte_plot + theme(legend.position = "none")
+# Get the legend
+legend <- get_legend(Slota_CX_reactive_astrocyte_plot)
+# Combine the plot and legend using patchwork
+P52<- plot_without_legend + plot_layout(guides = "collect",ncol=3) 
+
+P52
+ggsave("Slota_CX_reactive_astrocyte_plot.png",plot=P52,device='png', path=plotting_path_Terminal,width = 25, height = 20, units = 'cm' )
+
+
+#set the idents to 0.2
+Slota_CX_comp_astrocytes@active.ident<-(Slota_CX_comp_astrocytes@meta.data$RNA_snn_res.0.2)
+levels(Slota_CX_comp_astrocytes)
+
+DefaultAssay(Slota_CX_comp_astrocytes)<-'RNA'
+
+#by treatment, show the genes DE in Prion condition. LogFC set to a *1 increase in fold change
+Slota_CX_comp_astrocytes@active.ident<-as.factor(Slota_CX_comp_astrocytes$treatment)
+Slota_astrocyte_prion_markers_CX<-FindMarkers(Slota_CX_comp_astrocytes, ident.1 = 'RML_CX', ident.2 = 'PBS_CX',min.pct = 0.10, verbose = TRUE, test.use = "DESeq2")
+
+#Sort the list in descending log2FC and ascending pvalues
+Slota_astrocyte_prion_markers_clean_CX<-Slota_astrocyte_prion_markers_CX[order(-Slota_astrocyte_prion_markers_CX$avg_log2FC), ]
+
+
+#Use biomart info
+Slota_astrocyte_prion_markers_clean_CX$gene<-rownames(Slota_astrocyte_prion_markers_clean_CX)
+
+gene_ids <- unique(Slota_astrocyte_prion_markers_clean_CX$gene)
+  
+#get relevant info from the mart
+gene_info <- getBM(attributes = c("external_gene_name", "description","chromosome_name","entrezgene_id"), filters = "external_gene_name", values = gene_ids, mart = m)
+  
+#apply the info to the gene list
+  Slota_astrocyte_prion_markers_clean_CX <- merge(Slota_astrocyte_prion_markers_clean_CX, gene_info, by.x = "gene", by.y = "external_gene_name", all.x = TRUE)
+  
+
+#Save the file
+write.csv(Slota_astrocyte_prion_markers_clean_CX, file = paste0(plotting_path_Terminal,"Slota_astrocyte_prion_markers_clean_CX.csv"))
+
+save(Slota_astrocyte_prion_markers_clean_CX, file="./Slota/Data/Slota_astrocyte_prion_markers_clean_CX.Rdata")
+
+table(Slota_CX_comp_astrocytes$treatment)
+```
+
+## Functional annotation
+
+### Address the potential non-mapping gene entrezIDs, make a gene list
+
+with fewer NAs
+
+```{r}
+
+#make list of gene names not mapping
+not_mapped<-(Slota_astrocyte_prion_markers_clean_CX[is.na(Slota_astrocyte_prion_markers_clean_CX$entrezgene_id),]$gene)
+not_mapped<-not_mapped[!duplicated(not_mapped)]
+
+# Create an empty data frame to store the mapped ENTREZID values
+remapped <- data.frame(ALIAS = character(0), ENTREZID = character(0), stringsAsFactors = FALSE)
+
+# Loop through each gene in 'not_mapped'
+for (gene in not_mapped) {
+  # Attempt to perform the mapping using tryCatch
+  mapped_genes <- tryCatch(
+    {
+      bitr(
+        gene,
+        fromType = "ALIAS",
+        toType = "ENTREZID",
+        OrgDb = org.Mm.eg.db,
+        drop = FALSE
+      )
+    },
+    error = function(e) {
+      # If an error occurs, handle it by returning a data frame with NA values
+      message(paste("Error mapping gene:", gene))
+      return(data.frame(ALIAS = gene, ENTREZID = NA, stringsAsFactors = FALSE))
+    }
+  )
+
+  # Append the temporary data frame to 'remapped'
+  remapped <- rbind(remapped, mapped_genes)
+  Sys.sleep(0.5)
+}
+
+#Additionally, get biomart conversions for those still without entrez ids 
+biomart_remapped<-getBM(attributes = c("external_gene_name","entrezgene_id"), filters = "external_gene_name", values = remapped[is.na(remapped$ENTREZID),]$ALIAS, mart = m)
+
+
+#add any more which have been mapped
+biomart_remapped<-biomart_remapped[!is.na(biomart_remapped$entrezgene_id),]
+
+#put everything recovered into a single df
+bloated_mapped_df <- merge(remapped, biomart_remapped, by.x = "ALIAS", by.y = "external_gene_name", all.x = TRUE)
+bloated_mapped_df$entrezgene_id <- as.character(bloated_mapped_df$ENTREZID)
+
+#make a single column for everything recovered, remove old columns
+condensed_mapped <- bloated_mapped_df %>%
+  mutate(entrezgene_id = coalesce(ENTREZID, entrezgene_id))
+condensed_mapped$entrezgene_id<-as.integer(condensed_mapped$entrezgene_id)
+#remove old columns
+condensed_mapped$ENTREZID<-ENTREZID<- NULL
+
+#The final list of newly gnerated entrezIDs, removed NAs
+c<-condensed_mapped[!is.na(condensed_mapped$entrezgene_id),] 
+
+#Add them back to the original list of markers, remove eztraneous columns
+Slota_astrocyte_prion_markers_clean_CX <- merge(Slota_astrocyte_prion_markers_clean_CX, c, by.x = "gene", by.y = "ALIAS", all.x = TRUE)
+Slota_astrocyte_prion_markers_clean_CX$entrezgene_id<-coalesce(Slota_astrocyte_prion_markers_clean_CX$entrezgene_id.x, Slota_astrocyte_prion_markers_clean_CX$entrezgene_id.y)
+Slota_astrocyte_prion_markers_clean_CX<-subset(Slota_astrocyte_prion_markers_clean_CX, select = -c(entrezgene_id.x, entrezgene_id.y))
+```
+
+### Discard any genes which don't have an ENTREZID, generate list of background DEGs
+
+```{r}
+#Discard any genes which don't have an ENTREZID
+Slota_astrocyte_prion_markers_clean_CX_entrez<-Slota_astrocyte_prion_markers_clean_CX[!is.na(Slota_astrocyte_prion_markers_clean_CX$entrezgene_id),]
+
+
+#create the genelist background for Verity Up
+## feature 1: numeric vector
+geneList_SCx <- Slota_astrocyte_prion_markers_clean_CX_entrez$avg_log2FC
+## feature 2: named vector of enembl IDs
+names(geneList_SCx) <-Slota_astrocyte_prion_markers_clean_CX_entrez$entrezgene_id
+## feature 3: decreasing order
+geneList_SCx <- sort(geneList_SCx, decreasing = TRUE) #object of type double
+save(Slota_astrocyte_prion_markers_clean_CX_entrez, file="./Slota/Data/Slota_astrocyte_prion_markers_clean_CX_entrez.Rdata")
+```
+
+## Following code produces no results, but is retained for user interest.
+
+### Subset upregulated genes and perform ORA
+
+```{r}
+#Create upregulated significant genes
+# Subset by Upregulated genes for GO enrichment
+Slota_astrocyte_prion_markers_clean_CX_up<-subset(Slota_astrocyte_prion_markers_clean_CX_entrez, subset=avg_log2FC>(0.25)&p_val_adj<0.05) #Added p value filter here
+
+#Create a list of just the gene symbols 
+Slota_Cx_DEGs_up = (Slota_astrocyte_prion_markers_clean_CX_up$entrezgene_id)
+
+
+# Run GO over-representation on upregulated entrezIds, biological process selected from GO terms
+Slota_Cx_up_GO_ORA = enrichGO(gene = Slota_Cx_DEGs_up, OrgDb = org.Mm.eg.db, readable = T, ont= "BP", pvalueCutoff = 0.05, qvalueCutoff = 0.10)
+```
+
+#### GO ORA visualisation and saving
+
+```{r}
+P53 <- barplot(Slota_Cx_up_GO_ORA , showCategory=20)
+P54 <- dotplot(Slota_Cx_up_GO_ORA, showCategory=20)
+P55 <- goplot(Slota_Cx_up_GO_ORA, showCategory = 20)
+P56<- cnetplot(Slota_Cx_up_GO_ORA, foldChange=geneList_SCx)
+P57<-heatplot(Slota_Cx_up_GO_ORA, showCategory=20)#,foldChange=geneList_SCx)
+
+
+P53
+P54
+P55
+P56
+P57
+
+ggsave("Slota_Cx_GOR_barplot.png",plot=P53,device='png', path=plotting_path_Terminal,width = 20, height = 20, units = 'cm' )
+
+ggsave("Slota_Cx_GOR_dotplot.png",plot=P54,device='png', path=plotting_path_Terminal,width = 20, height = 20, units = 'cm' )
+
+ggsave("Slota_Cx_GOR_goplot.png",plot=P55,device='png', path=plotting_path_Terminal,width = 20, height = 20, units = 'cm' )
+
+ggsave("Slota_Cx_GOR_cnetplot.png",plot=P56,device='png', path=plotting_path_Terminal,width = 20, height = 20, units = 'cm' )
+
+ggsave("Slota_Cx_GOR_heatplot.png",plot=P57,device='png', path=plotting_path_Terminal,width = 20, height = 20, units = 'cm' )
+```
+
+#### Same for downregulated
+
+```{r}
+
+#Create down significant genes
+# Subset by down genes for GO enrichment
+Slota_astrocyte_prion_markers_clean_CX_down<-subset(Slota_astrocyte_prion_markers_clean_CX_entrez, subset=avg_log2FC<(-0.25)&p_val_adj<0.05) #Added p value filter here
+
+#Create a list of just the gene symbols 
+Slota_Cx_DEGs_down = (Slota_astrocyte_prion_markers_clean_CX_down$entrezgene_id)
+
+
+# Run GO over-representation on upregulated entrezIds, biological process selected from GO terms
+Slota_Cx_down_GO_ORA = enrichGO(gene = Slota_Cx_DEGs_down, OrgDb = org.Mm.eg.db, readable = T, ont= "BP", pvalueCutoff = 0.05, qvalueCutoff = 0.10)
+
+P58 <- barplot(Slota_Cx_down_GO_ORA , showCategory=20)
+P59 <- dotplot(Slota_Cx_down_GO_ORA, showCategory=20)
+P60 <- goplot(Slota_Cx_down_GO_ORA, showCategory = 20)
+P61<- cnetplot(Slota_Cx_down_GO_ORA, foldChange=geneList_SHp)
+P62<-heatplot(Slota_Cx_down_GO_ORA, showCategory=20,foldChange=geneList_SCx)
+
+
+P58;P59;P60;P61;P62
+
+ggsave("Slota_Cx_GOR_down_barplot.png",plot=P58,device='png', path=plotting_path_Terminal,width = 20, height = 20, units = 'cm' )
+
+ggsave("Slota_Cx_GOR_down_dotplot.png",plot=P59,device='png', path=plotting_path_Terminal,width = 20, height = 20, units = 'cm' )
+
+ggsave("Slota_Cx_GOR_down_goplot.png",plot=P60,device='png', path=plotting_path_Terminal,width = 20, height = 20, units = 'cm' )
+
+ggsave("Slota_Cx_GOR_down_cnetplot.png",plot=P61,device='png', path=plotting_path_Terminal,width = 20, height = 20, units = 'cm' )
+
+ggsave("Slota_Cx_GOR_down_heatplot.png",plot=P62,device='png', path=plotting_path_Terminal,width = 20, height = 20, units = 'cm' )
+```
+
+### GO GSEA
+
+```{r}
+#Perform GO GSEA
+SCx_GO_GSEA <- gseGO(geneList= geneList_SCx, #This is the DEG list full list of DEGs
+              OrgDb        = org.Mm.eg.db,
+              ont          = "BP",
+              minGSSize    = 100,
+              maxGSSize    = 500,
+              pvalueCutoff = 0.05,
+              verbose      = FALSE,
+              seed=42)
+
+#convert back to Symbols for plotting
+SCx_GO_GSEA <- setReadable(SCx_GO_GSEA, 'org.Mm.eg.db', 'ENTREZID')
+
+View(data.frame(SCx_GO_GSEA))
+
+write.csv(data.frame(SCx_GO_GSEA), file = paste0(plotting_path_Terminal,"SCx_GO_GSEA.csv"))
+```
+
+#### GO GSEA visualisation
+
+```{r}
+p63<-dotplotGsea(data = SCx_GO_GSEA,topn = 10,
+            order.by = 'NES')
+
+p64<-cnetplot(SCx_GO_GSEA, colorEdge = TRUE,foldChange=geneList_SCx, showCategory=5)
+
+p63;p64
+
+
+#calculate pairwise similarity of GSEA genesets
+SCx_GO_GSEA_interactions <- pairwise_termsim(SCx_GO_GSEA)
+#interaction between genesets
+p65<-emapplot(SCx_GO_GSEA_interactions, color ='NES',layout='nicely')
+p65
+
+#CHOOSING PATHWAYS TO SHOW
+#retrieve synapse related pathways
+View(data.frame(subset(SCx_GO_GSEA@result, grepl("synap", Description, ignore.case = TRUE))))
+subset_result_Cx <- subset(SCx_GO_GSEA@result, grepl("synap", Description, ignore.case = TRUE))$Description
+p66<-cnetplot(SCx_GO_GSEA,foldChange=geneList_SCx, showCategory=subset_result_Cx)
+
+ggsave("SCx_GO_GSEA_dotplot.png",plot=p63,device='png', path=plotting_path_Terminal,width = 20, height = 20, units = 'cm' )
+
+ggsave("SCx_GO_GSEA_cnetplot.png",plot=p64,device='png', path=plotting_path_Terminal,width = 20, height = 20, units = 'cm' )
+
+ggsave("SCx_GO_GSEA_interactions.png",plot=p65,device='png', path=plotting_path_Terminal,width = 20, height = 20, units = 'cm' )
+
+ggsave("SCx_GO_GSEA_synapse_cnet.png",plot=p66,device='png', path=plotting_path_Terminal,width = 20, height = 20, units = 'cm' )
+```
+
+### Reactome ORA and GSEA
+
+```{r}
+
+#Reactome over-representation
+SCx_Reactome_ORA <- enrichPathway(gene=Slota_astrocyte_prion_markers_clean_CX_up$entrezgene_id, pvalueCutoff = 0.05, readable=TRUE, organism = "mouse")
+
+#Reactome GSEA calculation
+SCx_Reactome_GSEA <- gsePathway(geneList_SCx, 
+                pvalueCutoff = 0.05,
+                pAdjustMethod = "BH",
+                organism = "mouse",
+                verbose = FALSE,
+                seed=42,
+                maxGSSize = 100) ## trying a lower limit to remove broad terms
+
+#convert back to symbols
+SCx_Reactome_GSEA <- setReadable(SCx_Reactome_GSEA, 'org.Mm.eg.db', 'ENTREZID')
+View(data.frame(SCx_Reactome_GSEA))
+write.csv(data.frame(SCx_Reactome_GSEA), file = paste0(plotting_path_Terminal,"SCx_Reactome_GSEA.csv"))
+```
+
+#### Reactome GSEA visualisation
+
+```{r}
+#calculate pairwise similarity of GSEA genesets
+SCx_Reactome_GSEA_interactions <- pairwise_termsim(SCx_Reactome_GSEA)
+
+p67<-heatplot(SCx_Reactome_GSEA, showCategory = 10, foldChange=geneList_SCx)
+p68<-cnetplot(SCx_Reactome_GSEA, circular = TRUE, colorEdge = TRUE, foldChange=geneList_SCx)
+p69<-cnetplot(SCx_Reactome_GSEA, colorEdge = TRUE, foldChange=geneList_SCx, showCategory=10)
+p70<-ridgeplot(SCx_Reactome_GSEA,fill = 'NES', showCategory = 10)
+
+#interaction between genesets
+p71<-emapplot(SCx_Reactome_GSEA_interactions, color ='NES',layout='nicely')
+
+p67
+p68
+p69
+p70
+p71
+
+ggsave("Slota_Cx_GSEA_heatplot_Reactome.png",plot=p67,device='png', path=plotting_path_Terminal,width = 20, height = 20, units = 'cm' )
+
+ggsave("Slota_Cx_GSEA_cnetplot_circular_Reactome.png",plot=p68,device='png', path=plotting_path_Terminal,width = 20, height = 20, units = 'cm' )
+
+ggsave("Slota_Cx_GSEA_cnetplot_Reactome.png",plot=p69,device='png', path=plotting_path_Terminal,width = 20, height = 20, units = 'cm' )
+
+ggsave("Slota_Cx_GSEA_ridgeplot_Reactome.png",plot=p70,device='png', path=plotting_path_Terminal,width = 20, height = 20, units = 'cm' )
+
+ggsave("Slota_Cx_GSEA_interactions_plot_Reactome.png",plot=p71,device='png', path=plotting_path_Terminal,width = 20, height = 20, units = 'cm' )
+```

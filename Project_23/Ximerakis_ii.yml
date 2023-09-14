@@ -1,0 +1,12 @@
+name: project_test
+channels:
+  - HCC
+  - bioconda
+  - defaults
+dependencies:
+  - sra-tools
+  - picard
+  - multiqc
+  - fastqc
+  - gh
+prefix: /exports/csce/eddie/biology/groups/bioinfmsc/anaconda/envs/s2268606/project_test

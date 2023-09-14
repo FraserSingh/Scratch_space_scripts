@@ -1,0 +1,232 @@
+---
+title: "1_Lead_script"
+author: "Student B217754"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction, folder creation and cellranger install
+
+This script is designed to set up the user's directory space with the required files for the execution of the single-cell RNA seq analysis workflow used in the comparison between the data of Dr.Nick Verity, Methodios Ximerakis & Scott L. Lipnick and Jessy A. Slota.
+
+Please see the following publications for information on the other datasets.
+
+-   Dysregulation of neuroprotective astrocytes, a spectrum of microglial activation states, and altered hippocampal neurogenesis are revealed by single-cell RNA sequencing in prion disease \| Acta Neuropathologica Communications \| Full Text: <https://actaneurocomms.biomedcentral.com/articles/10.1186/s40478-022-01450-4>
+
+-   Single-cell transcriptomic profiling of the aging mouse brain \| Nature Neuroscience: <https://www.nature.com/articles/s41593-019-0491-3>
+
+The script will submit several other scripts to the Eddie supercomputer cluster at the University of Edinburgh, so users should run this script in their 'scratch space' whilst in a working node (rather than the welcome nodes that greet the user on the supercomputer cluster). Users can open such a node with:
+
+```{bash}
+qlogin -l h_vmem=6G
+```
+
+NB: This script is not fully automated and should be supervised. Additional advice is present throughout the document as an explanation of the commands being executed and details of where the files are saved.
+
+```{bash}
+#prompt user to input a folder name
+read -p "Please enter the name of the folder for this run and all of its data to be stored in. 
+Warning: please enter a single string with only letters and numbers, no symbols or special characters. This script will add the date to the end of the folder name, and will not search for previous runs of the program, so all experimental data will be downloaded again. Please ensure you have managed storage appropriately for this. To cancel, press Ctrl+C" project_dir
+
+#set the foldername with the date
+project_dir=$(echo ${project_dir}_$(date "+%d_%m_%y"))
+
+mkdir $project_dir;cd $project_dir
+
+#Make folder structure for project
+mkdir -p Ximerakis/Data
+mkdir -p Ximerakis/Images
+mkdir -p Slota/Data
+mkdir -p Slota/Images
+cp Slota_samples.txt Slota/Data
+mkdir -p Verity/Data
+mkdir -p Verity/Images
+
+cd ..
+
+
+  #cellranger module, create a conda profile called project_test instead?
+  source /etc/profile.d/modules.sh
+  module load anaconda/5.3.1
+  #Make the profile of modules from a yml file generated onduring the project. Warning: may not function an underpins the Ximerakis scripts
+  conda env create -f Ximerakis_modules.yml
+
+#Install cellranger as detailed at: https://support.10xgenomics.com/single-cell-gene-expression/software/pipelines/latest/installation
+
+curl -o cellranger-7.1.0.tar.gz "https://cf.10xgenomics.com/releases/cell-exp/cellranger-7.1.0.tar.gz?Expires=1693371764&Policy=eyJTdGF0ZW1lbnQiOlt7IlJlc291cmNlIjoiaHR0cHM6Ly9jZi4xMHhnZW5vbWljcy5jb20vcmVsZWFzZXMvY2VsbC1leHAvY2VsbHJhbmdlci03LjEuMC50YXIuZ3oiLCJDb25kaXRpb24iOnsiRGF0ZUxlc3NUaGFuIjp7IkFXUzpFcG9jaFRpbWUiOjE2OTMzNzE3NjR9fX1dfQ__&Signature=UL2Y7HrgUkai9ecYs8MA1JS7nP18mukIccxX967dYFKq8Uc4YVjMSFVruLy~zDTFLOWZEiPZ19sAs9djPFbkRoOXAtspcaLkAaiY1ZUVVEEudxcywmVdOPxi15kl2uu~8KdvA-0Q3yW1aFVHzEWwyMsNrJxI9Edn9d1n-weeXrkN4WiOv80GSUWRFM5fe4iVxXDYVgQXyytIKd~UWOcusT9zPk1CjHOj8J661FoxXtwfuJZ2jKjpTh-~vI5-lMEMRvtIL9IJqkZPvqXfLGTIyHBEeD~EO6TmicQaIGdJpaMndxUer22KdnMLbDvLS8z2p7gsiMC6kjm-A8yobWs3TA__&Key-Pair-Id=APKAI7S6A5RYOXBWRPDA"
+
+tar -xzvf cellranger-7.1.0.tar.gz
+
+export PATH=/cellranger-7.1.0:$PATH
+
+```
+
+## Ximerakis prep
+
+```{bash}
+#Call the bash scripts
+
+#Checking for the script, assisted by ChatGPT
+# Search for Ximerakis_BAM_names.txt in other iterations of the pipeline previously run.
+Xim_bam_dir=$(find ./**/Ximerakis/Data -type f -name "Ximerakis_BAM_names.txt" -exec dirname {} \;)
+
+if [ -n "$Xim_bam_dir" ]; then
+    echo "File Ximerakis_BAM_names.txt found nearby at: $Xim_bam_dir."
+    read -p "Do you want to run the download and processing of data anew? (Y/N): " choice_Xim
+
+    if [ "$choice_Xim" == "Y" ] || [ "$choice_Xim" == "y" ]; then
+        echo "Running the download and processing block by submitting the scripts to Eddie. The scripts are written to rely on the completion of the previous script in the sequence, so they will sit in the queue until this is satisfied."
+        qsub i_bamRetrieve.sh; qsub ii_bam_convert.sh; qsub iii_cellranger_genome.sh; qsub iv_cellranger_counts.sh; qsub v_cellrangerMultiQC.sh
+    else
+        echo "Skipping the download and processing block for Ximerakis."
+    fi
+else
+    echo "File Ximerakis_BAM_names.txt not found. Running the block by submitting the scripts to Eddie. The scripts are written to rely on the completion of the previous script in the sequence, so they will sit in the queue until this is satisfied."
+        qsub i_bamRetrieve.sh; qsub ii_bam_convert.sh; qsub iii_cellranger_genome.sh; qsub iv_cellranger_counts.sh; qsub v_cellrangerMultiQC.sh
+fi
+
+```
+
+## Slota prep
+
+This hard-coded command block requires the user to access the Broad institute's single cell portal, login and generate and access key, which will not work for others as it expires. NB: The original fastq files have been released to the portal since the completion of my project. This now allows the user to run a similar pipeline to the Ximerakis dataset, however this was not available at the time of project submission and no script exists to do so.
+
+```{bash}
+
+Slota_file_dir=$(find ./**/Slota/Data/SCP1962/other/ -type f -name "raw_mtxs.zip" -exec dirname {} \;)
+
+
+if [ -n "$Slota_file_dir" ]; then
+    echo "Files from a previous Slota run were found nearby at: $Slota_file_dir."
+    read -p "Do you want to run the download and processing of data anew? (Y/N): " choice_Slo
+
+    if [ "$choice_Slo" == "Y" ] || [ "$choice_Slo" == "y" ]; then
+        cd ../Slota/Data
+        #Require the user to enter a url starting with https://singlecell.broadinstitute.org/single_cell/api/v1/bulk_download/ then carry on. IF they don't, ask again.
+        # Prompt the user for input that starts with a specific URL prefix
+        while true; do
+            read -p "Please enter a personal data retrieval url starting with 'https://singlecell.broadinstitute.org/single_cell/api/v1/bulk_download/'. If you do not have one, please visit https://singlecell.broadinstitute.org/single_cell/study/SCP1962/dysregulation-of-neuroprotective-astrocytes-a-spectrum-of-microglial-activation-states-and-altered-hippocampal-neurogenesis-are-revealed-by-single-cell-rna-sequencing-in-prion-disease to generate a personal url for data retrieval. Only the main data files are required, not the fastq files. Enter below:" Slota_retrieval_url
+        
+            if [[ "$Slota_retrieval_url" == "https://singlecell.broadinstitute.org/single_cell/api/v1/bulk_download/"* ]]; then
+                echo "User input is valid."
+                break
+            else
+                echo "Invalid input $Slota_retrieval_url Please enter a value starting with the specified URL prefix."
+            fi
+        done
+        
+        # Continue with the script after obtaining valid input
+        echo "User input is valid: $Slota_retrieval_url"
+        
+        curl -k $Slota_retrieval_url -o cfg.txt; curl -K cfg.txt && rm cfg.txt
+        unzip SCP1962/other/raw_mtxs.zip SCP1962/other/
+
+        cd ../../
+  
+        # Format files for processing by Seurat. CHATGPT assisted
+        
+        # Define the root directory
+        root_dir="Slota/Data/SCP1962/other"
+        
+        # Assuming the sample names are in a file called "Slota_samples.txt"
+        sample_names_Slota_file="Slota/Data/Slota_samples.txt"
+        
+        # Loop through each sample name in the file
+        while IFS= read -r sample
+        do
+            # Create a directory for the sample if it doesn't exist
+            mkdir -p "${root_dir}/${sample}"
+        
+            # Move the relevant files to the directory
+            mv "${root_dir}/${sample}"* "${root_dir}/${sample}"
+        
+            # Rename the files
+            mv "${root_dir}/${sample}/${sample}_barcodes.tsv" "${root_dir}/${sample}/barcodes.tsv"
+            mv "${root_dir}/${sample}/${sample}_features.tsv" "${root_dir}/${sample}/features.tsv"
+            mv "${root_dir}/${sample}/${sample}_matrix.mtx" "${root_dir}/${sample}/matrix.mtx"
+        done < "$sample_names_Slota_file"
+        
+        cd $root_dir
+        
+        #zip the files we just made
+        gzip */{barcodes,features,matrix}*
+        
+        cd -
+
+    else
+        echo "Skipping the download and processing block for Slota."
+    fi
+else
+  #Execute the same code as theabove if the Slota files are required.
+  cd ../Slota/Data
+  #Require the user to enter a url starting with https://singlecell.broadinstitute.org/single_cell/api/v1/bulk_download/ then carry on. IF they don't, ask again.
+  # Prompt the user for input that starts with a specific URL prefix
+  while true; do
+      read -p "Please enter a personal data retrieval url starting with 'https://singlecell.broadinstitute.org/single_cell/api/v1/bulk_download/'. If you do not have one, please visit https://singlecell.broadinstitute.org/single_cell/study/SCP1962/dysregulation-of-neuroprotective-astrocytes-a-spectrum-of-microglial-activation-states-and-altered-hippocampal-neurogenesis-are-revealed-by-single-cell-rna-sequencing-in-prion-disease to generate a personal url for data retrieval. Only the main data files are required, not the fastq files. Enter below:" Slota_retrieval_url
+  
+      if [[ "$Slota_retrieval_url" == "https://singlecell.broadinstitute.org/single_cell/api/v1/bulk_download/"* ]]; then
+          echo "User input is valid."
+          break
+      else
+          echo "Invalid input $Slota_retrieval_url Please enter a value starting with the specified URL prefix."
+      fi
+  done
+  
+  # Continue with the script after obtaining valid input
+  echo "User input is valid: $Slota_retrieval_url"
+  
+  curl -k $Slota_retrieval_url -o cfg.txt; curl -K cfg.txt && rm cfg.txt
+  unzip SCP1962/other/raw_mtxs.zip SCP1962/other/
+
+  cd ../../
+
+  # Format files for processing by Seurat. CHATGPT assisted
+  
+  # Define the root directory
+  root_dir="Slota/Data/SCP1962/other"
+  
+  # Assuming the sample names are in a file called "Slota_samples.txt"
+  sample_names_Slota_file="Slota/Data/Slota_samples.txt"
+  
+  # Loop through each sample name in the file
+  while IFS= read -r sample
+  do
+      # Create a directory for the sample if it doesn't exist
+      mkdir -p "${root_dir}/${sample}"
+  
+      # Move the relevant files to the directory
+      mv "${root_dir}/${sample}"* "${root_dir}/${sample}"
+  
+      # Rename the files
+      mv "${root_dir}/${sample}/${sample}_barcodes.tsv" "${root_dir}/${sample}/barcodes.tsv"
+      mv "${root_dir}/${sample}/${sample}_features.tsv" "${root_dir}/${sample}/features.tsv"
+      mv "${root_dir}/${sample}/${sample}_matrix.mtx" "${root_dir}/${sample}/matrix.mtx"
+  done < "$sample_names_Slota_file"
+  
+  cd $root_dir
+  
+  #zip the files we just made
+  gzip */{barcodes,features,matrix}*
+  
+  cd -
+
+fi
+```
+
+## Conclusion and tidy up
+
+```{bash}
+
+#tidy up Eddie errors and output files from the Ximerakis files
+cd $project_dir
+mkdir -p Ximerakis/errors_outputs
+mv Ximerakis/*.o* Ximerakis/errors_outputs
+mv Ximerakis/*.e* Ximerakis/errors_outputs
+
+echo "Slota files have been retrieved, sorted into folders and zipped in line with Seurat requirements. 
+Ximerakis data is being processed on the supercomputer cluster, please check on the status of jobs with command 'qacct'. Once all scripts are complete, proceed with Rmd Workflow scripts for each dataset"
+```

@@ -1,0 +1,53 @@
+{
+  "build": "h553295d_15",
+  "build_number": 15,
+  "channel": "https://repo.anaconda.com/pkgs/main/linux-64",
+  "constrains": [],
+  "depends": [
+    "binutils_linux-64 2.33.1 h9595d00_15",
+    "gcc_linux-64 7.3.0 h553295d_15",
+    "gfortran_impl_linux-64 7.3.0.*"
+  ],
+  "extracted_package_dir": "/exports/csce/eddie/biology/groups/bioinfmsc/anaconda/pkgs/gfortran_linux-64-7.3.0-h553295d_15",
+  "features": "",
+  "files": [
+    "etc/conda/activate.d/activate-gfortran_linux-64.sh",
+    "etc/conda/deactivate.d/deactivate-gfortran_linux-64.sh"
+  ],
+  "fn": "gfortran_linux-64-7.3.0-h553295d_15.tar.bz2",
+  "license": "BSD-3-Clause",
+  "link": {
+    "source": "/exports/csce/eddie/biology/groups/bioinfmsc/anaconda/pkgs/gfortran_linux-64-7.3.0-h553295d_15",
+    "type": 1
+  },
+  "md5": "9da10d196a928c75260cd103dda59ba0",
+  "name": "gfortran_linux-64",
+  "package_tarball_full_path": "/exports/csce/eddie/biology/groups/bioinfmsc/anaconda/pkgs/gfortran_linux-64-7.3.0-h553295d_15.tar.bz2",
+  "paths_data": {
+    "paths": [
+      {
+        "_path": "etc/conda/activate.d/activate-gfortran_linux-64.sh",
+        "path_type": "hardlink",
+        "sha256": "74598b2ae3988d63b7f7735465287f3a733e11aa3fffac4ff57b0a1665a308fc",
+        "sha256_in_prefix": "74598b2ae3988d63b7f7735465287f3a733e11aa3fffac4ff57b0a1665a308fc",
+        "size_in_bytes": 5286
+      },
+      {
+        "_path": "etc/conda/deactivate.d/deactivate-gfortran_linux-64.sh",
+        "path_type": "hardlink",
+        "sha256": "e3f63f0eaa05f222ff0e74c8d1bf9d714fc979c47204e86e74a66820b4c8eaa5",
+        "sha256_in_prefix": "e3f63f0eaa05f222ff0e74c8d1bf9d714fc979c47204e86e74a66820b4c8eaa5",
+        "size_in_bytes": 5268
+      }
+    ],
+    "paths_version": 1
+  },
+  "requested_spec": "None",
+  "sha256": "31d2f87618beb775706352df2d58bd2c5b6492ecfb7ceb24ede67d721a23caf2",
+  "size": 25104,
+  "subdir": "linux-64",
+  "timestamp": 1576707756158,
+  "track_features": "",
+  "url": "https://repo.anaconda.com/pkgs/main/linux-64/gfortran_linux-64-7.3.0-h553295d_15.tar.bz2",
+  "version": "7.3.0"
+}

@@ -1,0 +1,3 @@
+/exports/csce/eddie/biology/groups/bioinfmsc/anaconda/envs/s2268606/project_test/lib/site_perl/5.26.2/x86_64-linux-thread-multi/Data/Dumper.pm relocate_as=../../../Data/Dumper.pm
+/exports/csce/eddie/biology/groups/bioinfmsc/anaconda/envs/s2268606/project_test/lib/site_perl/5.26.2/x86_64-linux-thread-multi/auto/Data/Dumper/Dumper.so relocate_as=Dumper.so
+/exports/csce/eddie/biology/groups/bioinfmsc/anaconda/envs/s2268606/project_test/man/man3/Data::Dumper.3 relocate_as=../../../../../../../man/man3/Data::Dumper.3

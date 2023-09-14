@@ -1,0 +1,5 @@
+#!/exports/csce/eddie/biology/groups/bioinfmsc/anaconda/envs/s2268606/project_test/bin/python2.7
+
+from idlelib.PyShell import main
+if __name__ == '__main__':
+    main()

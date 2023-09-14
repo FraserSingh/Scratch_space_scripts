@@ -1,0 +1,41 @@
+{
+  "build": "py27hbc911f0_0",
+  "build_number": 0,
+  "channel": "https://repo.anaconda.com/pkgs/main/linux-64",
+  "constrains": [],
+  "depends": [
+    "blas 1.0 mkl",
+    "libgcc-ng >=7.3.0",
+    "libgfortran-ng >=7,<8.0a0",
+    "mkl >=2019.4,<2021.0a0",
+    "mkl-service >=2,<3.0a0",
+    "mkl_fft >=1.0.6,<2.0a0",
+    "mkl_random >=1.0.2,<2.0a0",
+    "numpy-base 1.16.6 py27hde5b4d6_0",
+    "python >=2.7,<2.8.0a0"
+  ],
+  "extracted_package_dir": "/exports/csce/eddie/biology/groups/bioinfmsc/anaconda/pkgs/numpy-1.16.6-py27hbc911f0_0",
+  "features": "",
+  "files": [],
+  "fn": "numpy-1.16.6-py27hbc911f0_0.tar.bz2",
+  "license": "BSD 3-Clause",
+  "link": {
+    "source": "/exports/csce/eddie/biology/groups/bioinfmsc/anaconda/pkgs/numpy-1.16.6-py27hbc911f0_0",
+    "type": 1
+  },
+  "md5": "bb9decea2915bf2f79dc51766480ca10",
+  "name": "numpy",
+  "package_tarball_full_path": "/exports/csce/eddie/biology/groups/bioinfmsc/anaconda/pkgs/numpy-1.16.6-py27hbc911f0_0.tar.bz2",
+  "paths_data": {
+    "paths": [],
+    "paths_version": 1
+  },
+  "requested_spec": "None",
+  "sha256": "cfed2690b0593f46350f81821021ca45f4d5d4b3763c17396c0a5889ab5ae316",
+  "size": 50593,
+  "subdir": "linux-64",
+  "timestamp": 1580501622533,
+  "track_features": "",
+  "url": "https://repo.anaconda.com/pkgs/main/linux-64/numpy-1.16.6-py27hbc911f0_0.tar.bz2",
+  "version": "1.16.6"
+}

@@ -1,0 +1,1193 @@
+------------------------------------------------------------------------
+
+---
+title: "Ximerakis workflow"
+output: html_document
+date: "2023-06-01"
+---
+
+## Seurat for Ximerakis
+
+#Package management
+
+```{r}
+#.libPaths(new = "/home/s2268606/University_Directories/Project_23/R_packages_project")
+#/opt/R/4.2.1/lib/R/library
+
+update.packages(ask = FALSE)
+
+
+install.packages("BiocManager")
+
+BiocManager::install(c(
+  "org.Mm.eg.db",
+  "AnnotationDbi",
+  "clusterProfiler",
+  "tidyverse",
+  'knitr',
+  "DropletUtils",
+  "Seurat",
+  "SoupX",
+  "scCustomize",
+  "glmGamPoi",
+  "DESeq2",
+  "Polychrome",
+  "ReactomePA"
+  ))
+
+
+remotes::install_github('chris-mcginnis-ucsf/DoubletFinder')
+
+remotes::install_github("satijalab/seurat", "seurat5")
+
+devtools::install_github("junjunlab/GseaVis")
+
+```
+
+```{r}
+library(org.Mm.eg.db)
+library(clusterProfiler)
+library(DropletUtils)
+library(Seurat)
+library(tidyverse)
+library(dplyr)
+library(stringr)
+library(knitr)
+library(DoubletFinder)
+library(SoupX)
+library(scCustomize)
+library(DESeq2)
+library(Polychrome)
+library(GseaVis)
+library(ReactomePA)
+library(patchwork)
+```
+
+Make folder for plots
+
+```{r}
+#save folder path for plot saving
+Xim_plotting_path<-paste0("./Ximerakis/Images/")
+
+#set seed for reproducibility
+set.seed(42)
+
+```
+
+```{r}
+
+#load Ximerakis paper 
+
+# Create list of folder names
+sample_names<- readLines("./Ximerakis/Data/Ximerakis_BAM_names.txt")
+#Make another variable for cell ranger counts folders
+folder_names <- sample_names
+
+#Enter the name of the Ximerakis data storage folder (i.e if there is data from previous runs which you'd like to use, but which is not present in the working directory's local directory structure)
+Ximerakis_data_storage_dir<-"./Ximerakis/Data/"
+
+# Loop through each folder to process it
+for (folder_name in folder_names) {
+  folder_path=paste0(Ximerakis_data_storage_dir,folder_name,"/outs/")
+  
+  #Load the data in from the cellranger-created folder
+  current_data<-load10X(folder_path)
+  
+  #set margins for plot
+  par(mar = c(1, 1, 1, 1))
+  
+  #get soup ratio
+  current_data <- autoEstCont(current_data)
+  
+  #save soup-less matrix
+  souped_matrix <-adjustCounts(current_data, roundToInt = T)
+  
+  
+  #Hopefully use the reduced matrix
+  current_obj <- CreateSeuratObject(counts = souped_matrix, project = "Ximerakis")
+  
+  # Make names for and create the Seurat objects
+  objName <- paste0(folder_name, "obj")
+  assign(objName, current_obj)
+}
+
+#make the list of merging objects, omit the others with a shared name parts
+matching_vars <- ls(pattern = 'obj')
+matching_vars <- matching_vars[!matching_vars %in% c("current_obj", "objName")]
+
+#merge the samples into one object
+Ximerakis_total <- merge(OX1Xobj, y= c(OX2Xobj,OX3Xobj,OX4Xobj,OX5Xobj,OX6Xobj,OX7Xobj,OX8Xobj,YX1Lobj,YX2Lobj,YX3Robj,YX4Robj,YX5Robj,YX6Lobj,YX7Robj,YX8Lobj), add.cell.ids=c("OX1X", "OX2X", "OX3X", "OX4X", "OX5X", "OX6X", "OX7X", "OX8X", "YX1L", "YX2L","YX3R", "YX4R", "YX5R" ,"YX6L", "YX7R", "YX8L"), project="Ximerakis")
+
+#cleaning up memory
+rm("souped_matrix","matching_vars","current_data","current_obj", "folder_name", "objName", "folder_path")
+```
+
+```{r}
+#plotting colours dataframe
+colour_df_Ximerakis<-data.frame(sample_names)
+colour_df_Ximerakis$colours<-c('#01409f',
+'#f0cf43',
+'#cb8aff',
+'#00a746',
+'#8b0067',
+'#7eeb8f',
+'#8cb051',
+'#a8cd42',
+'#48c7ab',
+'#e17f21',
+'#985320',
+'#c09c46',
+'#d06096',
+'#9a001f',
+'#4a752a',
+'#dc665a')
+```
+
+### Add metadata, adding sample identity
+
+adapted from <https://youtu.be/p49seH2_i8Y?t=312>
+
+```{r}
+
+#Check whether the whole block is needed here
+sampleLabs<-names(Ximerakis_total@active.ident)
+
+#Assigning names to the samples to keep identity
+#From Chat GPT
+sample_detect <- case_when(
+  str_detect(sampleLabs, "OX1X") ~ "OX1X",
+  str_detect(sampleLabs, "OX2X") ~ "OX2X",
+  str_detect(sampleLabs, "OX3X") ~ "OX3X",
+  str_detect(sampleLabs, "OX4X") ~ "OX4X",
+  str_detect(sampleLabs, "OX5X") ~ "OX5X",
+  str_detect(sampleLabs, "OX6X") ~ "OX6X",
+  str_detect(sampleLabs, "OX7X") ~ "OX7X",
+  str_detect(sampleLabs, "OX8X") ~ "OX8X",
+  str_detect(sampleLabs, "YX1L") ~ "YX1L",
+  str_detect(sampleLabs, "YX2L") ~ "YX2L",
+  str_detect(sampleLabs, "YX3R") ~ "YX3R",
+  str_detect(sampleLabs, "YX4R") ~ "YX4R",
+  str_detect(sampleLabs, "YX5R") ~ "YX5R",
+  str_detect(sampleLabs, "YX6L") ~ "YX6L",
+  str_detect(sampleLabs, "YX7R") ~ "YX7R",
+  str_detect(sampleLabs, "YX8L") ~ "YX8L",
+  TRUE ~ NA_character_
+)
+#
+Ximerakis_total@meta.data$sample<-sample_detect
+Idents(object=Ximerakis_total)<-"sample"
+rm(sampleLabs, sample_detect)
+```
+
+## Identify mitochondrial and ribosomal populations
+
+```{r}
+#identify mitochondrial and ribosomal protein gene portions, annotations syntax tailored to mouse
+Ximerakis_total[["percent.mt"]]<- PercentageFeatureSet(Ximerakis_total, pattern = "^mt")
+Ximerakis_total[["percent.rp"]]<- PercentageFeatureSet(Ximerakis_total, pattern = "^Rp")
+
+#Generate genes per umi counts, from https://github.com/hbctraining/scRNA-seq/blob/master/lessons/04_SC_quality_control.md
+Ximerakis_total$log10GenesPerUMI <- log10(Ximerakis_total$nFeature_RNA) / log10(Ximerakis_total$nCount_RNA)
+
+Ximerakis_total$mitoRatio <- Ximerakis_total@meta.data$percent.mt / 100
+
+```
+
+## Initial data assessment
+
+```{r}
+
+Xim_violin_EDA<-(VlnPlot(Ximerakis_total, features=c("nFeature_RNA","nCount_RNA","percent.mt", "percent.rp"), ncol=4, pt.size = 0.00, cols =colour_df_Ximerakis$colours)+ plot_annotation(title = "Ximerakis, unfiltered", subtitle= "Preliminary Data assessment"))&theme(axis.text = element_text(size = rel(0.65)))
+
+ggsave("Ximerakis_Preliminary_Data_assessment.png",plot=Xim_violin_EDA,device='png', path=Xim_plotting_path,width = 30, height = 10, units = 'cm' )
+
+Xim_violin_EDA
+```
+
+We can see a high proportion of mitochondrial reads which will need to be omitted, though this may be taken care of by other filters applied
+
+## Plot each of these respectively, showing trends in cell health
+
+```{r}
+
+#show mitochondrial proportion in reads
+Xim_mito<-FeatureScatter(Ximerakis_total, feature1 = "nCount_RNA", feature2 = "percent.mt", cols =colour_df_Ximerakis$colours, raster=F, pt.size = 0.02)+ plot_annotation(title = "Ximerakis mitochondrial content", subtitle= "UMIs per cell vs. % mitochondrial genes detected. Unfiltered")
+
+ggsave("Ximerakis_UMIs_per_cell_mitochondrial_genes.png",plot=Xim_mito,device='png', path=Xim_plotting_path,width = 20, height = 20, units = 'cm' )
+
+#show ribosomal proportion in reads
+Xim_ribo<-FeatureScatter(Ximerakis_total, feature1 = "nCount_RNA", feature2 = "percent.rp", cols =colour_df_Ximerakis$colours, raster=F, pt.size = 0.02)+ plot_annotation(title = "Ximerakis ribosomal content", subtitle= "UMIs per cell vs. % ribosomal protein  genes detected. Unfiltered")
+
+ggsave("Ximerakis_UMIs_per_cell_vsribosomal_protein_genes_detected.png",plot=Xim_ribo,device='png', path=Xim_plotting_path,width = 20, height = 20, units = 'cm' )
+
+#Ribosomal vs mitochondrial 
+Xim_ribo_mito<-FeatureScatter(Ximerakis_total, feature1 = "percent.rp", feature2 = "percent.mt", cols =colour_df_Ximerakis$colours, raster=F, pt.size = 0.02)+ plot_annotation(title = "Ximerakis ribosomal and mitochondrial content", subtitle= "% ribosomal protein  genes detected vs. % mitochondrial genes detected. Unfiltered")
+
+ggsave("Ximerakis_ribosomal_protein_genes_detected_vsmitochondrial_genes_detected.png",plot=Xim_ribo_mito,device='png', path=Xim_plotting_path,width = 20, height = 20, units = 'cm' )
+
+Xim_mito;Xim_ribo;Xim_ribo_mito
+```
+
+There appears to be a shelf around 35% mt, indicating cell death. It seems that a couple of the Old mice have low mt, whilst a couple of the Young mice in pink have around 45%.
+
+```{r}
+#Show overall reads and gene counts for unfiltered data.
+Xim_read_gene<-FeatureScatter(Ximerakis_total,  feature1 = "nCount_RNA", feature2="nFeature_RNA", cols =colour_df_Ximerakis$colours, raster=F, pt.size = 0.02)+ ggplot2::geom_smooth(method="lm")+ plot_annotation(title = "Ximerakis genes per gene", subtitle= "UMIs per cell vs. number of genes. Unfiltered")
+
+ggsave("Ximerakis_UMIs_per_cell_vs_number_of_genes.png",plot=Xim_read_gene,device='png', path=Xim_plotting_path,width = 20, height = 20, units = 'cm' )
+
+Xim_read_gene
+```
+
+Seems normal, though values are lower than our data
+
+### Save the whole data
+
+```{r}
+#Save the data object
+save(Ximerakis_total, file="./Ximerakis/Data/Ximerakis_total_seurat.Rdata")
+```
+
+### Create metadata variable to edit it without affecting core data
+
+```{r}
+# Rename columns from https://github.com/hbctraining/scRNA-seq/blob/master/lessons/04_SC_quality_control.md
+
+#Create metadata variable to edit it without affecting core data
+metadata_test<-Ximerakis_total@meta.data
+
+#Saving cell barcodes as metainfo
+metadata_test$cells<-rownames(metadata_test)
+
+metadata_test <- metadata_test %>%
+    dplyr::rename(nUMI = nCount_RNA,
+                  nGene = nFeature_RNA)
+```
+
+### Counts per sample
+
+This shows over 300k cells for some samples, indicating that minimum metrics must be set to remove junk.
+
+```{r}
+# Visualize the number of cell counts per sample with no filtering at all
+
+Xim_counts_sample1<-metadata_test %>% 
+  	ggplot2::ggplot(aes(x=sample, fill=sample)) + 
+  	geom_bar() +
+  	theme_classic() +
+  	theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
+  	theme(plot.title = element_text(hjust=0.5, face="bold")) +
+    scale_fill_manual(values = colour_df_Ximerakis$colours)+ 
+    guides(fill = 'none')+
+    plot_annotation(title = "Ximerakis Cell counts per sample", subtitle= "Unfiltered")&theme(axis.text = element_text(size = rel(0.65)))
+
+ggsave("Ximerakis_Cell_counts_per_sample1.png",plot=Xim_counts_sample1,device='png', path=Xim_plotting_path,width = 20, height = 10, units = 'cm' )
+
+```
+
+## Setting a minimum gene count for quality control
+
+20 genes minimum, still gives 80k cells in some samples!
+
+```{r}
+#Setting minimum feature count to filter cells with no genes UMIs vs. genes detected
+
+metadata_test <- subset(Ximerakis_total, subset= nFeature_RNA > 20)@meta.data
+metadata_test <- metadata_test %>%
+    dplyr::rename(nUMI = nCount_RNA,
+                  nGene = nFeature_RNA)
+```
+
+```{r}
+# Visualize the number of cell counts per sample with a minimum gene count set
+Xim_counts_sample2<-metadata_test %>% 
+  	ggplot(aes(x=sample, fill=sample)) + 
+  	geom_bar() +
+  	theme_classic() +
+  	theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
+  	theme(plot.title = element_text(hjust=0.5, face="bold")) +
+    scale_fill_manual(values = colour_df_Ximerakis$colours)+ 
+    guides(fill = 'none')+
+    plot_annotation(title = "Ximerakis Cell counts per sample", subtitle= "Filtered to minimum 20 genes")&
+    theme(axis.text = element_text(size = rel(0.65)))
+
+ggsave("Ximerakis_Cell_counts_per_sample2.png",plot=Xim_counts_sample2,device='png', path=Xim_plotting_path,width = 20, height = 10, units = 'cm' )
+```
+
+### UMI/ transcripts per cell
+
+With line at 500 for ideal minimum
+
+```{r}
+# Visualize the number UMIs/transcripts per cell
+Xim_UMI_cell<-metadata_test %>% 
+  	ggplot(aes(x=nUMI, fill= sample)) + 
+  	geom_density(alpha = 0.4) + 
+  	scale_x_log10() + 
+  	theme_classic() +
+  	ylab("Cell density") +
+  	geom_vline(xintercept = 500)+
+    scale_fill_manual(values = colour_df_Ximerakis$colours)+ 
+    plot_annotation(title = "Ximerakis UMI/transcripts per cell", subtitle= "Filtered to minimum 20 genes")
+
+Xim_UMI_cell
+
+ggsave("Ximerakis_UMI_transcripts_per_cell.png",plot=Xim_UMI_cell,device='png', path=Xim_plotting_path,width = 20, height = 15, units = 'cm' )
+```
+
+```{r}
+#MAke unsouped data for the plot! PURELY FOR PLOTTING!
+
+# Create list of folder names
+sample_names<- readLines("/home/s2268606/University_Directories/Project_23/External_datasets/Ximerakis/Ximerakis_BAM_names.txt")
+#rename them for cell ranger counts folders
+folder_names <- paste0("", sample_names)
+
+# Loop through each folder to process it
+for (folder_name in folder_names) {
+  folder_path=paste0("/home/s2268606/University_Directories/Project_23/External_datasets/Ximerakis/",folder_name,"/outs/raw_feature_bc_matrix/")
+  
+  #Load the data in from the cellranger-created folder
+  current_data<-Read10X(folder_path)
+  
+  #Hopefully use the reduced matrix
+  current_obj <- CreateSeuratObject(counts = current_data, project = "Ximerakis")
+  
+  # Make names for and create the Seurat objects
+  objName <- paste0(folder_name, "obj")
+  assign(objName, current_obj)
+}
+
+#merge the samples into one object
+Ximerakis_total_notsouped <- merge(OX1Xobj, y= c(OX2Xobj,OX3Xobj,OX4Xobj,OX5Xobj,OX6Xobj,OX7Xobj,OX8Xobj,YX1Lobj,YX2Lobj,YX3Robj,YX4Robj,YX5Robj,YX6Lobj,YX7Robj,YX8Lobj), add.cell.ids=c("OX1X", "OX2X", "OX3X", "OX4X", "OX5X", "OX6X", "OX7X", "OX8X", "YX1L", "YX2L","YX3R", "YX4R", "YX5R" ,"YX6L", "YX7R", "YX8L"), project="Ximerakis")
+
+save(Ximerakis_total_notsouped, file="../Ximerakis/Data/Ximerakis_total_notsouped.Rdata")
+
+load("./Ximerakis/Data/Ximerakis_total_notsouped.Rdata")
+
+#cleaning up memory
+rm("matching_vars","current_data","current_obj", "folder_name", "objName", "folder_path")
+
+#Check whether the whole block is needed here
+sampleLabs<-names(Ximerakis_total_notsouped@active.ident)
+
+#Assigning names to the samples to keep identity
+#From Chat GPT
+sample_detect <- case_when(
+  str_detect(sampleLabs, "OX1X") ~ "OX1X",
+  str_detect(sampleLabs, "OX2X") ~ "OX2X",
+  str_detect(sampleLabs, "OX3X") ~ "OX3X",
+  str_detect(sampleLabs, "OX4X") ~ "OX4X",
+  str_detect(sampleLabs, "OX5X") ~ "OX5X",
+  str_detect(sampleLabs, "OX6X") ~ "OX6X",
+  str_detect(sampleLabs, "OX7X") ~ "OX7X",
+  str_detect(sampleLabs, "OX8X") ~ "OX8X",
+  str_detect(sampleLabs, "YX1L") ~ "YX1L",
+  str_detect(sampleLabs, "YX2L") ~ "YX2L",
+  str_detect(sampleLabs, "YX3R") ~ "YX3R",
+  str_detect(sampleLabs, "YX4R") ~ "YX4R",
+  str_detect(sampleLabs, "YX5R") ~ "YX5R",
+  str_detect(sampleLabs, "YX6L") ~ "YX6L",
+  str_detect(sampleLabs, "YX7R") ~ "YX7R",
+  str_detect(sampleLabs, "YX8L") ~ "YX8L",
+  TRUE ~ NA_character_
+)
+#
+Ximerakis_total_notsouped@meta.data$sample<-sample_detect
+Idents(object=Ximerakis_total_notsouped)<-"sample"
+rm(sampleLabs, sample_detect)
+
+#Create metadata variable to edit it without affecting core data
+metadata_test_SOUPLESS<-Ximerakis_total_notsouped@meta.data
+
+#Saving cell barcodes as metainfo
+metadata_test_SOUPLESS$cells<-rownames(metadata_test_SOUPLESS)
+
+metadata_test_SOUPLESS <- metadata_test_SOUPLESS %>%
+    dplyr::rename(nUMI = nCount_RNA,
+                  nGene = nFeature_RNA)
+
+Xim_UMI_cell_SOUPLESS<-metadata_test_SOUPLESS %>% 
+  	ggplot(aes(x=nUMI, fill= sample)) + 
+  	geom_density(alpha = 0.4) + 
+  	scale_x_log10() + 
+  	theme_classic() +
+  	ylab("Cell density") +
+  	geom_vline(xintercept = 500)+
+    scale_fill_manual(values = colour_df_Ximerakis$colours)+ 
+    plot_annotation(title = "Ximerakis UMI/transcripts per cell without SoupX")
+Xim_UMI_cell_SOUPLESS
+
+ggsave("Ximerakis_UMI_transcripts_per_cell_PRESOUPX.png",plot=Xim_UMI_cell_SOUPLESS,device='png', path=Xim_plotting_path,width = 20, height = 15, units = 'cm' )
+
+Xim_gene_cell_SOUPLESS<-metadata_test_SOUPLESS %>% 
+  	ggplot(aes(x=nGene, after_stat(count),fill= sample)) + 
+  	geom_density(alpha = 0.4) + 
+  	theme_classic() +
+  	scale_x_log10() + 
+  	geom_vline(xintercept = 300)+
+    ylab('Number of cells')+
+    scale_fill_manual(values = colour_df_Ximerakis$colours)+
+    plot_annotation(title = "Ximerakis genes per cell without SoupX")
+Xim_gene_cell_SOUPLESS
+
+ggsave("Ximerakis_gene_per_cell_PRESOUPX.png",plot=Xim_gene_cell_SOUPLESS,device='png', path=Xim_plotting_path,width = 20, height = 15, units = 'cm' )
+```
+
+### Genes per cell
+
+```{r}
+# Visualize the distribution of genes detected per cell via histogram
+Xim_gene_cell<-metadata_test %>% 
+  	ggplot(aes(x=nGene, after_stat(count),fill= sample)) + 
+  	geom_density(alpha = 0.4) + 
+  	theme_classic() +
+  	scale_x_log10() + 
+  	geom_vline(xintercept = 300)+
+    ylab('Number of cells')+
+    scale_fill_manual(values = colour_df_Ximerakis$colours)+
+    plot_annotation(title = "Ximerakis genes per cell with SoupX")
+Xim_gene_cell
+
+ggsave("Ximerakis_gene_per_cell.png",plot=Xim_gene_cell,device='png', path=Xim_plotting_path,width = 20, height = 15, units = 'cm' )
+
+# Visualize the distribution of genes detected per cell via boxplot
+png("Ximerakis_Distribution_of_genes_per_cell2.png", width=1000)
+Xim_gene_cell_boxplot_i<-metadata_test %>% 
+  	ggplot(aes(x=sample, y=log10(nGene), fill=sample)) + 
+  	geom_boxplot() + 
+  	theme_classic() +
+  	theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
+  	theme(plot.title = element_text(hjust=0.5, face="bold")) +
+  	ggplot2::ggtitle("Distribution of genes per cell", subtitle="Ximerakis, filtered to minimum 20 genes")
+
+Xim_gene_cell_boxplot_i
+
+ggsave("Xim_gene_cell_boxplot_i.png",plot=Xim_gene_cell_boxplot_i,device='png', path=Xim_plotting_path,width = 20, height = 15, units = 'cm' )
+
+
+#save the comparison
+SoupX_comp<-Xim_gene_cell_SOUPLESS+Xim_gene_cell+plot_annotation(tag_levels = 'A', title = 'Ximerakis genes per cell with and without SoupX ambient RNA filtering')
+
+ggsave("Ximerakis_SoupX_effects.png",plot=SoupX_comp,device='png', path=Xim_plotting_path,width = 40, height = 15, units = 'cm' )
+
+```
+
+### UMI vs. genes detected
+
+We want cells in top right
+
+```{r}
+#Some code commented out because it introduced infitine values with a log transform
+# Visualize the correlation between genes detected and number of UMIs and determine whether strong presence of cells with low numbers of genes/UMIs
+
+Xim_UMI_gene<-metadata_test %>% 
+  	ggplot(aes(x=nUMI, y=nGene, color=mitoRatio)) + 
+  	geom_point() + 
+	scale_colour_gradient(low = "gray90", high = "black") +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
+  	#stat_smooth(method=lm) +
+  	scale_x_log10() +
+  	scale_y_log10() +
+  	theme_classic() +
+  	geom_vline(xintercept = 500) +
+  	geom_hline(yintercept = 250) +
+  	facet_wrap(~sample) +
+    plot_annotation(title = "Ximerakis UMI and genes per cell with mitochondrial ratio")
+
+Xim_UMI_gene
+
+ggsave("Ximerakis_UMIs_vs_genes_detected.png",plot=Xim_UMI_gene,device='png', path=Xim_plotting_path,width = 30, height = 20, units = 'cm' )
+```
+
+### MitoRatio
+
+We want data lower than 0.2
+
+```{r}
+# Visualize the distribution of mitochondrial gene expression detected per cell
+
+Xim_mito_cell<-metadata_test %>% 
+  	ggplot(aes( x=mitoRatio, fill=sample)) + 
+  	geom_density(alpha = 0.2) + 
+  	scale_x_log10() + 
+  	theme_classic() +
+  	geom_vline(xintercept = 0.2)+
+    scale_fill_manual(values = colour_df_Ximerakis$colours)+
+    plot_annotation(title = "Ximerakis distribution of mitochondrial gene expression per cell")
+
+Xim_mito_cell
+
+ggsave("Ximerakis_Distribution_of_mitochondrial_gene_expression_per_cell.png",plot=Xim_mito_cell,device='png', path=Xim_plotting_path,width = 20, height = 15, units = 'cm' )
+
+```
+
+```{r}
+#Post filtering mitochondrial assessment
+Ximerakis_Repeat_mitoratio<-FeatureScatter((subset(Ximerakis_total, subset= nFeature_RNA > 20)), feature1 = "nFeature_RNA", feature2 = "percent.mt", pt.size = 0.03)
+
+Ximerakis_Repeat_mitoratio
+
+#ggsave("Ximerakis_Repeat_mitoratio.png",plot=Ximerakis_Repeat_mitoratio,device='png', path=Xim_plotting_path,width = 20, height = 15, units = 'cm' )
+```
+
+### Complexity
+
+Should be above 0.8.
+
+```{r}
+# Visualize the overall complexity of the gene expression by visualizing the genes detected per UMI
+
+Ximerakis_Complexity_of_gene_expression_genes_per_UMI2<-metadata_test %>%
+  	ggplot(aes(x=log10GenesPerUMI, fill=sample)) +
+  	geom_density(alpha = 0.2) +
+  	theme_classic() +
+  	geom_vline(xintercept = 0.8)+
+    scale_fill_manual(values = colour_df_Ximerakis$colours)+
+    ggplot2::ggtitle("Complexity of gene expression (genes per UMI)", subtitle="Ximerakis, filtered to minimum 20 genes")
+Ximerakis_Complexity_of_gene_expression_genes_per_UMI2
+ggsave("Ximerakis_Complexity_of_gene_expression_genes_per_UMI2.png",plot=Ximerakis_Complexity_of_gene_expression_genes_per_UMI2,device='png', path=Xim_plotting_path,width = 20, height = 15, units = 'cm' )
+```
+
+### Filtering metadata
+
+```{r}
+metadata_filtered<- metadata_test %>%
+    filter(nUMI > 0, nGene >150, percent.mt <20)
+```
+
+## Repeat the QC analysis
+
+```{r}
+# Visualize the number of cell counts per sample with a minimum gene count set
+
+Xim_filtered_cellpersammple<-metadata_filtered %>% 
+  	ggplot(aes(x=sample, fill=sample)) + 
+  	geom_bar() +
+  	theme_classic() +
+  	theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
+  	theme(plot.title = element_text(hjust=0.5, face="bold")) +
+    scale_fill_manual(values = colour_df_Ximerakis$colours)+
+    plot_annotation(title = "Ximerakis filtered, cells per sample")+
+    guides(fill = 'none')
+
+Xim_filtered_cellpersammple
+
+ggsave("Ximerakis_Cell_counts_per_sample2.png",plot=Xim_filtered_cellpersammple,device='png', path=Xim_plotting_path,width = 20, height = 15, units = 'cm' )
+```
+
+### UMI/ transcripts per cell
+
+With line at 500 for ideal minimum
+
+```{r}
+# Visualize the number UMIs/transcripts per cell
+Ximerakis_UMI_transcripts_per_cell2<-metadata_filtered %>% 
+  	ggplot(aes(x=nUMI, fill= sample)) + 
+  	geom_density(alpha = 0.35) + 
+  	scale_x_log10() + 
+  	theme_classic() +
+  	ylab("Cell density") +
+    scale_fill_manual(values = colour_df_Ximerakis$colours)+
+  	geom_vline(xintercept = 500)+
+    ggplot2::ggtitle("UMI/transcripts per cell", subtitle="Ximerakis, filtered to minimum 0 transcripts, 300 genes and maximum 20% mitochondrial gene content")
+Ximerakis_UMI_transcripts_per_cell2
+ggsave("Ximerakis_UMI_transcripts_per_cell2.png",plot=Ximerakis_UMI_transcripts_per_cell2,device='png', path=Xim_plotting_path,width = 20, height = 15, units = 'cm' )
+```
+
+### Genes per cell
+
+```{r}
+# Visualize the distribution of genes detected per cell via histogram
+Ximerakis_Distribution_of_genes_per_cell3<-metadata_filtered %>% 
+  	ggplot(aes(x=nGene, fill= sample)) + 
+  	geom_density(alpha = 0.2) + 
+  	theme_classic() +
+  	scale_x_log10() + 
+    scale_fill_manual(values = colour_df_Ximerakis$colours)+
+  	geom_vline(xintercept = 300)+
+    ggplot2::ggtitle("Distribution of genes per cell", subtitle="Ximerakis, filtered to minimum 0 transcripts, 300 genes and maximum 20% mitochondrial gene content")
+Ximerakis_Distribution_of_genes_per_cell3
+
+# Visualize the distribution of genes detected per cell via boxplot
+Ximerakis_Distribution_of_genes_per_cell4<-metadata_filtered %>% 
+  	ggplot(aes(x=sample, y=log10(nGene), fill=sample)) + 
+  	geom_boxplot() + 
+  	theme_classic() +
+    scale_fill_manual(values = colour_df_Ximerakis$colours)+
+  	theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
+  	theme(plot.title = element_text(hjust=0.5, face="bold")) +
+    guides(fill = 'none')+
+  	ggplot2::ggtitle("Distribution of genes per cell", subtitle="Ximerakis, filtered to minimum 0 transcripts, 300 genes and maximum 20% mitochondrial gene content")
+Ximerakis_Distribution_of_genes_per_cell4
+
+ggsave("Ximerakis_Distribution_of_genes_per_cell3.png",plot=Ximerakis_Distribution_of_genes_per_cell3,device='png', path=Xim_plotting_path,width = 20, height = 15, units = 'cm' )
+
+ggsave("Ximerakis_Distribution_of_genes_per_cell4.png",plot=Ximerakis_Distribution_of_genes_per_cell4,device='png', path=Xim_plotting_path,width = 20, height = 15, units = 'cm' )
+
+```
+
+### UMI vs. genes detected
+
+We want cells in top right
+
+```{r,fig.dim = c(8, 6)}
+#Some code commented out because it introduced infitine values with a log transform
+# Visualize the correlation between genes detected and number of UMIs and determine whether strong presence of cells with low numbers of genes/UMIs
+
+Ximerakis_UMIs_vs_genes_detected2<-metadata_filtered %>% 
+  	ggplot(aes(x=nUMI, y=nGene, color=mitoRatio)) + 
+  	geom_point() + 
+	scale_colour_gradient(low = "gray90", high = "black", limits = c(0, 100)) +
+  	#stat_smooth(method=lm) +
+  	scale_x_log10() +
+  	scale_y_log10() +
+  	theme_classic() +
+  	geom_vline(xintercept = 500) +
+  	geom_hline(yintercept = 250) +
+  	facet_wrap(~sample) +
+    ggplot2::ggtitle("UMIs vs. genes detected", subtitle = "Ximerakis, filtered to minimum 0 transcripts, 300 genes and maximum 20% mitochondrial gene content")
+
+Ximerakis_UMIs_vs_genes_detected2
+
+ggsave("Ximerakis_UMIs_vs_genes_detected2.png",plot=Ximerakis_UMIs_vs_genes_detected2,device='png', path=Xim_plotting_path,width = 30, height = 20, units = 'cm' )
+```
+
+### MitoRatio
+
+We want data lower than 0.2
+
+```{r}
+# Visualize the distribution of mitochondrial gene expression detected per cell
+
+Ximerakis_Distribution_of_mitochondrial_gene_expression_per_cell2<-metadata_filtered %>% 
+  	ggplot(aes(x=mitoRatio, fill=sample)) + 
+  	geom_density(alpha = 0.2) + 
+  	scale_x_log10() + 
+  	theme_classic() +
+    scale_fill_manual(values = colour_df_Ximerakis$colours)+
+  	geom_vline(xintercept = 0.2)+
+    ggplot2::ggtitle("Distribution of mitochondrial gene expression per cell", subtitle="Ximerakis, filtered to minimum 0 transcripts, 300 genes and maximum 20% mitochondrial gene content")
+
+Ximerakis_Distribution_of_mitochondrial_gene_expression_per_cell2
+
+ggsave("Ximerakis_Distribution_of_mitochondrial_gene_expression_per_cell2.png",plot=Ximerakis_Distribution_of_mitochondrial_gene_expression_per_cell2,device='png', path=Xim_plotting_path,width = 20, height = 15, units = 'cm' )
+```
+
+### Complexity
+
+Should be above 0.8.
+
+```{r}
+# Visualize the overall complexity of the gene expression by visualizing the genes detected per UMI
+
+Ximerakis_Complexity_of_gene_expression_genes_per_UMI_2<-metadata_filtered %>%
+  	ggplot(aes(x=log10GenesPerUMI,fill=sample)) +
+  	geom_density(alpha = 0.2) +
+  	theme_classic() +
+  	geom_vline(xintercept = 0.8)+
+    scale_fill_manual(values = colour_df_Ximerakis$colours)+
+    ggplot2::ggtitle("Complexity of gene expression (genes per UMI)", subtitle="Ximerakis, filtered to minimum 0 transcripts, 300 genes and maximum 20% mitochondrial gene content")
+
+Ximerakis_Complexity_of_gene_expression_genes_per_UMI_2
+
+ggsave("Ximerakis_Complexity_of_gene_expression_genes_per_UMI_2.png",plot=Ximerakis_Complexity_of_gene_expression_genes_per_UMI_2,device='png', path=Xim_plotting_path,width = 20, height = 15, units = 'cm' )
+```
+
+### Assign filters to data
+
+```{r}
+#filter out the cells with mitochondrial genes more than 5% and genes with more than .... genes as instructed by Nick
+temp_meta<-Ximerakis_total@meta.data
+temp_meta <- temp_meta %>%
+    dplyr::rename(nUMI = nCount_RNA,
+                  nGene = nFeature_RNA)
+
+Ximerakis_total@meta.data<-temp_meta
+
+
+Ximerakis_filtered<- subset(Ximerakis_total,subset= 
+                              percent.mt <20 &
+                              nUMI > 0 &
+                              nGene >150
+                            )
+rm(temp_meta, metadata_test, metadata_filtered)
+```
+
+### Gene-level filtering
+
+Keeping genes which appear in more than 3 cells for statistical power.
+
+```{r}
+
+# Output a logical vector for every gene on whether the more than zero counts per cell
+# Extract counts
+counts <- GetAssayData(object = Ximerakis_filtered, slot = "counts")
+
+# Output a logical vector for every gene on whether the more than zero counts per cell
+nonzero <- counts > 0
+
+# Sums all TRUE values and returns TRUE if more than 3 TRUE values per gene
+keep_genes <- Matrix::rowSums(nonzero) >= 3
+
+# Only keeping those genes expressed in more than 10 cells
+filtered_counts <- counts[keep_genes, ]
+
+# Reassign to filtered Seurat object
+Ximerakis_filtered <- CreateSeuratObject(filtered_counts, meta.data = Ximerakis_filtered@meta.data)
+rm(filtered_counts, nonzero,counts, keep_genes)
+```
+
+```{r}
+#plot the cells per sample
+Xim_filtered_final_cellpersammple<-Ximerakis_filtered@meta.data%>%
+    ggplot(aes(x=sample, fill=sample)) + 
+  	geom_bar() +
+  	theme_classic() +
+  	theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
+  	theme(plot.title = element_text(hjust=0.5, face="bold")) +
+    scale_fill_manual(values = colour_df_Ximerakis$colours)+
+    plot_annotation(title = "Ximerakis filtered, cells per sample")+
+    guides(fill = 'none')
+Xim_filtered_final_cellpersammple
+
+ggsave("Ximerakis_Cell_counts_per_sample_final.png",plot=Xim_filtered_final_cellpersammple,device='png', path=Xim_plotting_path,width = 20, height = 15, units = 'cm' )
+```
+
+### Saving object
+
+```{r}
+# Create .Rdata object to load at any time
+save(Ximerakis_filtered, file="./Ximerakis/Data/Ximerakis_predoublet.Rdata")
+```
+
+```{r}
+# clearing some space by removing the original seurat objects
+rm(list=paste0(folder_names,"obj"))
+```
+
+## Doublet finder for all samples
+
+```{r}
+
+#load in the filtered Ximerakis object
+#load("./Ximerakis/Data/Ximerakis_filtered.Rdata")
+
+#adapted from https://youtu.be/p49seH2_i8Y , https://github.com/kpatel427/YouTubeTutorials/blob/5b3c795cecafb22f0e992da069eae2efd6b5cb95/singleCell_doublets.R , https://rpubs.com/kenneditodd/doublet_finder_example 
+
+Ximerakis.list <- SplitObject(Ximerakis_filtered, split.by = "sample")
+
+# Perform doublet detection on each sample using lapply
+Ximerakis.list <- lapply(Ximerakis.list, function(sample) {
+  print(paste0("Sample ",sample@meta.data$sample[1]))
+  # Pre-process seurat object with standard seurat workflow
+  sample <- SCTransform(sample)
+  sample <- RunPCA(sample)
+  
+  # Find significant PCs
+  stdv <- sample[["pca"]]@stdev
+  sum.stdv <- sum(sample[["pca"]]@stdev)
+  percent.stdv <- (stdv / sum.stdv) * 100
+  cumulative <- cumsum(percent.stdv)
+  co1 <- which(cumulative > 90 & percent.stdv < 5)[1]
+  co2 <- sort(which((percent.stdv[1:length(percent.stdv) - 1] -
+                       percent.stdv[2:length(percent.stdv)]) > 0.1),
+              decreasing = TRUE)[1] + 1
+  min.pc <- min(co1, co2)
+  
+  # Finish pre-processing
+  sample <- RunUMAP(sample, dims = 1:min.pc)
+  sample <- FindNeighbors(object = sample, dims = 1:min.pc)              
+  sample <- FindClusters(object = sample, resolution = 0.1)
+  
+  # pK identification (no ground-truth)
+  sweep.list <- paramSweep_v3(sample, PCs = 1:min.pc, sct = TRUE)
+  sweep.stats <- summarizeSweep(sweep.list)
+  bcmvn <- find.pK(sweep.stats)
+  
+  # Optimal pK is the max of the bomodality coefficient (BCmvn) distribution
+  bcmvn.max <- bcmvn[which.max(bcmvn$BCmetric),]
+  optimal.pk <- as.numeric(bcmvn.max$pK)
+
+  # Homotypic doublet proportion estimate
+  annotations <- sample@meta.data$seurat_clusters
+  homotypic.prop <- modelHomotypic(annotations) 
+  nExp.poi <- round(0.087 * nrow(sample@meta.data))
+  nExp.poi.adj <- round(nExp.poi * (1 - homotypic.prop))
+  
+  # Run DoubletFinder
+  sample <- doubletFinder_v3(seu = sample, 
+                             PCs = 1:min.pc, 
+                             pK = optimal.pk,
+                             nExp = nExp.poi.adj, 
+                             sct = TRUE, 
+                             pN=0.25)
+  
+  return(sample)
+  
+})
+
+#Rename the columns
+Ximerakis.list <- lapply(Ximerakis.list, function(sample) {
+  doublet_col_index <- which(grepl("DF.classifications_", colnames(sample@meta.data)))
+  sample$doublet_finder <- sample@meta.data[doublet_col_index]
+  sample@meta.data[doublet_col_index]<-NULL
+  return(sample)
+})
+
+#subset data by singlet status
+Ximerakis.list.singlets <- lapply(Ximerakis.list, function(sample) {
+  sample<- subset(sample, subset= doublet_finder == 'Singlet')
+  return(sample)
+  })
+
+```
+
+```{r}
+#merge the data back together
+Xim_singlets_merged <- Merge_Seurat_List(list_seurat = Ximerakis.list.singlets)
+rm(Ximerakis.list.singlets)
+```
+
+### Saving object
+
+```{r}
+# Create .Rdata object to load at any time
+save(Xim_singlets_merged, file="./Ximerakis/Data/Xim_singlets_merged.Rdata")
+
+```
+
+## Clustering
+
+```{r}
+
+#load("./Ximerakis/Data/Xim_singlets_merged.Rdata")
+
+DefaultAssay(Xim_singlets_merged)<-'RNA'
+
+Xim_singlets_merged <- NormalizeData(Xim_singlets_merged, verbose = T)
+Xim_singlets_merged <- FindVariableFeatures(Xim_singlets_merged, verbose = T)
+Xim_singlets_merged <- ScaleData(Xim_singlets_merged, verbose = T)
+
+gc()
+
+Xim_singlets_merged <- RunPCA(Xim_singlets_merged, verbose = TRUE)
+
+#Show the redundancy of PCs in the dataset, indicated by plateauing of the elbowplot gradient.
+ElbowPlot(Xim_singlets_merged, ndims=30)
+```
+
+Elbow plot shows a final drop in Sd around 20, so will use 30 PCs
+
+```{r}
+#dimensionality reduction on Ximerakis singlets
+Xim_singlets_merged <- RunUMAP(Xim_singlets_merged, dims = 1:30, verbose = TRUE)
+
+Xim_singlets_merged <- FindNeighbors(Xim_singlets_merged, dims = 1:30, verbose = TRUE)
+Xim_singlets_merged <- FindClusters(Xim_singlets_merged, verbose = TRUE, resolution = 1, random.seed = 42)
+
+#Plot UMAP
+Ximerakis_entire_UMAP<-DimPlot(Xim_singlets_merged, label = TRUE, raster=FALSE)+ggtitle("Ximerakis clustering", subtitle = "NormalizeData, clustering resolution= 1, UMAPdims25")
+Ximerakis_entire_UMAP
+ggsave("Ximerakis_entire_UMAP.png",plot=Ximerakis_entire_UMAP,device='png', path=Xim_plotting_path,width = 20, height = 15, units = 'cm' )
+
+#Plot UMAP by sample
+Ximerakis_entire_UMAP_by_sample<-DimPlot(Xim_singlets_merged, raster=FALSE, group.by = "sample", repel = TRUE,cols=colour_df_Ximerakis$colours)+ ggtitle("Ximerakis clustering", subtitle = "NormalizeData, clustering resolution= 1, UMAPdims 30")
+Ximerakis_entire_UMAP_by_sample
+ggsave("Ximerakis_entire_UMAP_by_sample.png",plot=Ximerakis_entire_UMAP_by_sample,device='png', path=Xim_plotting_path,width = 20, height = 15, units = 'cm' )
+
+
+#Save the singlets as their own object
+save(Xim_singlets_merged, file="./Ximerakis/Data/Ximerakis_clustering.RData")
+```
+
+```{r}
+sampleLabs_Xim<- names(Xim_singlets_merged@active.ident)
+
+treat_detect_Xim <- case_when(
+  str_detect(sampleLabs_Xim, "OX*") ~ "AGED",
+  str_detect(sampleLabs_Xim, "YX*") ~ "YOUNG",
+  TRUE ~ NA_character_
+)
+
+Xim_singlets_merged@meta.data$treatment<-as.factor(treat_detect_Xim)
+Idents(object=Xim_singlets_merged)<-"treatment"
+rm(treat_detect_Xim, sampleLabs_Xim)
+```
+
+# Although the code below runs, further code was part of an abandoned pipeline and should not be taken as intended analysis. Analysis was not progressed further beyond this line.
+
+## Pre-treat the data for clustering
+
+```{r}
+# adapted from https://satijalab.org/seurat/articles/integration_introduction.html
+
+# set the RNA assay as active
+DefaultAssay(Xim_singlets_merged) <- "RNA"
+
+# split the dataset into a list of three seurat objects (ME7, NBH, AGEING)
+Slo_list<-SplitObject(Xim_singlets_merged, split.by = "treatment")
+rm(Xim_singlets_merged)
+gc()
+
+
+# normalize and identify variable features for each dataset independently
+Xim_list <- lapply(X = Slo_list, FUN = function(x) {
+    x <- NormalizeData(x)
+    x <- FindVariableFeatures(x, selection.method = "vst", nfeatures = 2000)
+})
+
+# select features that are repeatedly variable across datasets for integration
+features <- SelectIntegrationFeatures(object.list = Xim_list,verbose = TRUE)
+```
+
+### RPCA options
+
+from [<https://satijalab.org/seurat/articles/integration_rpca.html>]
+
+```{r}
+gc()
+#Perform PCA on the data individually before integration
+Xim_list <- lapply(X = Xim_list, FUN = function(x) {
+    x <- ScaleData(x, features = features, verbose = TRUE)
+    x <- RunPCA(x, features = features, verbose = TRUE)
+})
+
+#Use RPCA
+Xim.anchors <- FindIntegrationAnchors(object.list = Xim_list, anchor.features = features, verbose=TRUE, reduction='rpca')
+
+# this command creates an 'integrated' data assay
+Ximerakis.combined <- IntegrateData(anchorset = Xim.anchors, verbose=TRUE)
+```
+
+```{r}
+# specify that we will perform downstream analysis on the corrected data note that the
+# original unmodified data still resides in the 'RNA' assay
+DefaultAssay(Ximerakis.combined) <- "integrated"
+
+# Run the standard workflow for visualization and clustering
+Ximerakis.combined <- ScaleData(Ximerakis.combined, verbose = FALSE)
+Ximerakis.combined <- RunPCA(Ximerakis.combined, npcs = 30, verbose = FALSE)
+
+ElbowPlot(Ximerakis.combined, ndims=30)+ggtitle("Elbowplot of Integrated Ximerakis data", subtitle = "RunPCA npcs=30, RPCA workflow")
+```
+
+Elbow plot shows around 20 PCs are enough
+
+```{r}
+#20 PCs seem to cover the variability
+Ximerakis.combined <- RunUMAP(Ximerakis.combined, reduction = "pca", dims = 1:20)
+Ximerakis.combined <- FindNeighbors(Ximerakis.combined, reduction = "pca", dims = 1:20)
+Ximerakis.combined <- FindClusters(Ximerakis.combined, resolution = c(0.2,0.3,0.5,0.7,1))
+
+#cycle/change resolution number in group.by to see difference in clusters
+DimPlot(Ximerakis.combined, reduction = 'umap', label = TRUE, repel = TRUE, raster=F)+ggtitle("Integrated Ximerakis data, labelled by cluster numbers", subtitle="RPCA,Clustering resolution 1, 20 PCs used")
+
+DimPlot(Ximerakis.combined, group.by="integrated_snn_res.0.2", label = TRUE, repel = TRUE, raster=F)+ggtitle("Ximerakis integrated",subtitle="resolution 0.2")
+
+#set the idents to 0.2
+Ximerakis.combined@active.ident<-Ximerakis.combined@meta.data$integrated_snn_res.0.2
+levels(Ximerakis.combined)
+
+#Save the object
+save(Ximerakis.combined,file="./Ximerakis/Data/Ximerakis.self_integrated_RPCA.Rdata")
+```
+
+```{r}
+# Visualization
+p1 <- DimPlot(Ximerakis.combined, reduction = "umap", split.by = "treatment", raster=FALSE, label=T)+ ggtitle("Integrated Ximerakis data, split by treatment", subtitle="RPCA,Clustering resolution 0.2, 20 PCs used")
+
+#Check for sample batch effects (shouldn't see this in an integrated dataset). The colou pallete hides sample11 because it covers everything
+
+# p2 <- DimPlot(Ximerakis.combined, reduction = "umap", group.by = "sample", raster=FALSE +scale_color_manual(values = dimplotcolours))
+
+#This plot would be to label by cell type, not useable as I haven't used singleR yet
+# p3 <- DimPlot(Ximerakis.combined, reduction = "umap", group.by = "seurat_annotations", label = TRUE,repel = TRUE, raster=FALSE)
+
+
+#show the plots
+p1 #+ p2 +p3
+```
+
+##Preliminary Astrocyte checks
+
+```{r}
+DefaultAssay(Ximerakis.combined)<-"RNA"
+
+#Check for a gene of interest in the data's geneset
+Gene_Names<-Ximerakis.combined@assays[["RNA"]]@counts@Dimnames[[1]]
+filtered_gene_names<-Gene_Names[!grepl("^\\d", Gene_Names)]
+filtered_gene_names[grep("^Aldh1lh", filtered_gene_names)]
+
+#try to identify astrocytes  with genes (Aldh1l1, Syp, Csf1r,Tmem119, Map2, Gfap)
+
+astrocyte_genes<-c("Aldh1l1","Gfap","Slc1a2")
+
+FeaturePlot(Ximerakis.combined,features=astrocyte_genes, raster=F)#+ggtitle("Integrated Verity data, labelled with astrocyte gene markers", subtitle="RPCA,Clustering resolution 0.2, 25 PCs used")
+#+scale_colour_gradientn(colours = rev(brewer.pal(n = 11, name = "Spectral"))) + ggtitle("ALDH1 for astrocytes")
+```
+
+## Cell annotation
+
+```{r}
+
+library(SingleR)
+library(celldex)
+
+#FIXME change the reference which is loaded to the mouse one
+#library(celldex)
+mouse.ref <- celldex::MouseRNAseqData()
+
+sce <- as.SingleCellExperiment(Ximerakis.combined)
+
+mouse.main <- SingleR(test=sce, ref=mouse.ref, labels=mouse.ref$label.main, de.method="wilcox")
+
+mouse.fine <- SingleR(test=sce, ref=mouse.ref, labels=mouse.ref$label.fine, de.method="wilcox")
+
+table(mouse.fine$labels)
+
+# https://github.com/LTLA/SingleR/blob/master/README.md
+#Add annotation back to Seruat object
+Ximerakis.combined[["SingleR.labels.main"]] <- mouse.main$labels
+Ximerakis.combined[["SingleR.labels.fine"]] <- mouse.fine$labels
+
+Ximerakis.combined <- SetIdent(Ximerakis.combined, value = "SingleR.labels.fine")
+rm(sce, mouse.fine, mouse.main, mouse.ref)
+
+#Visualise distribution on UMAP
+DimPlot(Ximerakis.combined, label = T , repel = T, label.size = 3, raster=F)+ggtitle("Ximerakis dataset integrated clustering", subtitle="Cell annotation with SingleR")
+```
+
+```{r}
+Ximerakis.combined@active.ident<-as.factor(Ximerakis.combined$SingleR.labels.fine)
+pt <- table(Idents(Ximerakis.combined), Ximerakis.combined$treatment)
+pt <- as.data.frame(pt)
+pt$Cell_name <- as.character(pt$Var1);pt$Var1<-NULL
+pt$treatment<-as.character(pt$Var2);pt$Var2<-NULL
+AGED<-pt[pt$treatment=='AGED',]
+YOUNG<-pt[pt$treatment=='YOUNG',]
+AGED$Percent_prevalence <- (AGED$Freq / sum(AGED$Freq))*100
+YOUNG$Percent_prevalence <- (YOUNG$Freq / sum(YOUNG$Freq))*100
+
+#Showing how the difference in activated astrocytes between treatments
+AGED[AGED$Cell_name=='Astrocytes activated',]
+YOUNG[YOUNG$Cell_name=='Astrocytes activated',]
+
+
+#https://stackoverflow.com/questions/9563711/r-color-palettes-for-many-data-classes and ChatGPT
+(table(pt$treatment))
+
+# build-in color palette
+# Glasbey = glasbey.colors(30)
+# swatch(Glasbey)
+
+
+# Create a factor variable with x-axis labels in reverse alphabetical order
+pt$treatment <- factor(pt$treatment, levels = rev(unique(pt$treatment)))
+
+ggplot(pt, aes(x = treatment, y = Freq, fill = Cell_name)) +
+  theme_bw(base_size = 15) +
+  geom_col(position = "fill", width = 0.5) +
+  xlab("Condition") +
+  ylab("Proportion") +
+  scale_fill_manual(values = as.vector(Glasbey)) +
+  theme(legend.title = element_blank()) +
+  ggtitle("Cell identity in Xinerakis dataset", subtitle = "Annotated by SingleR")
+```
+
+## Investigate astrocytes
+
+```{r}
+
+# Convert cluster names to character
+Idents(Ximerakis.combined) <- as.character(Idents(Ximerakis.combined))
+VlnPlot(Ximerakis.combined, features = "Slc1a2")
+
+#Subset out astrocytes
+Xim_astrocytes<-subset(Ximerakis.combined, idents=c('Astrocytes', 'Astrocytes activated'))
+
+#Show the data membership acorss cell type in the astrocyte set
+table(Xim_astrocytes$treatment)
+table(Xim_astrocytes$SingleR.labels.fine)
+
+#find clustered astrocyte markers, differences in astrocyte populations
+
+DefaultAssay(Xim_astrocytes)<-'RNA'
+
+#make counts whole numbers
+Xim_astrocytes@assays$RNA@counts@x <-round(Xim_astrocytes@assays$RNA@counts@x)
+
+#'solution' from github forums is to add counts to all genes to remove 0 mean https://github.com/satijalab/seurat/issues/1570
+Xim_astrocytes[["RNA"]]@counts<-as.matrix(Xim_astrocytes[["RNA"]]@counts)+1
+
+astrocyte.markers <- FindMarkers(Xim_astrocytes, 
+                                 ident.1 = 'Astrocytes', 
+                                 min.pct = 0.25,
+                                 verbose = TRUE,
+                                 slot='counts',
+                                 test.use = 'negbinom'
+                                 )
+head(astrocyte.markers, n = 6)
+save(astrocyte.markers, file="Ximerakis_astrocyte.markers.RData")
+```
+
+## Find DEGs within the astrocyte subclusters
+
+```{r}
+#subset, then cluster? Or add Ximerakis first then do this analysis?
+DefaultAssay(Xim_astrocytes)<-"integrated"
+
+# Run the standard workflow for visualization and clustering
+Xim_astrocytes <- ScaleData(Xim_astrocytes, verbose = FALSE)
+Xim_astrocytes <- RunPCA(Xim_astrocytes, npcs = 30, verbose = FALSE)
+ElbowPlot(Xim_astrocytes, ndims=30)+ggtitle("Elbowplot of Integrated Ximerakis data", subtitle = "RunPCA npcs=30, RPCA workflow")
+
+#30 PCs seem to cover the variability
+Xim_astrocytes <- RunUMAP(Xim_astrocytes, reduction = "pca", dims = 1:30)
+Xim_astrocytes <- FindNeighbors(Xim_astrocytes, reduction = "pca", dims = 1:30)
+Xim_astrocytes <- FindClusters(Xim_astrocytes, resolution = c(0.2,0.3,0.5,0.7,1))
+
+
+DimPlot(Xim_astrocytes, group.by="integrated_snn_res.0.3", label = TRUE, repel = TRUE, raster=F)+ggtitle("Integrated Ximerakis data's astrocytes", subtitle="Resolution 0.3")
+
+#cyclechange resolution number in group.by to see difference in clusters
+DimPlot(Xim_astrocytes, reduction = 'umap', label = TRUE, repel = TRUE, raster=F)+ggtitle("Integrated Ximerakis data's astrocytes, labelled by treatment", subtitle="Resolution 0.3")
+
+#set the idents to 0.3
+Xim_astrocytes@active.ident<-Xim_astrocytes@meta.data$integrated_snn_res.0.3
+levels(Xim_astrocytes)
+
+#show that there are not many activated astrocytes annotated by SingleR
+Xim_astrocytes <- SetIdent(Xim_astrocytes, value = "SingleR.labels.fine")
+DimPlot(Xim_astrocytes, label = TRUE, repel = TRUE, raster=F)+ggtitle("Ximerakis astrocytes",subtitle="Annotated by SingleR")
+```
+
+```{r}
+#Carry on with analysis
+Xim_astrocytes <- SetIdent(Xim_astrocytes, value = "integrated_snn_res.0.3")
+DefaultAssay(Xim_astrocytes)<-'RNA'
+
+#set identities to subclusters
+Idents(Xim_astrocytes) <- as.character(Idents(Xim_astrocytes))
+
+astrocyte_subcluster.markers <- FindMarkers(Xim_astrocytes, ident.1 = 0, min.pct = 0.25, verbose = TRUE, test.use = "negbinom")
+
+#by treatment, show the genes DE in Prion condition. LogFC set to a *1 increase in fold change
+#Compare the Aged to the Young samples
+Xim_astrocytes@active.ident<-as.factor(Xim_astrocytes$treatment)
+
+#Show the spread of the data
+table(Xim_astrocytes$treatment, Xim_astrocytes$SingleR.labels.fine)
+
+#check grouping of data by treatment
+DimPlot(Xim_astrocytes, label = TRUE, repel = TRUE, raster=F, group.by="treatment", split.by = "SingleR.labels.fine")+ggtitle("Ximerakis astrocytes",subtitle="Annotated by treatment")
+
+Ximerakis_astrocyte_aged.markers <- FindMarkers(Xim_astrocytes, ident.1 = 'AGED', min.pct = 0.15, verbose = TRUE, test.use = "negbinom", logfc.threshold = 0.50)
+
+#Sort the list in descending log2FC and ascending pvalues
+Ximerakis_astrocyte_aged.markers<-Ximerakis_astrocyte_aged.markers[order(-Ximerakis_astrocyte_aged.markers$avg_log2FC, Ximerakis_astrocyte_aged.markers$p_val), ]
+#Save the file
+write.csv(Ximerakis_astrocyte_aged.markers, file = "Ximerakis_astrocyte_aged.markers.csv")
+
+save(Ximerakis_astrocyte_aged.markers, file="Ximerakis_astrocyte_aged.markers.RData")
+```

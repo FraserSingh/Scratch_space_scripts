@@ -1,0 +1,12 @@
+prefix=/exports/csce/eddie/biology/groups/bioinfmsc/anaconda/envs/s2268606/project_test
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include
+
+Name: cairo-script
+Description: script surface backend for cairo graphics library
+Version: 1.14.12
+
+Requires: cairo 
+Libs:  
+Cflags: -I${includedir}/cairo 

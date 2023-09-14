@@ -1,0 +1,4 @@
+[http]
+        sslVerify = true
+        sslCAPath = /exports/csce/eddie/biology/groups/bioinfmsc/anaconda/envs/s2268606/project_test/ssl/cacert.pem
+        sslCAInfo = /exports/csce/eddie/biology/groups/bioinfmsc/anaconda/envs/s2268606/project_test/ssl/cacert.pem

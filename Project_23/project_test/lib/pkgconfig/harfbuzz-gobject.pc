@@ -1,0 +1,12 @@
+prefix=/exports/csce/eddie/biology/groups/bioinfmsc/anaconda/envs/s2268606/project_test
+exec_prefix=/exports/csce/eddie/biology/groups/bioinfmsc/anaconda/envs/s2268606/project_test
+libdir=/exports/csce/eddie/biology/groups/bioinfmsc/anaconda/envs/s2268606/project_test/lib
+includedir=/exports/csce/eddie/biology/groups/bioinfmsc/anaconda/envs/s2268606/project_test/include
+
+Name: harfbuzz
+Description: HarfBuzz text shaping library GObject integration
+Version: 1.8.8
+
+Requires: harfbuzz gobject-2.0 glib-2.0
+Libs: -L${libdir} -lharfbuzz-gobject
+Cflags: -I${includedir}/harfbuzz

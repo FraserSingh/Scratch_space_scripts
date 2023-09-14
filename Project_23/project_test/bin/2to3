@@ -1,0 +1,5 @@
+#!/exports/csce/eddie/biology/groups/bioinfmsc/anaconda/envs/s2268606/project_test/bin/python2.7
+import sys
+from lib2to3.main import main
+
+sys.exit(main("lib2to3.fixes"))

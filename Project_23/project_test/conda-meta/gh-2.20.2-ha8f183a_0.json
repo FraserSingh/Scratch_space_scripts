@@ -1,0 +1,1154 @@
+{
+  "build": "ha8f183a_0",
+  "build_number": 0,
+  "channel": "https://conda.anaconda.org/conda-forge/linux-64",
+  "constrains": [],
+  "depends": [],
+  "extracted_package_dir": "/exports/csce/eddie/biology/groups/bioinfmsc/anaconda/pkgs/gh-2.20.2-ha8f183a_0",
+  "features": "",
+  "files": [
+    "bin/gh",
+    "share/man/man1/gh-alias-delete.1",
+    "share/man/man1/gh-alias-list.1",
+    "share/man/man1/gh-alias-set.1",
+    "share/man/man1/gh-alias.1",
+    "share/man/man1/gh-api.1",
+    "share/man/man1/gh-auth-login.1",
+    "share/man/man1/gh-auth-logout.1",
+    "share/man/man1/gh-auth-refresh.1",
+    "share/man/man1/gh-auth-setup-git.1",
+    "share/man/man1/gh-auth-status.1",
+    "share/man/man1/gh-auth-token.1",
+    "share/man/man1/gh-auth.1",
+    "share/man/man1/gh-browse.1",
+    "share/man/man1/gh-codespace-code.1",
+    "share/man/man1/gh-codespace-cp.1",
+    "share/man/man1/gh-codespace-create.1",
+    "share/man/man1/gh-codespace-delete.1",
+    "share/man/man1/gh-codespace-edit.1",
+    "share/man/man1/gh-codespace-jupyter.1",
+    "share/man/man1/gh-codespace-list.1",
+    "share/man/man1/gh-codespace-logs.1",
+    "share/man/man1/gh-codespace-ports-forward.1",
+    "share/man/man1/gh-codespace-ports-visibility.1",
+    "share/man/man1/gh-codespace-ports.1",
+    "share/man/man1/gh-codespace-rebuild.1",
+    "share/man/man1/gh-codespace-ssh.1",
+    "share/man/man1/gh-codespace-stop.1",
+    "share/man/man1/gh-codespace.1",
+    "share/man/man1/gh-completion.1",
+    "share/man/man1/gh-config-get.1",
+    "share/man/man1/gh-config-list.1",
+    "share/man/man1/gh-config-set.1",
+    "share/man/man1/gh-config.1",
+    "share/man/man1/gh-extension-browse.1",
+    "share/man/man1/gh-extension-create.1",
+    "share/man/man1/gh-extension-exec.1",
+    "share/man/man1/gh-extension-install.1",
+    "share/man/man1/gh-extension-list.1",
+    "share/man/man1/gh-extension-remove.1",
+    "share/man/man1/gh-extension-search.1",
+    "share/man/man1/gh-extension-upgrade.1",
+    "share/man/man1/gh-extension.1",
+    "share/man/man1/gh-gist-clone.1",
+    "share/man/man1/gh-gist-create.1",
+    "share/man/man1/gh-gist-delete.1",
+    "share/man/man1/gh-gist-edit.1",
+    "share/man/man1/gh-gist-list.1",
+    "share/man/man1/gh-gist-view.1",
+    "share/man/man1/gh-gist.1",
+    "share/man/man1/gh-gpg-key-add.1",
+    "share/man/man1/gh-gpg-key-delete.1",
+    "share/man/man1/gh-gpg-key-list.1",
+    "share/man/man1/gh-gpg-key.1",
+    "share/man/man1/gh-issue-close.1",
+    "share/man/man1/gh-issue-comment.1",
+    "share/man/man1/gh-issue-create.1",
+    "share/man/man1/gh-issue-delete.1",
+    "share/man/man1/gh-issue-develop.1",
+    "share/man/man1/gh-issue-edit.1",
+    "share/man/man1/gh-issue-list.1",
+    "share/man/man1/gh-issue-pin.1",
+    "share/man/man1/gh-issue-reopen.1",
+    "share/man/man1/gh-issue-status.1",
+    "share/man/man1/gh-issue-transfer.1",
+    "share/man/man1/gh-issue-unpin.1",
+    "share/man/man1/gh-issue-view.1",
+    "share/man/man1/gh-issue.1",
+    "share/man/man1/gh-label-clone.1",
+    "share/man/man1/gh-label-create.1",
+    "share/man/man1/gh-label-delete.1",
+    "share/man/man1/gh-label-edit.1",
+    "share/man/man1/gh-label-list.1",
+    "share/man/man1/gh-label.1",
+    "share/man/man1/gh-pr-checkout.1",
+    "share/man/man1/gh-pr-checks.1",
+    "share/man/man1/gh-pr-close.1",
+    "share/man/man1/gh-pr-comment.1",
+    "share/man/man1/gh-pr-create.1",
+    "share/man/man1/gh-pr-diff.1",
+    "share/man/man1/gh-pr-edit.1",
+    "share/man/man1/gh-pr-list.1",
+    "share/man/man1/gh-pr-merge.1",
+    "share/man/man1/gh-pr-ready.1",
+    "share/man/man1/gh-pr-reopen.1",
+    "share/man/man1/gh-pr-review.1",
+    "share/man/man1/gh-pr-status.1",
+    "share/man/man1/gh-pr-view.1",
+    "share/man/man1/gh-pr.1",
+    "share/man/man1/gh-release-create.1",
+    "share/man/man1/gh-release-delete-asset.1",
+    "share/man/man1/gh-release-delete.1",
+    "share/man/man1/gh-release-download.1",
+    "share/man/man1/gh-release-edit.1",
+    "share/man/man1/gh-release-list.1",
+    "share/man/man1/gh-release-upload.1",
+    "share/man/man1/gh-release-view.1",
+    "share/man/man1/gh-release.1",
+    "share/man/man1/gh-repo-archive.1",
+    "share/man/man1/gh-repo-clone.1",
+    "share/man/man1/gh-repo-create.1",
+    "share/man/man1/gh-repo-delete.1",
+    "share/man/man1/gh-repo-deploy-key-add.1",
+    "share/man/man1/gh-repo-deploy-key-delete.1",
+    "share/man/man1/gh-repo-deploy-key-list.1",
+    "share/man/man1/gh-repo-deploy-key.1",
+    "share/man/man1/gh-repo-edit.1",
+    "share/man/man1/gh-repo-fork.1",
+    "share/man/man1/gh-repo-list.1",
+    "share/man/man1/gh-repo-rename.1",
+    "share/man/man1/gh-repo-sync.1",
+    "share/man/man1/gh-repo-view.1",
+    "share/man/man1/gh-repo.1",
+    "share/man/man1/gh-run-cancel.1",
+    "share/man/man1/gh-run-download.1",
+    "share/man/man1/gh-run-list.1",
+    "share/man/man1/gh-run-rerun.1",
+    "share/man/man1/gh-run-view.1",
+    "share/man/man1/gh-run-watch.1",
+    "share/man/man1/gh-run.1",
+    "share/man/man1/gh-search-issues.1",
+    "share/man/man1/gh-search-prs.1",
+    "share/man/man1/gh-search-repos.1",
+    "share/man/man1/gh-search.1",
+    "share/man/man1/gh-secret-delete.1",
+    "share/man/man1/gh-secret-list.1",
+    "share/man/man1/gh-secret-set.1",
+    "share/man/man1/gh-secret.1",
+    "share/man/man1/gh-ssh-key-add.1",
+    "share/man/man1/gh-ssh-key-delete.1",
+    "share/man/man1/gh-ssh-key-list.1",
+    "share/man/man1/gh-ssh-key.1",
+    "share/man/man1/gh-status.1",
+    "share/man/man1/gh-workflow-disable.1",
+    "share/man/man1/gh-workflow-enable.1",
+    "share/man/man1/gh-workflow-list.1",
+    "share/man/man1/gh-workflow-run.1",
+    "share/man/man1/gh-workflow-view.1",
+    "share/man/man1/gh-workflow.1",
+    "share/man/man1/gh.1"
+  ],
+  "fn": "gh-2.20.2-ha8f183a_0.tar.bz2",
+  "license": "Apache-2.0",
+  "license_family": "APACHE",
+  "link": {
+    "source": "/exports/csce/eddie/biology/groups/bioinfmsc/anaconda/pkgs/gh-2.20.2-ha8f183a_0",
+    "type": 1
+  },
+  "md5": "f67596da474049fe56745fcdf7e90a16",
+  "name": "gh",
+  "package_tarball_full_path": "/exports/csce/eddie/biology/groups/bioinfmsc/anaconda/pkgs/gh-2.20.2-ha8f183a_0.tar.bz2",
+  "paths_data": {
+    "paths": [
+      {
+        "_path": "bin/gh",
+        "path_type": "hardlink",
+        "sha256": "f0ae2823f11f8c59dc6d122e9f4de6df93693ad5a8fa70bde01223b382dc41e1",
+        "sha256_in_prefix": "f0ae2823f11f8c59dc6d122e9f4de6df93693ad5a8fa70bde01223b382dc41e1",
+        "size_in_bytes": 48087756
+      },
+      {
+        "_path": "share/man/man1/gh-alias-delete.1",
+        "path_type": "hardlink",
+        "sha256": "b7d79503cbab0111b44fbb32fd3c5d21718461c98b4ce86045b0488ae20946ef",
+        "sha256_in_prefix": "b7d79503cbab0111b44fbb32fd3c5d21718461c98b4ce86045b0488ae20946ef",
+        "size_in_bytes": 230
+      },
+      {
+        "_path": "share/man/man1/gh-alias-list.1",
+        "path_type": "hardlink",
+        "sha256": "359b4a63d0e889b7bda2aecd964137dd78d87eb602b4f49333408d34ee7835af",
+        "sha256_in_prefix": "359b4a63d0e889b7bda2aecd964137dd78d87eb602b4f49333408d34ee7835af",
+        "size_in_bytes": 308
+      },
+      {
+        "_path": "share/man/man1/gh-alias-set.1",
+        "path_type": "hardlink",
+        "sha256": "d6c532338c025b19b0063579ce110d1fbb344de3ee550fcd9a10e07fab272f8f",
+        "sha256_in_prefix": "d6c532338c025b19b0063579ce110d1fbb344de3ee550fcd9a10e07fab272f8f",
+        "size_in_bytes": 1695
+      },
+      {
+        "_path": "share/man/man1/gh-alias.1",
+        "path_type": "hardlink",
+        "sha256": "d35409cdb69a29b2d550e2842c2b5e07d361b03125b7d6df7d051e17d04c59c7",
+        "sha256_in_prefix": "d35409cdb69a29b2d550e2842c2b5e07d361b03125b7d6df7d051e17d04c59c7",
+        "size_in_bytes": 544
+      },
+      {
+        "_path": "share/man/man1/gh-api.1",
+        "path_type": "hardlink",
+        "sha256": "82886dcfd35c141d01504feae9cebd708e9cc532e4f6788c7b28bdba32e51066",
+        "sha256_in_prefix": "82886dcfd35c141d01504feae9cebd708e9cc532e4f6788c7b28bdba32e51066",
+        "size_in_bytes": 5185
+      },
+      {
+        "_path": "share/man/man1/gh-auth-login.1",
+        "path_type": "hardlink",
+        "sha256": "652c2180f12cc427d61ef1c7ef790c94d7143b3d16f5715231a4911077a8d558",
+        "sha256_in_prefix": "652c2180f12cc427d61ef1c7ef790c94d7143b3d16f5715231a4911077a8d558",
+        "size_in_bytes": 1617
+      },
+      {
+        "_path": "share/man/man1/gh-auth-logout.1",
+        "path_type": "hardlink",
+        "sha256": "3273ac9e95e10dd915d3eb90396b5883eb194305f2d23aedf814a21e8f693a68",
+        "sha256_in_prefix": "3273ac9e95e10dd915d3eb90396b5883eb194305f2d23aedf814a21e8f693a68",
+        "size_in_bytes": 712
+      },
+      {
+        "_path": "share/man/man1/gh-auth-refresh.1",
+        "path_type": "hardlink",
+        "sha256": "77a819e65dc9a8c12ba82a851fe50a800733d1dddb8e5609522cfb4fbed95e4d",
+        "sha256_in_prefix": "77a819e65dc9a8c12ba82a851fe50a800733d1dddb8e5609522cfb4fbed95e4d",
+        "size_in_bytes": 1011
+      },
+      {
+        "_path": "share/man/man1/gh-auth-setup-git.1",
+        "path_type": "hardlink",
+        "sha256": "7f2bd413908ca7b8168721f261f54a4b127db9e683133dcbad0fc51d9dceb441",
+        "sha256_in_prefix": "7f2bd413908ca7b8168721f261f54a4b127db9e683133dcbad0fc51d9dceb441",
+        "size_in_bytes": 369
+      },
+      {
+        "_path": "share/man/man1/gh-auth-status.1",
+        "path_type": "hardlink",
+        "sha256": "e6318f8734dfe3437b20bc240ed1b7eea401fa39271dc5275250b8824176e5ae",
+        "sha256_in_prefix": "e6318f8734dfe3437b20bc240ed1b7eea401fa39271dc5275250b8824176e5ae",
+        "size_in_bytes": 611
+      },
+      {
+        "_path": "share/man/man1/gh-auth-token.1",
+        "path_type": "hardlink",
+        "sha256": "77713451a94dd67857998d222229d0c906d32b55b33f27be8af1da31f9511ea4",
+        "sha256_in_prefix": "77713451a94dd67857998d222229d0c906d32b55b33f27be8af1da31f9511ea4",
+        "size_in_bytes": 368
+      },
+      {
+        "_path": "share/man/man1/gh-auth.1",
+        "path_type": "hardlink",
+        "sha256": "b4154d10fcee8e412526a67124538c8be10d4e335d8699faf84c1ed169622087",
+        "sha256_in_prefix": "b4154d10fcee8e412526a67124538c8be10d4e335d8699faf84c1ed169622087",
+        "size_in_bytes": 656
+      },
+      {
+        "_path": "share/man/man1/gh-browse.1",
+        "path_type": "hardlink",
+        "sha256": "f239c22abecf7630cf5f4720262da4932eb7b43772bfc44ed2ffbbf848db037e",
+        "sha256_in_prefix": "f239c22abecf7630cf5f4720262da4932eb7b43772bfc44ed2ffbbf848db037e",
+        "size_in_bytes": 1281
+      },
+      {
+        "_path": "share/man/man1/gh-codespace-code.1",
+        "path_type": "hardlink",
+        "sha256": "667ae105ec4c924810b090f365653c2165cd933a16a0fd91dba67047cf6519a6",
+        "sha256_in_prefix": "667ae105ec4c924810b090f365653c2165cd933a16a0fd91dba67047cf6519a6",
+        "size_in_bytes": 494
+      },
+      {
+        "_path": "share/man/man1/gh-codespace-cp.1",
+        "path_type": "hardlink",
+        "sha256": "b0e41942c2cc2704c728d08811c8be9c3d80660fb05165125a79aa0bf3e2d180",
+        "sha256_in_prefix": "b0e41942c2cc2704c728d08811c8be9c3d80660fb05165125a79aa0bf3e2d180",
+        "size_in_bytes": 2124
+      },
+      {
+        "_path": "share/man/man1/gh-codespace-create.1",
+        "path_type": "hardlink",
+        "sha256": "d8616a44902a8682b762bb4d8bfb3de4f11b667186da20df0af0b1e5f1f74f4b",
+        "sha256_in_prefix": "d8616a44902a8682b762bb4d8bfb3de4f11b667186da20df0af0b1e5f1f74f4b",
+        "size_in_bytes": 1251
+      },
+      {
+        "_path": "share/man/man1/gh-codespace-delete.1",
+        "path_type": "hardlink",
+        "sha256": "799ed56b333da329265e726d6747de56b6a4a71a6a8669365b7c59f36ade7f87",
+        "sha256_in_prefix": "799ed56b333da329265e726d6747de56b6a4a71a6a8669365b7c59f36ade7f87",
+        "size_in_bytes": 1174
+      },
+      {
+        "_path": "share/man/man1/gh-codespace-edit.1",
+        "path_type": "hardlink",
+        "sha256": "98f5bfd1d6e27f211f4c6a5285adc12864f4f1a5fda70c292b162c22a5079df5",
+        "sha256_in_prefix": "98f5bfd1d6e27f211f4c6a5285adc12864f4f1a5fda70c292b162c22a5079df5",
+        "size_in_bytes": 500
+      },
+      {
+        "_path": "share/man/man1/gh-codespace-jupyter.1",
+        "path_type": "hardlink",
+        "sha256": "b8633f52f3287d2fc3c71ca4e42d22f7e2539dfff2fbd30be3b6a5c787c75e6c",
+        "sha256_in_prefix": "b8633f52f3287d2fc3c71ca4e42d22f7e2539dfff2fbd30be3b6a5c787c75e6c",
+        "size_in_bytes": 348
+      },
+      {
+        "_path": "share/man/man1/gh-codespace-list.1",
+        "path_type": "hardlink",
+        "sha256": "be1fc4b2102d616b85d8a4bbb01a25c71774abc7c880069e6558eaad17da991b",
+        "sha256_in_prefix": "be1fc4b2102d616b85d8a4bbb01a25c71774abc7c880069e6558eaad17da991b",
+        "size_in_bytes": 1111
+      },
+      {
+        "_path": "share/man/man1/gh-codespace-logs.1",
+        "path_type": "hardlink",
+        "sha256": "feb82f4ef74fb61167306bbc300f5e0ba0e93c0e070a975e30884550ce751301",
+        "sha256_in_prefix": "feb82f4ef74fb61167306bbc300f5e0ba0e93c0e070a975e30884550ce751301",
+        "size_in_bytes": 391
+      },
+      {
+        "_path": "share/man/man1/gh-codespace-ports-forward.1",
+        "path_type": "hardlink",
+        "sha256": "3a7bdd50a9236b316e97c1da18185cdc0ac7ddd8bf0704e58dd323a39c317f47",
+        "sha256_in_prefix": "3a7bdd50a9236b316e97c1da18185cdc0ac7ddd8bf0704e58dd323a39c317f47",
+        "size_in_bytes": 416
+      },
+      {
+        "_path": "share/man/man1/gh-codespace-ports-visibility.1",
+        "path_type": "hardlink",
+        "sha256": "4f8641c6b4579d9c15faf9c7da776f4cda0844eee8f373ae89d5223072bca883",
+        "sha256_in_prefix": "4f8641c6b4579d9c15faf9c7da776f4cda0844eee8f373ae89d5223072bca883",
+        "size_in_bytes": 554
+      },
+      {
+        "_path": "share/man/man1/gh-codespace-ports.1",
+        "path_type": "hardlink",
+        "sha256": "2265427fa7d0007e9a1762ea2bfa4610af46e883a242214ce9d5d2fa309b2fd5",
+        "sha256_in_prefix": "2265427fa7d0007e9a1762ea2bfa4610af46e883a242214ce9d5d2fa309b2fd5",
+        "size_in_bytes": 793
+      },
+      {
+        "_path": "share/man/man1/gh-codespace-rebuild.1",
+        "path_type": "hardlink",
+        "sha256": "69cf26542e01e1447028f1eec1263c591a1b71eba2da7537ccc87db7d1d83319",
+        "sha256_in_prefix": "69cf26542e01e1447028f1eec1263c591a1b71eba2da7537ccc87db7d1d83319",
+        "size_in_bytes": 620
+      },
+      {
+        "_path": "share/man/man1/gh-codespace-ssh.1",
+        "path_type": "hardlink",
+        "sha256": "bd749fc9b21b09645177c750d9b73dc2ae132e6bd34fc36972547d12ca733b42",
+        "sha256_in_prefix": "bd749fc9b21b09645177c750d9b73dc2ae132e6bd34fc36972547d12ca733b42",
+        "size_in_bytes": 2137
+      },
+      {
+        "_path": "share/man/man1/gh-codespace-stop.1",
+        "path_type": "hardlink",
+        "sha256": "64c7f1406017538f1e340957b97ee50444bb1f56cde555a02019b98dedebb2d3",
+        "sha256_in_prefix": "64c7f1406017538f1e340957b97ee50444bb1f56cde555a02019b98dedebb2d3",
+        "size_in_bytes": 540
+      },
+      {
+        "_path": "share/man/man1/gh-codespace.1",
+        "path_type": "hardlink",
+        "sha256": "397e7a3ea6f2b73ba6070603fa11d667b2bb8004d380acf5737b21b0c18e77e8",
+        "sha256_in_prefix": "397e7a3ea6f2b73ba6070603fa11d667b2bb8004d380acf5737b21b0c18e77e8",
+        "size_in_bytes": 969
+      },
+      {
+        "_path": "share/man/man1/gh-completion.1",
+        "path_type": "hardlink",
+        "sha256": "a7f130c978ecec9f33ea2b648333374acc8f190f22f6cc2781602abe6b8102b9",
+        "sha256_in_prefix": "a7f130c978ecec9f33ea2b648333374acc8f190f22f6cc2781602abe6b8102b9",
+        "size_in_bytes": 1902
+      },
+      {
+        "_path": "share/man/man1/gh-config-get.1",
+        "path_type": "hardlink",
+        "sha256": "58ddbaadd37d52d8d19d6e0df9f079d03ca3602423da595e10386da5ba6e40a5",
+        "sha256_in_prefix": "58ddbaadd37d52d8d19d6e0df9f079d03ca3602423da595e10386da5ba6e40a5",
+        "size_in_bytes": 410
+      },
+      {
+        "_path": "share/man/man1/gh-config-list.1",
+        "path_type": "hardlink",
+        "sha256": "c6fdb6324547a002d6204d4cd830d481f8da833c2dbd7cfb8970702899006cf8",
+        "sha256_in_prefix": "c6fdb6324547a002d6204d4cd830d481f8da833c2dbd7cfb8970702899006cf8",
+        "size_in_bytes": 342
+      },
+      {
+        "_path": "share/man/man1/gh-config-set.1",
+        "path_type": "hardlink",
+        "sha256": "ed293f34a14eded0aab40891b2d35731573e61c088e4e56ac7086e3267943671",
+        "sha256_in_prefix": "ed293f34a14eded0aab40891b2d35731573e61c088e4e56ac7086e3267943671",
+        "size_in_bytes": 537
+      },
+      {
+        "_path": "share/man/man1/gh-config.1",
+        "path_type": "hardlink",
+        "sha256": "fde156c56afbe6d425f4d1a9d550766df336ac2f43ecbc327ac29c23d2c7d26e",
+        "sha256_in_prefix": "fde156c56afbe6d425f4d1a9d550766df336ac2f43ecbc327ac29c23d2c7d26e",
+        "size_in_bytes": 1001
+      },
+      {
+        "_path": "share/man/man1/gh-extension-browse.1",
+        "path_type": "hardlink",
+        "sha256": "fda75d256064b76b0df16593199d0d5127edf8247193a4762023fd5ece4482fa",
+        "sha256_in_prefix": "fda75d256064b76b0df16593199d0d5127edf8247193a4762023fd5ece4482fa",
+        "size_in_bytes": 1438
+      },
+      {
+        "_path": "share/man/man1/gh-extension-create.1",
+        "path_type": "hardlink",
+        "sha256": "845cdb7929bc5311ccc621610bb1c8bf19422720a9989b207b1ef19ea9d72027",
+        "sha256_in_prefix": "845cdb7929bc5311ccc621610bb1c8bf19422720a9989b207b1ef19ea9d72027",
+        "size_in_bytes": 668
+      },
+      {
+        "_path": "share/man/man1/gh-extension-exec.1",
+        "path_type": "hardlink",
+        "sha256": "b05effc99979f849eec6c944584e877a6ed8415432e857ac578e3478028131bc",
+        "sha256_in_prefix": "b05effc99979f849eec6c944584e877a6ed8415432e857ac578e3478028131bc",
+        "size_in_bytes": 726
+      },
+      {
+        "_path": "share/man/man1/gh-extension-install.1",
+        "path_type": "hardlink",
+        "sha256": "94b790786fb3042a27c701435965686c7f39421897999f8e7d7de7b60525beb9",
+        "sha256_in_prefix": "94b790786fb3042a27c701435965686c7f39421897999f8e7d7de7b60525beb9",
+        "size_in_bytes": 1053
+      },
+      {
+        "_path": "share/man/man1/gh-extension-list.1",
+        "path_type": "hardlink",
+        "sha256": "9784e464aee89ab15fd00ba37b15d6562b51eb264563917639f451aa9bfed008",
+        "sha256_in_prefix": "9784e464aee89ab15fd00ba37b15d6562b51eb264563917639f451aa9bfed008",
+        "size_in_bytes": 250
+      },
+      {
+        "_path": "share/man/man1/gh-extension-remove.1",
+        "path_type": "hardlink",
+        "sha256": "fef99fac31bdf05c9666f5183e18833a16ba0c90c72690260d33c6080f659a1b",
+        "sha256_in_prefix": "fef99fac31bdf05c9666f5183e18833a16ba0c90c72690260d33c6080f659a1b",
+        "size_in_bytes": 259
+      },
+      {
+        "_path": "share/man/man1/gh-extension-search.1",
+        "path_type": "hardlink",
+        "sha256": "0bd83c331f53bf61c14192a05ab9958f717dc58e66c548ae4d332972f663e87b",
+        "sha256_in_prefix": "0bd83c331f53bf61c14192a05ab9958f717dc58e66c548ae4d332972f663e87b",
+        "size_in_bytes": 2752
+      },
+      {
+        "_path": "share/man/man1/gh-extension-upgrade.1",
+        "path_type": "hardlink",
+        "sha256": "8fbec8eab736d1c66c1c0df67af0a5b47d6a47d966e28f8ae189f8cc11c1150b",
+        "sha256_in_prefix": "8fbec8eab736d1c66c1c0df67af0a5b47d6a47d966e28f8ae189f8cc11c1150b",
+        "size_in_bytes": 419
+      },
+      {
+        "_path": "share/man/man1/gh-extension.1",
+        "path_type": "hardlink",
+        "sha256": "1631383db86d2dcf8a45808fbe9db07a82d5a164e98da9ffffe9cf2c5181b328",
+        "sha256_in_prefix": "1631383db86d2dcf8a45808fbe9db07a82d5a164e98da9ffffe9cf2c5181b328",
+        "size_in_bytes": 1457
+      },
+      {
+        "_path": "share/man/man1/gh-gist-clone.1",
+        "path_type": "hardlink",
+        "sha256": "1a820bdbe05caed6b24c4c004c3135476b20c2be1f7614d88fcf36c6c30a4f29",
+        "sha256_in_prefix": "1a820bdbe05caed6b24c4c004c3135476b20c2be1f7614d88fcf36c6c30a4f29",
+        "size_in_bytes": 573
+      },
+      {
+        "_path": "share/man/man1/gh-gist-create.1",
+        "path_type": "hardlink",
+        "sha256": "e0eb568e7a4663b88e7b9ca5fe2418bac88d4cb18f306888f17ecb21577369a3",
+        "sha256_in_prefix": "e0eb568e7a4663b88e7b9ca5fe2418bac88d4cb18f306888f17ecb21577369a3",
+        "size_in_bytes": 1322
+      },
+      {
+        "_path": "share/man/man1/gh-gist-delete.1",
+        "path_type": "hardlink",
+        "sha256": "b86fc82bab5e5f86b4296ffa939a49c8a65e7341de59978df10ffca18febce26",
+        "sha256_in_prefix": "b86fc82bab5e5f86b4296ffa939a49c8a65e7341de59978df10ffca18febce26",
+        "size_in_bytes": 231
+      },
+      {
+        "_path": "share/man/man1/gh-gist-edit.1",
+        "path_type": "hardlink",
+        "sha256": "fc670c95eb0dab077776b771878d51c221c66359c0697bbe676c2695490be799",
+        "sha256_in_prefix": "fc670c95eb0dab077776b771878d51c221c66359c0697bbe676c2695490be799",
+        "size_in_bytes": 497
+      },
+      {
+        "_path": "share/man/man1/gh-gist-list.1",
+        "path_type": "hardlink",
+        "sha256": "ae529505a9d845a07f0f3501839c7b96678d7825a7576557c1297bd40437f90a",
+        "sha256_in_prefix": "ae529505a9d845a07f0f3501839c7b96678d7825a7576557c1297bd40437f90a",
+        "size_in_bytes": 400
+      },
+      {
+        "_path": "share/man/man1/gh-gist-view.1",
+        "path_type": "hardlink",
+        "sha256": "4d460d9974c2d3c9ed5f17e18d3db697f557f71e95e8bebdf3481839fb93eec1",
+        "sha256_in_prefix": "4d460d9974c2d3c9ed5f17e18d3db697f557f71e95e8bebdf3481839fb93eec1",
+        "size_in_bytes": 586
+      },
+      {
+        "_path": "share/man/man1/gh-gist.1",
+        "path_type": "hardlink",
+        "sha256": "c8c3c421e4a3787bb6d1ffe2c62e38b569291640b29436c1b157a5a66472a5e6",
+        "sha256_in_prefix": "c8c3c421e4a3787bb6d1ffe2c62e38b569291640b29436c1b157a5a66472a5e6",
+        "size_in_bytes": 548
+      },
+      {
+        "_path": "share/man/man1/gh-gpg-key-add.1",
+        "path_type": "hardlink",
+        "sha256": "5bd21b6ad280128b329e8868d80282f261309d974d13799fd65f98b0eacf7056",
+        "sha256_in_prefix": "5bd21b6ad280128b329e8868d80282f261309d974d13799fd65f98b0eacf7056",
+        "size_in_bytes": 255
+      },
+      {
+        "_path": "share/man/man1/gh-gpg-key-delete.1",
+        "path_type": "hardlink",
+        "sha256": "8377000c843c8484a0f974c3185064529cf1e8ce413ad54b5d844d888e28f7ed",
+        "sha256_in_prefix": "8377000c843c8484a0f974c3185064529cf1e8ce413ad54b5d844d888e28f7ed",
+        "size_in_bytes": 344
+      },
+      {
+        "_path": "share/man/man1/gh-gpg-key-list.1",
+        "path_type": "hardlink",
+        "sha256": "38a5bf13ac31705a3d4facf07dfdd8da99730a0122039f4fa5e440d669ce928c",
+        "sha256_in_prefix": "38a5bf13ac31705a3d4facf07dfdd8da99730a0122039f4fa5e440d669ce928c",
+        "size_in_bytes": 246
+      },
+      {
+        "_path": "share/man/man1/gh-gpg-key.1",
+        "path_type": "hardlink",
+        "sha256": "dc4358a178a313ff43b470d4eb2c04d7f8cc8890090098c1b82776cf065ec5f0",
+        "sha256_in_prefix": "dc4358a178a313ff43b470d4eb2c04d7f8cc8890090098c1b82776cf065ec5f0",
+        "size_in_bytes": 517
+      },
+      {
+        "_path": "share/man/man1/gh-issue-close.1",
+        "path_type": "hardlink",
+        "sha256": "2fac7b1207b572e5647a4f93bf1d63fd04762a57dce4d991b310c489305ff5c5",
+        "sha256_in_prefix": "2fac7b1207b572e5647a4f93bf1d63fd04762a57dce4d991b310c489305ff5c5",
+        "size_in_bytes": 592
+      },
+      {
+        "_path": "share/man/man1/gh-issue-comment.1",
+        "path_type": "hardlink",
+        "sha256": "bb2a96640d7ac6b1448676d7bea2d31eacbbcf66a8bf5fb0f4237765b78f94ef",
+        "sha256_in_prefix": "bb2a96640d7ac6b1448676d7bea2d31eacbbcf66a8bf5fb0f4237765b78f94ef",
+        "size_in_bytes": 1115
+      },
+      {
+        "_path": "share/man/man1/gh-issue-create.1",
+        "path_type": "hardlink",
+        "sha256": "af4c4ae01fab8309854cd6a5e8519b9fa7517afc0ac6a6f583bd380e3514b464",
+        "sha256_in_prefix": "af4c4ae01fab8309854cd6a5e8519b9fa7517afc0ac6a6f583bd380e3514b464",
+        "size_in_bytes": 1550
+      },
+      {
+        "_path": "share/man/man1/gh-issue-delete.1",
+        "path_type": "hardlink",
+        "sha256": "111524161cff88854f254791f47a6c6363451d5e88e6fa0b8ac2b5eede288f4c",
+        "sha256_in_prefix": "111524161cff88854f254791f47a6c6363451d5e88e6fa0b8ac2b5eede288f4c",
+        "size_in_bytes": 478
+      },
+      {
+        "_path": "share/man/man1/gh-issue-develop.1",
+        "path_type": "hardlink",
+        "sha256": "ef0cea1151e01b062d077ed7ccdbb9cb6290571a89d9ac84e6931cdcdbe4f8e8",
+        "sha256_in_prefix": "ef0cea1151e01b062d077ed7ccdbb9cb6290571a89d9ac84e6931cdcdbe4f8e8",
+        "size_in_bytes": 1424
+      },
+      {
+        "_path": "share/man/man1/gh-issue-edit.1",
+        "path_type": "hardlink",
+        "sha256": "711f753105c9e3aafe064dadb40449ad4c13ec337e88f9a7fb0d407f5ac9ad9f",
+        "sha256_in_prefix": "711f753105c9e3aafe064dadb40449ad4c13ec337e88f9a7fb0d407f5ac9ad9f",
+        "size_in_bytes": 1695
+      },
+      {
+        "_path": "share/man/man1/gh-issue-list.1",
+        "path_type": "hardlink",
+        "sha256": "6b7edc5400caf7a8e9bece945be8bdda7262e1cfb9ca1d98aaa5e2ade58584a1",
+        "sha256_in_prefix": "6b7edc5400caf7a8e9bece945be8bdda7262e1cfb9ca1d98aaa5e2ade58584a1",
+        "size_in_bytes": 2020
+      },
+      {
+        "_path": "share/man/man1/gh-issue-pin.1",
+        "path_type": "hardlink",
+        "sha256": "74033460915aee51ee9da4e4fc486f7466869adda43683c7247b6e063b233dcc",
+        "sha256_in_prefix": "74033460915aee51ee9da4e4fc486f7466869adda43683c7247b6e063b233dcc",
+        "size_in_bytes": 753
+      },
+      {
+        "_path": "share/man/man1/gh-issue-reopen.1",
+        "path_type": "hardlink",
+        "sha256": "90e7a504780d98e45990b424fbff342fd3cc2e1fd2f91868c573baa605a079ea",
+        "sha256_in_prefix": "90e7a504780d98e45990b424fbff342fd3cc2e1fd2f91868c573baa605a079ea",
+        "size_in_bytes": 498
+      },
+      {
+        "_path": "share/man/man1/gh-issue-status.1",
+        "path_type": "hardlink",
+        "sha256": "c9165a30951f76d7b0eb283f46cc5d2230af7f4737f9bdc6140372353cebe80c",
+        "sha256_in_prefix": "c9165a30951f76d7b0eb283f46cc5d2230af7f4737f9bdc6140372353cebe80c",
+        "size_in_bytes": 711
+      },
+      {
+        "_path": "share/man/man1/gh-issue-transfer.1",
+        "path_type": "hardlink",
+        "sha256": "52ce4239f17cbb7e7fd2104b43cd12eba063d566905cc0c3f9e3a212dca47238",
+        "sha256_in_prefix": "52ce4239f17cbb7e7fd2104b43cd12eba063d566905cc0c3f9e3a212dca47238",
+        "size_in_bytes": 455
+      },
+      {
+        "_path": "share/man/man1/gh-issue-unpin.1",
+        "path_type": "hardlink",
+        "sha256": "3046365988e281f305a79c745dddbc3f9162f8893646c287a3c6c76d465b7351",
+        "sha256_in_prefix": "3046365988e281f305a79c745dddbc3f9162f8893646c287a3c6c76d465b7351",
+        "size_in_bytes": 775
+      },
+      {
+        "_path": "share/man/man1/gh-issue-view.1",
+        "path_type": "hardlink",
+        "sha256": "4ec6953e2491577d3cd8a76376ecfeadf682fe653e6c76d22389cdd28683af1e",
+        "sha256_in_prefix": "4ec6953e2491577d3cd8a76376ecfeadf682fe653e6c76d22389cdd28683af1e",
+        "size_in_bytes": 972
+      },
+      {
+        "_path": "share/man/man1/gh-issue.1",
+        "path_type": "hardlink",
+        "sha256": "3989383ddb6fb65248b99ef3fdd99cfca7b785a39699ee39582905aec65f370f",
+        "sha256_in_prefix": "3989383ddb6fb65248b99ef3fdd99cfca7b785a39699ee39582905aec65f370f",
+        "size_in_bytes": 1201
+      },
+      {
+        "_path": "share/man/man1/gh-label-clone.1",
+        "path_type": "hardlink",
+        "sha256": "06f75285acdb819883699edb337fecfc45501c2d0772fa5106ab37c79ee1e6b9",
+        "sha256_in_prefix": "06f75285acdb819883699edb337fecfc45501c2d0772fa5106ab37c79ee1e6b9",
+        "size_in_bytes": 1352
+      },
+      {
+        "_path": "share/man/man1/gh-label-create.1",
+        "path_type": "hardlink",
+        "sha256": "35d1bc811dcd28c3a90f85a924d8da36bd62ffaca71a20aae296f52688622024",
+        "sha256_in_prefix": "35d1bc811dcd28c3a90f85a924d8da36bd62ffaca71a20aae296f52688622024",
+        "size_in_bytes": 1087
+      },
+      {
+        "_path": "share/man/man1/gh-label-delete.1",
+        "path_type": "hardlink",
+        "sha256": "750840021745e5af7cea6904f6bf9b3b8685f61c9c71e6ef0e85aac82b3a917f",
+        "sha256_in_prefix": "750840021745e5af7cea6904f6bf9b3b8685f61c9c71e6ef0e85aac82b3a917f",
+        "size_in_bytes": 486
+      },
+      {
+        "_path": "share/man/man1/gh-label-edit.1",
+        "path_type": "hardlink",
+        "sha256": "b9bd8dba87d59985111ad6559ff682fc2102df875574358ad31cde04f478bb6e",
+        "sha256_in_prefix": "b9bd8dba87d59985111ad6559ff682fc2102df875574358ad31cde04f478bb6e",
+        "size_in_bytes": 1029
+      },
+      {
+        "_path": "share/man/man1/gh-label-list.1",
+        "path_type": "hardlink",
+        "sha256": "a49d5bde5ebadcb48a229cc5e673f9a9213a86351f82c61ebe88ae02249b8754",
+        "sha256_in_prefix": "a49d5bde5ebadcb48a229cc5e673f9a9213a86351f82c61ebe88ae02249b8754",
+        "size_in_bytes": 1499
+      },
+      {
+        "_path": "share/man/man1/gh-label.1",
+        "path_type": "hardlink",
+        "sha256": "95db0eb8cc47a69ce49f831c070749978c2c832a2f13f3af20dd5cc07aac4105",
+        "sha256_in_prefix": "95db0eb8cc47a69ce49f831c070749978c2c832a2f13f3af20dd5cc07aac4105",
+        "size_in_bytes": 699
+      },
+      {
+        "_path": "share/man/man1/gh-pr-checkout.1",
+        "path_type": "hardlink",
+        "sha256": "e0381e2c29d6bd898a7ec6d247d67d08cac26dd5885090841676068d1c70311b",
+        "sha256_in_prefix": "e0381e2c29d6bd898a7ec6d247d67d08cac26dd5885090841676068d1c70311b",
+        "size_in_bytes": 796
+      },
+      {
+        "_path": "share/man/man1/gh-pr-checks.1",
+        "path_type": "hardlink",
+        "sha256": "fb4b9278f2bc923b94cfa5adeef38c4099fa8837fdc2a1c777f837ee516c2310",
+        "sha256_in_prefix": "fb4b9278f2bc923b94cfa5adeef38c4099fa8837fdc2a1c777f837ee516c2310",
+        "size_in_bytes": 906
+      },
+      {
+        "_path": "share/man/man1/gh-pr-close.1",
+        "path_type": "hardlink",
+        "sha256": "8cb1190869f733abff044c4644a1c38040a03acc3896c00abff8f2df2b29ab12",
+        "sha256_in_prefix": "8cb1190869f733abff044c4644a1c38040a03acc3896c00abff8f2df2b29ab12",
+        "size_in_bytes": 592
+      },
+      {
+        "_path": "share/man/man1/gh-pr-comment.1",
+        "path_type": "hardlink",
+        "sha256": "645089df41193e7f4464acf10ad7d006c944bcf4e9bcb70c2560335d82b4c28e",
+        "sha256_in_prefix": "645089df41193e7f4464acf10ad7d006c944bcf4e9bcb70c2560335d82b4c28e",
+        "size_in_bytes": 1124
+      },
+      {
+        "_path": "share/man/man1/gh-pr-create.1",
+        "path_type": "hardlink",
+        "sha256": "7afa07afc067286186dfe081f9e2e658c6ed54386efd107641ede7b585f797de",
+        "sha256_in_prefix": "7afa07afc067286186dfe081f9e2e658c6ed54386efd107641ede7b585f797de",
+        "size_in_bytes": 2971
+      },
+      {
+        "_path": "share/man/man1/gh-pr-diff.1",
+        "path_type": "hardlink",
+        "sha256": "e517d3162c2fc1f0cf6ed267c8ddd72678641a96771a3b17372a2a73fb053795",
+        "sha256_in_prefix": "e517d3162c2fc1f0cf6ed267c8ddd72678641a96771a3b17372a2a73fb053795",
+        "size_in_bytes": 921
+      },
+      {
+        "_path": "share/man/man1/gh-pr-edit.1",
+        "path_type": "hardlink",
+        "sha256": "0f61cf2d972ddbe85b7eeafc0d95d36ecdb0f47f9213191aaa06d618b91c1221",
+        "sha256_in_prefix": "0f61cf2d972ddbe85b7eeafc0d95d36ecdb0f47f9213191aaa06d618b91c1221",
+        "size_in_bytes": 2136
+      },
+      {
+        "_path": "share/man/man1/gh-pr-list.1",
+        "path_type": "hardlink",
+        "sha256": "138dbd592b9a072d0b4400369f3536a26c371009b21cf5ccd0c82828629d6ec9",
+        "sha256_in_prefix": "138dbd592b9a072d0b4400369f3536a26c371009b21cf5ccd0c82828629d6ec9",
+        "size_in_bytes": 2190
+      },
+      {
+        "_path": "share/man/man1/gh-pr-merge.1",
+        "path_type": "hardlink",
+        "sha256": "7fc03bc67dc325d352766dfbe63e7e84c74cfbba5507aa181b4b250989e780a1",
+        "sha256_in_prefix": "7fc03bc67dc325d352766dfbe63e7e84c74cfbba5507aa181b4b250989e780a1",
+        "size_in_bytes": 1973
+      },
+      {
+        "_path": "share/man/man1/gh-pr-ready.1",
+        "path_type": "hardlink",
+        "sha256": "26e9c30ad8b70b1823961fa39326cb9d18727bc1d2b5b4d4fa9d3afc5b97d421",
+        "sha256_in_prefix": "26e9c30ad8b70b1823961fa39326cb9d18727bc1d2b5b4d4fa9d3afc5b97d421",
+        "size_in_bytes": 719
+      },
+      {
+        "_path": "share/man/man1/gh-pr-reopen.1",
+        "path_type": "hardlink",
+        "sha256": "99c5d0c5607a926d52d3e87bc79c3fbd599e8d4840ef88cd2a81d2008f32874f",
+        "sha256_in_prefix": "99c5d0c5607a926d52d3e87bc79c3fbd599e8d4840ef88cd2a81d2008f32874f",
+        "size_in_bytes": 506
+      },
+      {
+        "_path": "share/man/man1/gh-pr-review.1",
+        "path_type": "hardlink",
+        "sha256": "e3b8a4308245d1a8bb8e35093fce8dc2913c46b5ee85c1f7c2e763540287f480",
+        "sha256_in_prefix": "e3b8a4308245d1a8bb8e35093fce8dc2913c46b5ee85c1f7c2e763540287f480",
+        "size_in_bytes": 1339
+      },
+      {
+        "_path": "share/man/man1/gh-pr-status.1",
+        "path_type": "hardlink",
+        "sha256": "ac1749e001ab4cd9121e0d85e9891ec2e162ce6e67278663c8b8194cb4248225",
+        "sha256_in_prefix": "ac1749e001ab4cd9121e0d85e9891ec2e162ce6e67278663c8b8194cb4248225",
+        "size_in_bytes": 806
+      },
+      {
+        "_path": "share/man/man1/gh-pr-view.1",
+        "path_type": "hardlink",
+        "sha256": "247b4182122f9535bea05dca34f26e7849c4a0f83052d10f2b9a09afcc0c61b2",
+        "sha256_in_prefix": "247b4182122f9535bea05dca34f26e7849c4a0f83052d10f2b9a09afcc0c61b2",
+        "size_in_bytes": 1095
+      },
+      {
+        "_path": "share/man/man1/gh-pr.1",
+        "path_type": "hardlink",
+        "sha256": "3373c1dc9a182eebf35d47ddc4f595a9f44ccc496e41b27dcf31b84e3a27c593",
+        "sha256_in_prefix": "3373c1dc9a182eebf35d47ddc4f595a9f44ccc496e41b27dcf31b84e3a27c593",
+        "size_in_bytes": 1323
+      },
+      {
+        "_path": "share/man/man1/gh-release-create.1",
+        "path_type": "hardlink",
+        "sha256": "7185eae5b02deaf092dcb25566c16bbb1cdcdd65e3d1398fbc787c26a2fc4f05",
+        "sha256_in_prefix": "7185eae5b02deaf092dcb25566c16bbb1cdcdd65e3d1398fbc787c26a2fc4f05",
+        "size_in_bytes": 2934
+      },
+      {
+        "_path": "share/man/man1/gh-release-delete-asset.1",
+        "path_type": "hardlink",
+        "sha256": "f3319329e5f6ee300c7310536d89b15c31267a6db883acb64f00205f4b3cb973",
+        "sha256_in_prefix": "f3319329e5f6ee300c7310536d89b15c31267a6db883acb64f00205f4b3cb973",
+        "size_in_bytes": 525
+      },
+      {
+        "_path": "share/man/man1/gh-release-delete.1",
+        "path_type": "hardlink",
+        "sha256": "dbf58d68677978399cf3f9d144b32b1076e2895517d489794083ad21ad82ef2f",
+        "sha256_in_prefix": "dbf58d68677978399cf3f9d144b32b1076e2895517d489794083ad21ad82ef2f",
+        "size_in_bytes": 560
+      },
+      {
+        "_path": "share/man/man1/gh-release-download.1",
+        "path_type": "hardlink",
+        "sha256": "a0c6f509065819bb366095988feb386c555c62382318b1cc4f24012f1bffcb41",
+        "sha256_in_prefix": "a0c6f509065819bb366095988feb386c555c62382318b1cc4f24012f1bffcb41",
+        "size_in_bytes": 1624
+      },
+      {
+        "_path": "share/man/man1/gh-release-edit.1",
+        "path_type": "hardlink",
+        "sha256": "2d31e3e075aa5c7c32ef198dff72b718ea2fa3e59aac45ced1d505ed184fb650",
+        "sha256_in_prefix": "2d31e3e075aa5c7c32ef198dff72b718ea2fa3e59aac45ced1d505ed184fb650",
+        "size_in_bytes": 1370
+      },
+      {
+        "_path": "share/man/man1/gh-release-list.1",
+        "path_type": "hardlink",
+        "sha256": "65e766f36421feff51aa71c8bbf55852ac62a729edf2f5c64a27a8526700d796",
+        "sha256_in_prefix": "65e766f36421feff51aa71c8bbf55852ac62a729edf2f5c64a27a8526700d796",
+        "size_in_bytes": 556
+      },
+      {
+        "_path": "share/man/man1/gh-release-upload.1",
+        "path_type": "hardlink",
+        "sha256": "25c00909a23d44da265d01287ee6b8f999de02d2214ce110cc39bfe500884c3a",
+        "sha256_in_prefix": "25c00909a23d44da265d01287ee6b8f999de02d2214ce110cc39bfe500884c3a",
+        "size_in_bytes": 664
+      },
+      {
+        "_path": "share/man/man1/gh-release-view.1",
+        "path_type": "hardlink",
+        "sha256": "c88f28daa9408f258572ab66118823ecf28b80afcfd9080642ac978a715d9082",
+        "sha256_in_prefix": "c88f28daa9408f258572ab66118823ecf28b80afcfd9080642ac978a715d9082",
+        "size_in_bytes": 939
+      },
+      {
+        "_path": "share/man/man1/gh-release.1",
+        "path_type": "hardlink",
+        "sha256": "869e8ab74744921bde318892244fe5774dac13b9bfbdd52d6fbf465ba01e4c22",
+        "sha256_in_prefix": "869e8ab74744921bde318892244fe5774dac13b9bfbdd52d6fbf465ba01e4c22",
+        "size_in_bytes": 842
+      },
+      {
+        "_path": "share/man/man1/gh-repo-archive.1",
+        "path_type": "hardlink",
+        "sha256": "c1025ba22b9e0eab6991885cd0c8113f29f861e39e8b7d29502b3b97b6ecdcb1",
+        "sha256_in_prefix": "c1025ba22b9e0eab6991885cd0c8113f29f861e39e8b7d29502b3b97b6ecdcb1",
+        "size_in_bytes": 427
+      },
+      {
+        "_path": "share/man/man1/gh-repo-clone.1",
+        "path_type": "hardlink",
+        "sha256": "f00fa150260d25c0edf8d32bf7421c4389994872984b67dcfdb4569c5c5706ef",
+        "sha256_in_prefix": "f00fa150260d25c0edf8d32bf7421c4389994872984b67dcfdb4569c5c5706ef",
+        "size_in_bytes": 976
+      },
+      {
+        "_path": "share/man/man1/gh-repo-create.1",
+        "path_type": "hardlink",
+        "sha256": "45aec192c3779af61b3330f9b43973a49994c2527b5ad6c6b16210ffb07bf583",
+        "sha256_in_prefix": "45aec192c3779af61b3330f9b43973a49994c2527b5ad6c6b16210ffb07bf583",
+        "size_in_bytes": 2587
+      },
+      {
+        "_path": "share/man/man1/gh-repo-delete.1",
+        "path_type": "hardlink",
+        "sha256": "790595a845f5a902f8847d02fbb743c9cc5cc20be8828f7784c418c1bfcc0937",
+        "sha256_in_prefix": "790595a845f5a902f8847d02fbb743c9cc5cc20be8828f7784c418c1bfcc0937",
+        "size_in_bytes": 577
+      },
+      {
+        "_path": "share/man/man1/gh-repo-deploy-key-add.1",
+        "path_type": "hardlink",
+        "sha256": "ede11f812571f740b40b4ef83e2667efa6496ad8e9145a1e5fd1bb9dab1c5763",
+        "sha256_in_prefix": "ede11f812571f740b40b4ef83e2667efa6496ad8e9145a1e5fd1bb9dab1c5763",
+        "size_in_bytes": 1140
+      },
+      {
+        "_path": "share/man/man1/gh-repo-deploy-key-delete.1",
+        "path_type": "hardlink",
+        "sha256": "160b743f697d632a7f62f8333eadd7804d8e34bbc6a365a7922a3ed6f6bd9942",
+        "sha256_in_prefix": "160b743f697d632a7f62f8333eadd7804d8e34bbc6a365a7922a3ed6f6bd9942",
+        "size_in_bytes": 468
+      },
+      {
+        "_path": "share/man/man1/gh-repo-deploy-key-list.1",
+        "path_type": "hardlink",
+        "sha256": "c958d222c424b17b6cae8e25b5092bdeec1b57248525aa54edf09f6403568d55",
+        "sha256_in_prefix": "c958d222c424b17b6cae8e25b5092bdeec1b57248525aa54edf09f6403568d55",
+        "size_in_bytes": 448
+      },
+      {
+        "_path": "share/man/man1/gh-repo-deploy-key.1",
+        "path_type": "hardlink",
+        "sha256": "15449211cddc79b369e619bf807868fdbfc45d9808128111d947be5e0a392a8d",
+        "sha256_in_prefix": "15449211cddc79b369e619bf807868fdbfc45d9808128111d947be5e0a392a8d",
+        "size_in_bytes": 659
+      },
+      {
+        "_path": "share/man/man1/gh-repo-edit.1",
+        "path_type": "hardlink",
+        "sha256": "d1431709f97aecd2dd5e8cae2fffd02a2dff446d71b7601e50b795b0abae9893",
+        "sha256_in_prefix": "d1431709f97aecd2dd5e8cae2fffd02a2dff446d71b7601e50b795b0abae9893",
+        "size_in_bytes": 1777
+      },
+      {
+        "_path": "share/man/man1/gh-repo-fork.1",
+        "path_type": "hardlink",
+        "sha256": "b55a99503a0878898692ba33aadc34b194b735a6fcca12dd733a3cf323dad94d",
+        "sha256_in_prefix": "b55a99503a0878898692ba33aadc34b194b735a6fcca12dd733a3cf323dad94d",
+        "size_in_bytes": 1040
+      },
+      {
+        "_path": "share/man/man1/gh-repo-list.1",
+        "path_type": "hardlink",
+        "sha256": "a1f0f258293366a48f24de61d1ade201cd78ce8fcdb0e6df0ed9e03602456b32",
+        "sha256_in_prefix": "a1f0f258293366a48f24de61d1ade201cd78ce8fcdb0e6df0ed9e03602456b32",
+        "size_in_bytes": 1092
+      },
+      {
+        "_path": "share/man/man1/gh-repo-rename.1",
+        "path_type": "hardlink",
+        "sha256": "a5a7d9e617260d28d9f57c1b515cd24bd5a7c375af3097383a27c03ca105110d",
+        "sha256_in_prefix": "a5a7d9e617260d28d9f57c1b515cd24bd5a7c375af3097383a27c03ca105110d",
+        "size_in_bytes": 582
+      },
+      {
+        "_path": "share/man/man1/gh-repo-sync.1",
+        "path_type": "hardlink",
+        "sha256": "deeda3b3f8b5a3f23259377f6b4a4d3965621489b62bb6d17fc4bdc53000adf1",
+        "sha256_in_prefix": "deeda3b3f8b5a3f23259377f6b4a4d3965621489b62bb6d17fc4bdc53000adf1",
+        "size_in_bytes": 1459
+      },
+      {
+        "_path": "share/man/man1/gh-repo-view.1",
+        "path_type": "hardlink",
+        "sha256": "e6d3eaa911c896ab66fdc1d7055744e4b708462b52a126401dfbeafc7555f9f5",
+        "sha256_in_prefix": "e6d3eaa911c896ab66fdc1d7055744e4b708462b52a126401dfbeafc7555f9f5",
+        "size_in_bytes": 988
+      },
+      {
+        "_path": "share/man/man1/gh-repo.1",
+        "path_type": "hardlink",
+        "sha256": "6865622bda33253da98e3c6c5427f674fc0a6c38b11dc268210b52482190c19b",
+        "sha256_in_prefix": "6865622bda33253da98e3c6c5427f674fc0a6c38b11dc268210b52482190c19b",
+        "size_in_bytes": 1004
+      },
+      {
+        "_path": "share/man/man1/gh-run-cancel.1",
+        "path_type": "hardlink",
+        "sha256": "4fb9b9d8d3cab627ff6ee7107917cc239760fbd5f19479b119d0fa39c9933aa8",
+        "sha256_in_prefix": "4fb9b9d8d3cab627ff6ee7107917cc239760fbd5f19479b119d0fa39c9933aa8",
+        "size_in_bytes": 399
+      },
+      {
+        "_path": "share/man/man1/gh-run-download.1",
+        "path_type": "hardlink",
+        "sha256": "1eb54abbe5c0e47e8cc4a707816064b5c6d077384863c4669df51d9e18ce25e4",
+        "sha256_in_prefix": "1eb54abbe5c0e47e8cc4a707816064b5c6d077384863c4669df51d9e18ce25e4",
+        "size_in_bytes": 1398
+      },
+      {
+        "_path": "share/man/man1/gh-run-list.1",
+        "path_type": "hardlink",
+        "sha256": "fc1951f031250324ad8456049b5f09e79d1483909fdc7da575031146868afaa8",
+        "sha256_in_prefix": "fc1951f031250324ad8456049b5f09e79d1483909fdc7da575031146868afaa8",
+        "size_in_bytes": 1024
+      },
+      {
+        "_path": "share/man/man1/gh-run-rerun.1",
+        "path_type": "hardlink",
+        "sha256": "c5898b69d07cfe597b212443734529ca90c7e8bd7690087f0c9bf7a592f1f500",
+        "sha256_in_prefix": "c5898b69d07cfe597b212443734529ca90c7e8bd7690087f0c9bf7a592f1f500",
+        "size_in_bytes": 643
+      },
+      {
+        "_path": "share/man/man1/gh-run-view.1",
+        "path_type": "hardlink",
+        "sha256": "b1c93a8a9bce966431d34b071e3490caa055797c73042c5898da75ce5042033f",
+        "sha256_in_prefix": "b1c93a8a9bce966431d34b071e3490caa055797c73042c5898da75ce5042033f",
+        "size_in_bytes": 1525
+      },
+      {
+        "_path": "share/man/man1/gh-run-watch.1",
+        "path_type": "hardlink",
+        "sha256": "cb28a3f0a910f408bf697bbd3ce2f9ad4174d26d5490362c77d5dda2ce8485bd",
+        "sha256_in_prefix": "cb28a3f0a910f408bf697bbd3ce2f9ad4174d26d5490362c77d5dda2ce8485bd",
+        "size_in_bytes": 760
+      },
+      {
+        "_path": "share/man/man1/gh-run.1",
+        "path_type": "hardlink",
+        "sha256": "290c57993ee626ba54c4f2662f7bedd7fa7e03cdc398682185d9faf21c922c5c",
+        "sha256_in_prefix": "290c57993ee626ba54c4f2662f7bedd7fa7e03cdc398682185d9faf21c922c5c",
+        "size_in_bytes": 835
+      },
+      {
+        "_path": "share/man/man1/gh-search-issues.1",
+        "path_type": "hardlink",
+        "sha256": "d1341852a051745ba4de66f29ff4b56046488703f4f93b596248cb5526765336",
+        "sha256_in_prefix": "d1341852a051745ba4de66f29ff4b56046488703f4f93b596248cb5526765336",
+        "size_in_bytes": 4057
+      },
+      {
+        "_path": "share/man/man1/gh-search-prs.1",
+        "path_type": "hardlink",
+        "sha256": "76f71fb734aa8cd0f4dcbadb412909c17a5c5dee1353ebdebf16ced0faccbf7b",
+        "sha256_in_prefix": "76f71fb734aa8cd0f4dcbadb412909c17a5c5dee1353ebdebf16ced0faccbf7b",
+        "size_in_bytes": 4725
+      },
+      {
+        "_path": "share/man/man1/gh-search-repos.1",
+        "path_type": "hardlink",
+        "sha256": "6afe1504bdd5f61102c04c56669a6635b67a4625511db04a857cbe71dbb35cf0",
+        "sha256_in_prefix": "6afe1504bdd5f61102c04c56669a6635b67a4625511db04a857cbe71dbb35cf0",
+        "size_in_bytes": 3374
+      },
+      {
+        "_path": "share/man/man1/gh-search.1",
+        "path_type": "hardlink",
+        "sha256": "ebc6e975b02bb9b8fb3fc0d3aebf599aff7f08ddedf8fabdd72226029fd7178f",
+        "sha256_in_prefix": "ebc6e975b02bb9b8fb3fc0d3aebf599aff7f08ddedf8fabdd72226029fd7178f",
+        "size_in_bytes": 473
+      },
+      {
+        "_path": "share/man/man1/gh-secret-delete.1",
+        "path_type": "hardlink",
+        "sha256": "207b31b4f125607be577c5c36ad6d2efeb4af00f50be7cb72577922314b2cb4a",
+        "sha256_in_prefix": "207b31b4f125607be577c5c36ad6d2efeb4af00f50be7cb72577922314b2cb4a",
+        "size_in_bytes": 1158
+      },
+      {
+        "_path": "share/man/man1/gh-secret-list.1",
+        "path_type": "hardlink",
+        "sha256": "8d5e071f78540cc5db8c2d015493b9ce1270df1c6822c9c67cea83578271cc2e",
+        "sha256_in_prefix": "8d5e071f78540cc5db8c2d015493b9ce1270df1c6822c9c67cea83578271cc2e",
+        "size_in_bytes": 1122
+      },
+      {
+        "_path": "share/man/man1/gh-secret-set.1",
+        "path_type": "hardlink",
+        "sha256": "6d41486b301e921bba8b26d034b148013364654954a3141f2d9cb11462b4845d",
+        "sha256_in_prefix": "6d41486b301e921bba8b26d034b148013364654954a3141f2d9cb11462b4845d",
+        "size_in_bytes": 2835
+      },
+      {
+        "_path": "share/man/man1/gh-secret.1",
+        "path_type": "hardlink",
+        "sha256": "883d7eb3102cd6f1ffd2d592dc8b03f36efa3a2d1b3e22f3eb975ccd0c1e2d2a",
+        "sha256_in_prefix": "883d7eb3102cd6f1ffd2d592dc8b03f36efa3a2d1b3e22f3eb975ccd0c1e2d2a",
+        "size_in_bytes": 834
+      },
+      {
+        "_path": "share/man/man1/gh-ssh-key-add.1",
+        "path_type": "hardlink",
+        "sha256": "813f2bfb121e2a95b133da3e88aa8d0be23d87fbbc31c73cc171556fedb3fc63",
+        "sha256_in_prefix": "813f2bfb121e2a95b133da3e88aa8d0be23d87fbbc31c73cc171556fedb3fc63",
+        "size_in_bytes": 344
+      },
+      {
+        "_path": "share/man/man1/gh-ssh-key-delete.1",
+        "path_type": "hardlink",
+        "sha256": "dc438e4bcc1e9e1fcf180c94dec612b1363b23c01faf242de4d58c114ba485b0",
+        "sha256_in_prefix": "dc438e4bcc1e9e1fcf180c94dec612b1363b23c01faf242de4d58c114ba485b0",
+        "size_in_bytes": 341
+      },
+      {
+        "_path": "share/man/man1/gh-ssh-key-list.1",
+        "path_type": "hardlink",
+        "sha256": "abe299fd63acad5414279a3839900e179bfe6f2e049d3864bde6a9707e1308ec",
+        "sha256_in_prefix": "abe299fd63acad5414279a3839900e179bfe6f2e049d3864bde6a9707e1308ec",
+        "size_in_bytes": 246
+      },
+      {
+        "_path": "share/man/man1/gh-ssh-key.1",
+        "path_type": "hardlink",
+        "sha256": "7deea0a6532d572bb6ca81d1257d03c8b34f7693cd32bdcc3cc1607310951dcd",
+        "sha256_in_prefix": "7deea0a6532d572bb6ca81d1257d03c8b34f7693cd32bdcc3cc1607310951dcd",
+        "size_in_bytes": 519
+      },
+      {
+        "_path": "share/man/man1/gh-status.1",
+        "path_type": "hardlink",
+        "sha256": "e5aa7450e3b49ddc1112ac66fd1db30a4d842a13c833d28887bf10ed0cf92833",
+        "sha256_in_prefix": "e5aa7450e3b49ddc1112ac66fd1db30a4d842a13c833d28887bf10ed0cf92833",
+        "size_in_bytes": 993
+      },
+      {
+        "_path": "share/man/man1/gh-workflow-disable.1",
+        "path_type": "hardlink",
+        "sha256": "d0db1ff82bd6e85b1ce48f710c19afb6d1f1b0ee0cce3ee1ec0215338d80c218",
+        "sha256_in_prefix": "d0db1ff82bd6e85b1ce48f710c19afb6d1f1b0ee0cce3ee1ec0215338d80c218",
+        "size_in_bytes": 549
+      },
+      {
+        "_path": "share/man/man1/gh-workflow-enable.1",
+        "path_type": "hardlink",
+        "sha256": "4e662506779770021b792866ee1b7e9360d4c63982df365d3209ac9bb7234cd5",
+        "sha256_in_prefix": "4e662506779770021b792866ee1b7e9360d4c63982df365d3209ac9bb7234cd5",
+        "size_in_bytes": 537
+      },
+      {
+        "_path": "share/man/man1/gh-workflow-list.1",
+        "path_type": "hardlink",
+        "sha256": "1f38dbf3990cc77aa17db0fb142880240db1ff8c61a72ec6551d0404429fc7f2",
+        "sha256_in_prefix": "1f38dbf3990cc77aa17db0fb142880240db1ff8c61a72ec6551d0404429fc7f2",
+        "size_in_bytes": 658
+      },
+      {
+        "_path": "share/man/man1/gh-workflow-run.1",
+        "path_type": "hardlink",
+        "sha256": "165e0e4a9011f4ec78d1d271764b95b02f881d4b569bbe1169e07bfcb145404c",
+        "sha256_in_prefix": "165e0e4a9011f4ec78d1d271764b95b02f881d4b569bbe1169e07bfcb145404c",
+        "size_in_bytes": 1950
+      },
+      {
+        "_path": "share/man/man1/gh-workflow-view.1",
+        "path_type": "hardlink",
+        "sha256": "e269a09ac3783f6bc77b8997c54fa5f2871d04bc9bd9e9618667bafb893cb5ee",
+        "sha256_in_prefix": "e269a09ac3783f6bc77b8997c54fa5f2871d04bc9bd9e9618667bafb893cb5ee",
+        "size_in_bytes": 886
+      },
+      {
+        "_path": "share/man/man1/gh-workflow.1",
+        "path_type": "hardlink",
+        "sha256": "1f5c34f2e02fba4e42988d68d8b8d630dd69bee0887084dc7626a5ea295f6ef5",
+        "sha256_in_prefix": "1f5c34f2e02fba4e42988d68d8b8d630dd69bee0887084dc7626a5ea295f6ef5",
+        "size_in_bytes": 774
+      },
+      {
+        "_path": "share/man/man1/gh.1",
+        "path_type": "hardlink",
+        "sha256": "f1af3a779691797ff3ba80ba79e09102c03eaa855cff7bbfa6bf92becf54d69d",
+        "sha256_in_prefix": "f1af3a779691797ff3ba80ba79e09102c03eaa855cff7bbfa6bf92becf54d69d",
+        "size_in_bytes": 1643
+      }
+    ],
+    "paths_version": 1
+  },
+  "requested_spec": "gh",
+  "sha256": "8041c7faa12401d62231c31ef3dbaf4599556a7f4a3acafea60d16804533df7e",
+  "size": 15823078,
+  "subdir": "linux-64",
+  "timestamp": 1668525268712,
+  "track_features": "",
+  "url": "https://conda.anaconda.org/conda-forge/linux-64/gh-2.20.2-ha8f183a_0.tar.bz2",
+  "version": "2.20.2"
+}

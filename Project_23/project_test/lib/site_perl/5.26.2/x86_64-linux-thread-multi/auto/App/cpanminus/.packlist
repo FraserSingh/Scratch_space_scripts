@@ -1,0 +1,6 @@
+/exports/csce/eddie/biology/groups/bioinfmsc/anaconda/envs/s2268606/project_test/bin/cpanm relocate_as=../../../../../../../bin/cpanm
+/exports/csce/eddie/biology/groups/bioinfmsc/anaconda/envs/s2268606/project_test/lib/site_perl/5.26.2/App/cpanminus.pm relocate_as=../../../../App/cpanminus.pm
+/exports/csce/eddie/biology/groups/bioinfmsc/anaconda/envs/s2268606/project_test/lib/site_perl/5.26.2/App/cpanminus/fatscript.pm relocate_as=../../../../App/cpanminus/fatscript.pm
+/exports/csce/eddie/biology/groups/bioinfmsc/anaconda/envs/s2268606/project_test/man/man1/cpanm.1 relocate_as=../../../../../../../man/man1/cpanm.1
+/exports/csce/eddie/biology/groups/bioinfmsc/anaconda/envs/s2268606/project_test/man/man3/App::cpanminus.3 relocate_as=../../../../../../../man/man3/App::cpanminus.3
+/exports/csce/eddie/biology/groups/bioinfmsc/anaconda/envs/s2268606/project_test/man/man3/App::cpanminus::fatscript.3 relocate_as=../../../../../../../man/man3/App::cpanminus::fatscript.3

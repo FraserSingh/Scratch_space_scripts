@@ -1,0 +1,2 @@
+#!/bin/sh
+exec /exports/csce/eddie/biology/groups/bioinfmsc/anaconda/envs/s2268606/project_test/bin/python -m PyQt5.pylupdate_main ${1+"$@"}

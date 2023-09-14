@@ -1,0 +1,11 @@
+prefix=/exports/csce/eddie/biology/groups/bioinfmsc/anaconda/envs/s2268606/project_test
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include
+
+Name: XCB Res
+Description: XCB X-Resource Extension
+Version: 1.15
+Requires.private: xcb
+Libs: -L${libdir} -lxcb-res
+Cflags: -I${includedir}

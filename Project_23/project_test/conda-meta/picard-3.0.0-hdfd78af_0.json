@@ -1,0 +1,88 @@
+{
+  "build": "hdfd78af_0",
+  "build_number": 0,
+  "channel": "https://conda.anaconda.org/bioconda/noarch",
+  "constrains": [],
+  "depends": [
+    "openjdk >=8",
+    "r-base"
+  ],
+  "extracted_package_dir": "/exports/csce/eddie/biology/groups/bioinfmsc/anaconda/pkgs/picard-3.0.0-hdfd78af_0",
+  "features": "",
+  "files": [
+    "bin/picard",
+    "share/picard-3.0.0-0/build_env_setup.sh",
+    "share/picard-3.0.0-0/conda_build.sh",
+    "share/picard-3.0.0-0/metadata_conda_debug.yaml",
+    "share/picard-3.0.0-0/picard",
+    "share/picard-3.0.0-0/picard.jar"
+  ],
+  "fn": "picard-3.0.0-hdfd78af_0.tar.bz2",
+  "license": "MIT",
+  "license_family": "MIT",
+  "link": {
+    "source": "/exports/csce/eddie/biology/groups/bioinfmsc/anaconda/pkgs/picard-3.0.0-hdfd78af_0",
+    "type": 1
+  },
+  "md5": "0e94efdff0ac5b789d512027d6fd13da",
+  "name": "picard",
+  "noarch": "generic",
+  "package_tarball_full_path": "/exports/csce/eddie/biology/groups/bioinfmsc/anaconda/pkgs/picard-3.0.0-hdfd78af_0.tar.bz2",
+  "package_type": "noarch_generic",
+  "paths_data": {
+    "paths": [
+      {
+        "_path": "bin/picard",
+        "path_type": "softlink",
+        "sha256": "ee0bf7a210b99bafc904904016e5f8720c3f6c259e021bd7b2cb8dbc71d88cc1",
+        "size_in_bytes": 2228
+      },
+      {
+        "_path": "share/picard-3.0.0-0/build_env_setup.sh",
+        "file_mode": "text",
+        "path_type": "hardlink",
+        "prefix_placeholder": "/opt/conda/conda-bld/picard_1677573004532/_h_env_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placeh",
+        "sha256": "59002f3db0b6f58fd521c80b54d436dc1ea0c31d35aca7ede46316a04eb67cc3",
+        "sha256_in_prefix": "b49645694a1890cce33bf8e626556adba7f85debdad9a6da23abae6c38ae572c",
+        "size_in_bytes": 13203
+      },
+      {
+        "_path": "share/picard-3.0.0-0/conda_build.sh",
+        "path_type": "hardlink",
+        "sha256": "b8cb4b5c223e8d9aa85092a6907d46f68079c0c979785339c1f22583de67bc1b",
+        "sha256_in_prefix": "b8cb4b5c223e8d9aa85092a6907d46f68079c0c979785339c1f22583de67bc1b",
+        "size_in_bytes": 526
+      },
+      {
+        "_path": "share/picard-3.0.0-0/metadata_conda_debug.yaml",
+        "path_type": "hardlink",
+        "sha256": "fc7dfabc98fc493658c1c044c729876feff6865b2dba2806d3488d61eeb06b04",
+        "sha256_in_prefix": "fc7dfabc98fc493658c1c044c729876feff6865b2dba2806d3488d61eeb06b04",
+        "size_in_bytes": 917
+      },
+      {
+        "_path": "share/picard-3.0.0-0/picard",
+        "path_type": "hardlink",
+        "sha256": "ee0bf7a210b99bafc904904016e5f8720c3f6c259e021bd7b2cb8dbc71d88cc1",
+        "sha256_in_prefix": "ee0bf7a210b99bafc904904016e5f8720c3f6c259e021bd7b2cb8dbc71d88cc1",
+        "size_in_bytes": 2228
+      },
+      {
+        "_path": "share/picard-3.0.0-0/picard.jar",
+        "path_type": "hardlink",
+        "sha256": "0d5e28ab301fad3b02030d01923888129ba82c5f722ac5ccb2d418ab76ac5499",
+        "sha256_in_prefix": "0d5e28ab301fad3b02030d01923888129ba82c5f722ac5ccb2d418ab76ac5499",
+        "size_in_bytes": 19908878
+      }
+    ],
+    "paths_version": 1
+  },
+  "requested_spec": "picard",
+  "sha256": "8bbf50a96989cd7feae82ea14cf5f69e7c4dc1f263eb1e8707dff9f0365dfbd0",
+  "size": 18345354,
+  "subdir": "noarch",
+  "timestamp": 1677573129029,
+  "track_features": "",
+  "url": "https://conda.anaconda.org/bioconda/noarch/picard-3.0.0-hdfd78af_0.tar.bz2",
+  "version": "3.0.0"
+}
