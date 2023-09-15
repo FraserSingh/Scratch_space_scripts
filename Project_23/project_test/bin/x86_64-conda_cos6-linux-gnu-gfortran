@@ -1,2 +1,0 @@
-#!/bin/sh
-/exports/csce/eddie/biology/groups/bioinfmsc/anaconda/envs/s2268606/project_test/bin/x86_64-conda_cos6-linux-gnu-gfortran.bin -specs=/exports/csce/eddie/biology/groups/bioinfmsc/anaconda/envs/s2268606/project_test/bin/../lib/gcc/x86_64-conda_cos6-linux-gnu/7.3.0/specs "$@"

@@ -1,6 +1,0 @@
-/exports/csce/eddie/biology/groups/bioinfmsc/anaconda/envs/s2268606/project_test/lib/site_perl/5.26.2/XML/SAX/Base.pm relocate_as=../../../../../XML/SAX/Base.pm
-/exports/csce/eddie/biology/groups/bioinfmsc/anaconda/envs/s2268606/project_test/lib/site_perl/5.26.2/XML/SAX/BuildSAXBase.pl relocate_as=../../../../../XML/SAX/BuildSAXBase.pl
-/exports/csce/eddie/biology/groups/bioinfmsc/anaconda/envs/s2268606/project_test/lib/site_perl/5.26.2/XML/SAX/Exception.pm relocate_as=../../../../../XML/SAX/Exception.pm
-/exports/csce/eddie/biology/groups/bioinfmsc/anaconda/envs/s2268606/project_test/man/man3/XML::SAX::Base.3 relocate_as=../../../../../../../../man/man3/XML::SAX::Base.3
-/exports/csce/eddie/biology/groups/bioinfmsc/anaconda/envs/s2268606/project_test/man/man3/XML::SAX::BuildSAXBase.3 relocate_as=../../../../../../../../man/man3/XML::SAX::BuildSAXBase.3
-/exports/csce/eddie/biology/groups/bioinfmsc/anaconda/envs/s2268606/project_test/man/man3/XML::SAX::Exception.3 relocate_as=../../../../../../../../man/man3/XML::SAX::Exception.3

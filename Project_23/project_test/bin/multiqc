@@ -1,4 +1,0 @@
-#!/exports/csce/eddie/biology/groups/bioinfmsc/anaconda/envs/s2268606/project_test/bin/python
-# EASY-INSTALL-SCRIPT: 'multiqc==1.0.dev0','multiqc'
-__requires__ = 'multiqc==1.0.dev0'
-__import__('pkg_resources').run_script('multiqc==1.0.dev0', 'multiqc')
