@@ -1,13 +1,12 @@
 #!/usr/bin/bash
-#$ -cwd             #run in current working dir
-#$ -N bamRetrieve    #name of job
-#$ -l h_rt=02:00:00 #approximate time taken, (specify more than required for safety)
-#$ -l h_vmem=16G     #How much RAM is required
-#$ -pe sharedmem 2  #how many cores?
+#$ -./Ximerakis/Data    #run in Ximerakis directory
+#$ -N bamRetrieve       #name of job
+#$ -l h_rt=02:00:00     #approximate time taken, (specify more than required for safety)
+#$ -l h_vmem=16G        #How much RAM is required
+#$ -pe sharedmem 2      #how many cores?
 #$ -e bamRetrieve.e     #where errors go
-#$ -M S2268606@ed.ac.uk    #contact info
-#$ -m beas
 
+#This script retrieves the bam fiels for the Ximerakis paper to the appropriate folder created int he last stage of the process
 
 urls=(
     "https://sra-pub-src-1.s3.amazonaws.com/SRR8895038/OX1X.bam.1"
