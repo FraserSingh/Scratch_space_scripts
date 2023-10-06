@@ -24,26 +24,26 @@ A directory exists for each dataset, each with a subdirectory for the Images gen
 |                          |                                                                                                |
 |                          | The script will submit several other scripts (seen below) to the Eddie supercomputer\          |
 |                          | cluster at the University of Edinburgh, so users should run this script in their 'scratch\     |
-|                          | space' whilst in a working node (rather than the welcome nodes that greet the user\            |
+|                          | space' whilst in a working node (rather than the welcome nodes that greets the user\           |
 |                          | on the supercomputer cluster)                                                                  |
 |                          |                                                                                                |
 |                          | NB: This script is not fully automated and should be supervised. Additional advice is\         |
 |                          | present throughout the document as an explanation of the commands being\                       |
 |                          | executed and details of where the files are saved.                                             |
 +--------------------------+------------------------------------------------------------------------------------------------+
-| i_bamRetrieve.sh         | This script retrieves the bam fiels for the Ximerakis paper to the appropriate folder\         |
-|                          | created int he last stage of the process                                                       |
+| i_bamRetrieve.sh         | This script retrieves the bam files for the Ximerakis paper to the appropriate folder\         |
+|                          | created in the last stage of the process                                                       |
 +--------------------------+------------------------------------------------------------------------------------------------+
 | ii_bam_convert.sh        | This script converts the bam files for the Ximerakis paper into fastq files for count\         |
 |                          | generation in the next script                                                                  |
 +--------------------------+------------------------------------------------------------------------------------------------+
 | iii_cellranger_genome.sh | This script creates a reference genome for cellranger counts to use in the next script.        |
 |                          |                                                                                                |
-|                          | The reference is cutom-made to provide up-to-date gene annotations, but without\               |
-|                          | overlapping non-pol-A annotations which cause multimapping in cellranger counts\               |
+|                          | The reference is custom-made to provide up-to-date gene annotations, but without\              |
+|                          | overlapping non-poly-A annotations which cause multimapping in cellranger counts\              |
 |                          | and read discarding                                                                            |
 +--------------------------+------------------------------------------------------------------------------------------------+
-| iv_cellranger_counts.sh  | This script generates gene counts for the Cimerakis dataset using the reference\               |
+| iv_cellranger_counts.sh  | This script generates gene counts for the Ximerakis dataset using the reference\               |
 |                          | genome created in the previous script. Last script before the Rmd document                     |
 +--------------------------+------------------------------------------------------------------------------------------------+
 | v_cellrangerMultiQC.sh   | This script is not required for the processing of data but runs multiqc on the Ximerakis\      |
@@ -56,7 +56,7 @@ A directory exists for each dataset, each with a subdirectory for the Images gen
 +--------------------------+------------------------------------------------------------------------------------------------+
 | 4_VerityWorkflow.Rmd     | Processing and analysis of the Verity dataset.                                                 |
 +--------------------------+------------------------------------------------------------------------------------------------+
-| 5_DEG_plot_exporting.Rmd | his optional script generates Venn diagrams for DEG membership comparison. \                   |
+| 5_DEG_plot_exporting.Rmd | This optional script generates Venn diagrams for DEG membership comparison. \                  |
 |                          | There is also an assortment of code which could be adapted by the user.                        |
 +--------------------------+------------------------------------------------------------------------------------------------+
 | Slota_samples.txt        | A text file listing the name of the samples to be loaded for the terminal dataset.\            |
